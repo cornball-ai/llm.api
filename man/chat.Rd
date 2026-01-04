@@ -11,7 +11,7 @@ chat(
   history = NULL,
   temperature = NULL,
   max_tokens = NULL,
-  provider = c("auto", "openai", "anthropic", "ollama"),
+  provider = c("auto", "openai", "anthropic", "ollama", "local"),
   stream = FALSE,
   ...
 )

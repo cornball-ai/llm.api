@@ -2,7 +2,9 @@
 
 export(chat)
 export(chat_claude)
+export(chat_local)
 export(chat_ollama)
 export(chat_openai)
+export(list_local_models)
 export(llm_base)
 export(llm_key)

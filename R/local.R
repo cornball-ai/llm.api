@@ -21,7 +21,7 @@
 #'
 #' @export
 #' @examples
-#' \dontrun
+#' \dontrun{
 #' # With a local GGUF file
 #' chat_local("What is R?", model = "~/models/llama-3.2-1b.gguf")
 #'
