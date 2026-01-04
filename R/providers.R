@@ -1,0 +1,99 @@
+# Provider configurations
+
+#' Detect provider from model name or config
+#' @noRd
+.detect_provider <- function(model) {
+  base <- .get_base()
+
+  # Check base URL first
+
+  if (!is.null(base)) {
+    if (grepl("anthropic", base, ignore.case = TRUE)) return("anthropic")
+    if (grepl("openai", base, ignore.case = TRUE)) return("openai")
+    if (grepl("localhost|127\\.0\\.0\\.1", base)) return("ollama")
+  }
+
+  # Check model name
+  if (!is.null(model)) {
+    if (grepl("^claude", model, ignore.case = TRUE)) return("anthropic")
+    if (grepl("^gpt|^o1|^o3", model, ignore.case = TRUE)) return("openai")
+    if (grepl("^llama|^mistral|^gemma|^phi|^qwen", model, ignore.case = TRUE)) return("ollama")
+  }
+
+  # Default to OpenAI-compatible
+  "openai"
+}
+
+#' Get provider configuration
+#' @noRd
+.get_provider_config <- function(provider) {
+  base <- .get_base()
+  key <- .get_key()
+
+  switch(provider,
+    openai = list(
+      base_url = base %||% "https://api.openai.com",
+      chat_path = "/v1/chat/completions",
+      api_key = key %||% Sys.getenv("OPENAI_API_KEY"),
+      default_model = "gpt-4o-mini"
+    ),
+    anthropic = list(
+      base_url = base %||% "https://api.anthropic.com",
+      chat_path = "/v1/messages",
+      api_key = key %||% Sys.getenv("ANTHROPIC_API_KEY"),
+      default_model = "claude-3-5-sonnet-latest"
+    ),
+    ollama = list(
+      base_url = base %||% "http://localhost:11434",
+      chat_path = "/v1/chat/completions",
+      api_key = NULL,
+      default_model = "llama3.2"
+    ),
+    stop("Unknown provider: ", provider, call. = FALSE)
+  )
+}
+
+#' Chat with OpenAI
+#'
+#' Convenience wrapper for OpenAI models.
+#'
+#' @inheritParams chat
+#' @export
+#' @examples
+#' \dontrun{
+#' chat_openai("Explain quantum computing")
+#' chat_openai("Write a haiku", model = "gpt-4o")
+#' }
+chat_openai <- function(prompt, model = "gpt-4o-mini", ...) {
+  chat(prompt, model = model, provider = "openai", ...)
+}
+
+#' Chat with Anthropic Claude
+#'
+#' Convenience wrapper for Claude models.
+#'
+#' @inheritParams chat
+#' @export
+#' @examples
+#' \dontrun{
+#' chat_claude("Explain the theory of relativity")
+#' chat_claude("Write a poem", model = "claude-3-5-haiku-latest")
+#' }
+chat_claude <- function(prompt, model = "claude-3-5-sonnet-latest", ...) {
+  chat(prompt, model = model, provider = "anthropic", ...)
+}
+
+#' Chat with Ollama
+#'
+#' Convenience wrapper for local Ollama models.
+#'
+#' @inheritParams chat
+#' @export
+#' @examples
+#' \dontrun{
+#' chat_ollama("What is machine learning?")
+#' chat_ollama("Explain Docker", model = "mistral")
+#' }
+chat_ollama <- function(prompt, model = "llama3.2", ...) {
+  chat(prompt, model = model, provider = "ollama", ...)
+}

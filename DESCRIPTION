@@ -1,0 +1,16 @@
+Package: llamaR
+Title: Minimal LLM Chat Interface
+Version: 0.1.0
+Authors@R:
+    person("Troy", "Hernandez", role = c("aut", "cre"),
+           email = "troy@cornball.ai")
+Description: A minimal-dependency R client for Large Language Model APIs.
+    Supports OpenAI, Anthropic Claude, Ollama, and other OpenAI-compatible
+    endpoints. Inspired by ellmer but using only base R and curl/jsonlite.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+Imports:
+    curl,
+    jsonlite
