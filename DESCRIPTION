@@ -14,3 +14,5 @@ RoxygenNote: 7.3.3
 Imports:
     curl,
     jsonlite
+Suggests:
+    localLLM

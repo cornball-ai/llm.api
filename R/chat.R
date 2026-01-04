@@ -39,7 +39,7 @@ chat <- function(prompt,
                  history = NULL,
                  temperature = NULL,
                  max_tokens = NULL,
-                 provider = c("auto", "openai", "anthropic", "ollama"),
+                 provider = c("auto", "openai", "anthropic", "ollama", "local"),
                  stream = FALSE,
                  ...) {
 
@@ -90,7 +90,18 @@ chat <- function(prompt,
   }
 
   # Make request
-  if (provider == "anthropic") {
+  if (provider == "local") {
+    # Use localLLM for direct llama.cpp inference
+    result <- chat_local(
+      prompt = prompt,
+      model = model,
+      system = system,
+      n_predict = max_tokens %||% 256,
+      temperature = temperature %||% 0.7,
+      ...
+    )
+    result$usage <- NULL
+  } else if (provider == "anthropic") {
     result <- .chat_anthropic(body, config, stream)
   } else {
     result <- .chat_openai_compatible(body, config, stream)

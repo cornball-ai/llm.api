@@ -5,8 +5,12 @@
 .detect_provider <- function(model) {
   base <- .get_base()
 
-  # Check base URL first
+  # Check if model is a local file path
+  if (!is.null(model) && grepl("\\.gguf$", model, ignore.case = TRUE)) {
+    return("local")
+  }
 
+  # Check base URL first
   if (!is.null(base)) {
     if (grepl("anthropic", base, ignore.case = TRUE)) return("anthropic")
     if (grepl("openai", base, ignore.case = TRUE)) return("openai")
