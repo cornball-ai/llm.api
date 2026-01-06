@@ -12,6 +12,7 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](~/cornyverse).
 | `chat_ollama(prompt)` | Local Ollama server |
 | `chat_local(prompt, model)` | Direct llama.cpp via localLLM |
 | `list_local_models()` | Find GGUF files |
+| `list_ollama_models()` | List Ollama models |
 | `llm_base(url)` | Set API endpoint |
 | `llm_key(key)` | Set API key |
 
@@ -49,3 +50,7 @@ chat("Write a story", stream = TRUE)
 
 - **Required**: `curl`, `jsonlite`
 - **Optional**: `localLLM` (for direct llama.cpp inference)
+
+## Testing
+
+Use a small model like `qwen3:8b` for testing ollama and localLLM.

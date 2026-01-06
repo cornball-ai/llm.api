@@ -101,3 +101,45 @@ chat_claude <- function(prompt, model = "claude-3-5-sonnet-latest", ...) {
 chat_ollama <- function(prompt, model = "llama3.2", ...) {
   chat(prompt, model = model, provider = "ollama", ...)
 }
+
+#' List Ollama models
+#'
+#' List all models downloaded in Ollama.
+#'
+#' @param base_url Character. Ollama server URL (default: http://localhost:11434).
+#'
+#' @return A data frame with model information (name, size, modified).
+#' @export
+#' @examples
+#' \dontrun{
+#' list_ollama_models()
+#' }
+list_ollama_models <- function(base_url = "http://localhost:11434") {
+  url <- paste0(base_url, "/api/tags")
+
+  h <- curl::new_handle()
+  resp <- tryCatch(
+    curl::curl_fetch_memory(url, handle = h),
+    error = function(e) {
+      stop("Cannot connect to Ollama at ", base_url,
+           ". Is Ollama running?", call. = FALSE)
+    }
+  )
+
+  if (resp$status_code >= 400) {
+    stop("Ollama API error (", resp$status_code, ")", call. = FALSE)
+  }
+
+  data <- jsonlite::fromJSON(rawToChar(resp$content))
+
+  if (is.null(data$models) || length(data$models) == 0) {
+    message("No models found. Use 'ollama pull <model>' to download models.")
+    return(invisible(data.frame(name = character(), size = numeric(), modified = character())))
+  }
+
+  data.frame(
+    name = data$models$name,
+    size = round(data$models$size / 1e9, 1),
+    modified = as.character(as.POSIXct(data$models$modified_at))
+  )
+}
