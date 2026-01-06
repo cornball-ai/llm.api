@@ -158,8 +158,15 @@ chat <- function(prompt,
 
     data <- jsonlite::fromJSON(rawToChar(resp$content))
 
+    # Handle both list and data.frame formats from jsonlite
+    content <- if (is.data.frame(data$choices)) {
+      data$choices$message$content[1]
+    } else {
+      data$choices[[1]]$message$content
+    }
+
     list(
-      content = data$choices[[1]]$message$content,
+      content = content,
       usage = data$usage
     )
   }
