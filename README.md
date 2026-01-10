@@ -14,6 +14,7 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 | `chat_ollama(prompt)` | Local Ollama server |
 | `chat_local(prompt, model)` | Direct llama.cpp via localLLM |
 | `list_local_models()` | Find GGUF files |
+| `list_ollama_models()` | List Ollama models |
 | `llm_base(url)` | Set API endpoint |
 | `llm_key(key)` | Set API key |
 

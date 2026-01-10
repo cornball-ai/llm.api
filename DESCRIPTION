@@ -15,4 +15,5 @@ Imports:
     curl,
     jsonlite
 Suggests:
-    localLLM
+    localLLM,
+    tinytest
