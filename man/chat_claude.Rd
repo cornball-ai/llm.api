@@ -6,6 +6,14 @@
 \usage{
 chat_claude(prompt, model = "claude-3-5-sonnet-latest", ...)
 }
+\arguments{
+\item{prompt}{Character. The user message to send.}
+
+\item{model}{Character. Model name (e.g., "gpt-4o", "claude-3-5-sonnet-latest",
+"llama3.2").}
+
+\item{...}{Additional parameters passed to the API.}
+}
 \description{
 Convenience wrapper for Claude models.
 }
