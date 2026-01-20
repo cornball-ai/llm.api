@@ -33,15 +33,17 @@
 #' result <- chat("Hello")
 #' chat("Tell me more", history = result$history)
 #' }
-chat <- function(prompt,
-                 model = NULL,
-                 system = NULL,
-                 history = NULL,
-                 temperature = NULL,
-                 max_tokens = NULL,
-                 provider = c("auto", "openai", "anthropic", "ollama", "local"),
-                 stream = FALSE,
-                 ...) {
+chat <- function(
+  prompt,
+  model = NULL,
+  system = NULL,
+  history = NULL,
+  temperature = NULL,
+  max_tokens = NULL,
+  provider = c("auto", "openai", "anthropic", "ollama", "local"),
+  stream = FALSE,
+  ...
+) {
 
   provider <- match.arg(provider)
 
@@ -124,7 +126,11 @@ chat <- function(prompt,
 
 #' OpenAI-compatible chat request
 #' @noRd
-.chat_openai_compatible <- function(body, config, stream) {
+.chat_openai_compatible <- function(
+  body,
+  config,
+  stream
+) {
   url <- paste0(config$base_url, config$chat_path)
 
   headers <- c(
@@ -153,7 +159,7 @@ chat <- function(prompt,
         error = function(e) list(error = list(message = rawToChar(resp$content)))
       )
       stop("API error (", resp$status_code, "): ",
-           err$error$message %||% "Unknown error", call. = FALSE)
+        err$error$message %||% "Unknown error", call. = FALSE)
     }
 
     data <- jsonlite::fromJSON(rawToChar(resp$content))
@@ -174,7 +180,11 @@ chat <- function(prompt,
 
 #' Anthropic chat request
 #' @noRd
-.chat_anthropic <- function(body, config, stream) {
+.chat_anthropic <- function(
+  body,
+  config,
+  stream
+) {
   url <- paste0(config$base_url, config$chat_path)
 
   # Convert messages format for Anthropic
@@ -224,7 +234,7 @@ chat <- function(prompt,
       error = function(e) list(error = list(message = rawToChar(resp$content)))
     )
     stop("API error (", resp$status_code, "): ",
-         err$error$message %||% "Unknown error", call. = FALSE)
+      err$error$message %||% "Unknown error", call. = FALSE)
   }
 
   data <- jsonlite::fromJSON(rawToChar(resp$content))
@@ -237,22 +247,25 @@ chat <- function(prompt,
 
 #' Stream response with live output
 #' @noRd
-.stream_response <- function(url, handle) {
+.stream_response <- function(
+  url,
+  handle
+) {
   full_content <- ""
 
   callback <- function(data) {
-    lines <- strsplit(rawToChar(data), "\n")[[1]]
+    lines <- strsplit(rawToChar(data), "\n") [[1]]
     for (line in lines) {
       if (startsWith(line, "data: ") && line != "data: [DONE]") {
         json_str <- substring(line, 7)
         tryCatch({
-          chunk <- jsonlite::fromJSON(json_str)
-          delta <- chunk$choices[[1]]$delta$content
-          if (!is.null(delta)) {
-            cat(delta)
-            full_content <<- paste0(full_content, delta)
-          }
-        }, error = function(e) NULL)
+            chunk <- jsonlite::fromJSON(json_str)
+            delta <- chunk$choices[[1]]$delta$content
+            if (!is.null(delta)) {
+              cat(delta)
+              full_content <<- paste0(full_content, delta)
+            }
+          }, error = function(e) NULL)
       }
     }
     length(data)
@@ -267,4 +280,8 @@ chat <- function(prompt,
 
 #' Null coalescing operator
 #' @noRd
-`%||%` <- function(x, y) if (is.null(x)) y else x
+`%||%` <- function(
+  x,
+  y
+) if (is.null(x)) y else x
+

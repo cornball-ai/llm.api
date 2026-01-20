@@ -28,16 +28,18 @@
 #' # With GPU acceleration
 #' chat_local("Explain Docker", model = "mistral-7b.gguf", n_gpu_layers = 35)
 #' }
-chat_local <- function(prompt,
-                       model,
-                       system = NULL,
-                       n_predict = 256,
-                       temperature = 0.7,
-                       top_p = 0.9,
-                       n_gpu_layers = 0,
-                       ...) {
+chat_local <- function(
+  prompt,
+  model,
+  system = NULL,
+  n_predict = 256,
+  temperature = 0.7,
+  top_p = 0.9,
+  n_gpu_layers = 0,
+  ...
+) {
 
- if (!requireNamespace("localLLM", quietly = TRUE)) {
+  if (!requireNamespace("localLLM", quietly = TRUE)) {
     stop(
       "localLLM package required for local inference.\n",
       "Install with: install.packages('localLLM')",
@@ -117,8 +119,9 @@ list_local_models <- function(paths = NULL) {
   }
 
   models <- unlist(lapply(paths, function(p) {
-    list.files(p, pattern = "\\.gguf$", full.names = TRUE, recursive = TRUE)
-  }))
+        list.files(p, pattern = "\\.gguf$", full.names = TRUE, recursive = TRUE)
+      }))
 
   unique(models)
 }
+

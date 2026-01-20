@@ -68,7 +68,11 @@
 #' chat_openai("Explain quantum computing")
 #' chat_openai("Write a haiku", model = "gpt-4o")
 #' }
-chat_openai <- function(prompt, model = "gpt-4o-mini", ...) {
+chat_openai <- function(
+  prompt,
+  model = "gpt-4o-mini",
+  ...
+) {
   chat(prompt, model = model, provider = "openai", ...)
 }
 
@@ -83,7 +87,11 @@ chat_openai <- function(prompt, model = "gpt-4o-mini", ...) {
 #' chat_claude("Explain the theory of relativity")
 #' chat_claude("Write a poem", model = "claude-3-5-haiku-latest")
 #' }
-chat_claude <- function(prompt, model = "claude-3-5-sonnet-latest", ...) {
+chat_claude <- function(
+  prompt,
+  model = "claude-3-5-sonnet-latest",
+  ...
+) {
   chat(prompt, model = model, provider = "anthropic", ...)
 }
 
@@ -98,7 +106,11 @@ chat_claude <- function(prompt, model = "claude-3-5-sonnet-latest", ...) {
 #' chat_ollama("What is machine learning?")
 #' chat_ollama("Explain Docker", model = "mistral")
 #' }
-chat_ollama <- function(prompt, model = "llama3.2", ...) {
+chat_ollama <- function(
+  prompt,
+  model = "llama3.2",
+  ...
+) {
   chat(prompt, model = model, provider = "ollama", ...)
 }
 
@@ -122,7 +134,7 @@ list_ollama_models <- function(base_url = "http://localhost:11434") {
     curl::curl_fetch_memory(url, handle = h),
     error = function(e) {
       stop("Cannot connect to Ollama at ", base_url,
-           ". Is Ollama running?", call. = FALSE)
+        ". Is Ollama running?", call. = FALSE)
     }
   )
 
@@ -143,3 +155,4 @@ list_ollama_models <- function(base_url = "http://localhost:11434") {
     modified = as.character(as.POSIXct(data$models$modified_at))
   )
 }
+
