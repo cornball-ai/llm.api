@@ -9,8 +9,7 @@ chat_ollama(prompt, model = "llama3.2", ...)
 \arguments{
 \item{prompt}{Character. The user message to send.}
 
-\item{model}{Character. Model name (e.g., "gpt-4o", "claude-3-5-sonnet-latest",
-"llama3.2").}
+\item{model}{Character. Model name (e.g., "gpt-4o", "claude-3-5-sonnet-latest", "llama3.2").}
 
 \item{...}{Additional parameters passed to the API.}
 }

@@ -18,8 +18,8 @@ chat_local(
 \arguments{
 \item{prompt}{Character. The user message to send.}
 
-\item{model}{Character. Path to GGUF model file, or model name if models are stored
-in a standard location.}
+\item{model}{Character. Path to GGUF model file, or model name if
+models are stored in a standard location.}
 
 \item{system}{Character or NULL. System prompt to set context.}
 
@@ -39,8 +39,8 @@ A list with:
   \item{model}{Model path used}
 }
 \description{
-Run inference directly on local GGUF model files using llama.cpp via the
-localLLM package. No server required.
+Run inference directly on local GGUF model files using llama.cpp
+via the localLLM package. No server required.
 }
 \examples{
 \dontrun{

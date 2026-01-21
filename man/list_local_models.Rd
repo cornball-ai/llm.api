@@ -7,8 +7,8 @@
 list_local_models(paths = NULL)
 }
 \arguments{
-\item{paths}{Character vector. Directories to search. Defaults to common model
-locations.}
+\item{paths}{Character vector. Directories to search. Defaults to
+common model locations.}
 }
 \value{
 Character vector of found GGUF file paths.
