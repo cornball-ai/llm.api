@@ -38,13 +38,13 @@
     openai = list(
       base_url = base %||% "https://api.openai.com",
       chat_path = "/v1/chat/completions",
-      api_key = key %||% Sys.getenv("OPENAI_API_KEY"),
+      api_key = Sys.getenv("OPENAI_API_KEY"),
       default_model = "gpt-4o-mini"
     ),
     anthropic = list(
       base_url = base %||% "https://api.anthropic.com",
       chat_path = "/v1/messages",
-      api_key = key %||% Sys.getenv("ANTHROPIC_API_KEY"),
+      api_key = Sys.getenv("ANTHROPIC_API_KEY"),
       default_model = "claude-3-5-sonnet-latest"
     ),
     ollama = list(

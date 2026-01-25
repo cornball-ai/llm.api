@@ -239,8 +239,15 @@ chat <- function(
 
   data <- jsonlite::fromJSON(rawToChar(resp$content))
 
+  # Handle both data.frame and list formats from jsonlite
+  content <- if (is.data.frame(data$content)) {
+    data$content$text[1]
+  } else {
+    data$content[[1]]$text
+  }
+
   list(
-    content = data$content[[1]]$text,
+    content = content,
     usage = data$usage
   )
 }
