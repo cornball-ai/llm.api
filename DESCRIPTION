@@ -1,4 +1,4 @@
-Package: llamaR
+Package: llm.api
 Title: Minimal LLM Chat Interface
 Version: 0.1.0
 Authors@R:

@@ -11,8 +11,8 @@
 #' llm_base("https://api.openai.com")
 #' }
 llm_base <- function(url) {
-  old <- getOption("llamaR.api_base")
-  options(llamaR.api_base = url)
+  old <- getOption("llm.api.api_base")
+  options(llm.api.api_base = url)
   invisible(old)
 }
 
@@ -26,8 +26,8 @@ llm_base <- function(url) {
 #' llm_key("sk-...")
 #' }
 llm_key <- function(key) {
-  old <- getOption("llamaR.api_key")
-  options(llamaR.api_key = key)
+  old <- getOption("llm.api.api_key")
+  options(llm.api.api_key = key)
   invisible(old)
 }
 
@@ -35,13 +35,13 @@ llm_key <- function(key) {
 #' @noRd
 .get_base <- function() {
 
-  getOption("llamaR.api_base")
+  getOption("llm.api.api_base")
 }
 
 #' Get API Key
 #' @noRd
 .get_key <- function() {
-  key <- getOption("llamaR.api_key")
+  key <- getOption("llm.api.api_key")
   if (is.null(key) || nchar(key) == 0) {
     # Try environment variables
     key <- Sys.getenv("OPENAI_API_KEY", "")

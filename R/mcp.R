@@ -52,7 +52,7 @@ mcp_connect <- function(host = "localhost", port, name = NULL, timeout = 30) {
   init_result <- .mcp_request(conn, "initialize", list(
     protocolVersion = "2024-11-05",
     capabilities = list(),
-    clientInfo = list(name = "llamaR", version = "0.1.0")
+    clientInfo = list(name = "llm.api", version = "0.1.0")
   ))
 
   # Send initialized notification

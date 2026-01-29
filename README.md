@@ -1,4 +1,4 @@
-# llamaR
+# llm.api
 
 *"Llamar" is Spanish for "to call"*
 
