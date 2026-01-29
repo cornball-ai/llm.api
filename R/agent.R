@@ -298,16 +298,21 @@ agent <- function(
 
   resp <- .post_json(url, body, headers)
 
-  # Parse response (same as OpenAI)
-  msg <- resp$message
+  # Parse response (OpenAI-compatible format: choices[].message)
+  msg <- resp$choices[[1]]$message
 
   tool_calls <- list()
   if (!is.null(msg$tool_calls)) {
     for (tc in msg$tool_calls) {
+      # Parse arguments from JSON string (same as OpenAI)
+      args <- tryCatch(
+        jsonlite::fromJSON(tc$`function`$arguments, simplifyVector = FALSE),
+        error = function(e) list()
+      )
       tool_calls[[length(tool_calls) + 1]] <- list(
         id = tc$id %||% paste0("call_", sample(1e9, 1)),
         name = tc$`function`$name,
-        arguments = tc$`function`$arguments
+        arguments = args
       )
     }
   }
