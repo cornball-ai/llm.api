@@ -69,6 +69,10 @@ agent <- function(
 
   turn <- 0L
 
+  # Track cumulative token usage
+  total_input_tokens <- 0L
+  total_output_tokens <- 0L
+
   while (turn < max_turns) {
     turn <- turn + 1L
 
@@ -79,6 +83,20 @@ agent <- function(
       ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
     )
 
+    # Accumulate token usage
+    if (!is.null(response$usage)) {
+      # Anthropic format
+      if (!is.null(response$usage$input_tokens)) {
+        total_input_tokens <- total_input_tokens + response$usage$input_tokens
+        total_output_tokens <- total_output_tokens + response$usage$output_tokens
+      }
+      # OpenAI/Ollama format
+      if (!is.null(response$usage$prompt_tokens)) {
+        total_input_tokens <- total_input_tokens + response$usage$prompt_tokens
+        total_output_tokens <- total_output_tokens + response$usage$completion_tokens
+      }
+    }
+
     # Check if done (no tool calls)
     if (length(response$tool_calls) == 0) {
       return(list(
@@ -86,7 +104,12 @@ agent <- function(
         model = model,
         provider = provider,
         turns = turn,
-        history = messages
+        history = messages,
+        usage = list(
+          input_tokens = total_input_tokens,
+          output_tokens = total_output_tokens,
+          total_tokens = total_input_tokens + total_output_tokens
+        )
       ))
     }
 
@@ -137,7 +160,12 @@ agent <- function(
     model = model,
     provider = provider,
     turns = turn,
-    history = messages
+    history = messages,
+    usage = list(
+      input_tokens = total_input_tokens,
+      output_tokens = total_output_tokens,
+      total_tokens = total_input_tokens + total_output_tokens
+    )
   )
 }
 
@@ -215,7 +243,8 @@ agent <- function(
   list(
     text = paste(text_parts, collapse = "\n"),
     tool_calls = tool_calls,
-    assistant_message = list(role = "assistant", content = resp$content)
+    assistant_message = list(role = "assistant", content = resp$content),
+    usage = resp$usage  # input_tokens, output_tokens
   )
 }
 
@@ -269,7 +298,8 @@ agent <- function(
   list(
     text = msg$content %||% "",
     tool_calls = tool_calls,
-    assistant_message = msg
+    assistant_message = msg,
+    usage = resp$usage  # prompt_tokens, completion_tokens, total_tokens
   )
 }
 
@@ -320,7 +350,8 @@ agent <- function(
   list(
     text = msg$content %||% "",
     tool_calls = tool_calls,
-    assistant_message = msg
+    assistant_message = msg,
+    usage = resp$usage
   )
 }
 
