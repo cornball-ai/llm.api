@@ -13,6 +13,7 @@
 #' @param provider Character. Provider: "anthropic", "openai", "ollama".
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
+#' @param history List or NULL. Previous conversation history to continue from.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history.
@@ -41,6 +42,7 @@ agent <- function(
     provider = c("anthropic", "openai", "ollama"),
     max_turns = 20L,
     verbose = TRUE,
+    history = NULL,
     ...
 ) {
   provider <- match.arg(provider)
@@ -63,9 +65,9 @@ agent <- function(
   # Convert tools to provider format
   provider_tools <- .convert_tools(tools, provider)
 
-  # Build initial messages
-  messages <- list()
-  messages[[1]] <- list(role = "user", content = prompt)
+  # Build initial messages (prepend history if provided)
+  messages <- if (!is.null(history)) history else list()
+  messages[[length(messages) + 1]] <- list(role = "user", content = prompt)
 
   turn <- 0L
 
