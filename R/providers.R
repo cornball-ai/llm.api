@@ -20,8 +20,13 @@
   # Check model name
   if (!is.null(model)) {
     if (grepl("^claude", model, ignore.case = TRUE)) return("anthropic")
+    # Check if model is installed in Ollama
+    ollama_models <- tryCatch(
+      list_ollama_models()$name,
+      error = function(e) character(0)
+    )
+    if (model %in% ollama_models) return("ollama")
     if (grepl("^gpt|^o1|^o3", model, ignore.case = TRUE)) return("openai")
-    if (grepl("^llama|^mistral|^gemma|^phi|^qwen", model, ignore.case = TRUE)) return("ollama")
   }
 
   # Default to OpenAI-compatible

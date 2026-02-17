@@ -12,6 +12,7 @@ agent(
   provider = c("anthropic", "openai", "ollama"),
   max_turns = 20L,
   verbose = TRUE,
+  history = NULL,
   ...
 )
 }
@@ -31,6 +32,8 @@ agent(
 \item{max_turns}{Integer. Maximum tool-use turns (default: 20).}
 
 \item{verbose}{Logical. Print tool calls and results.}
+
+\item{history}{List or NULL. Previous conversation history to continue from.}
 
 \item{...}{Additional parameters passed to the API.}
 }
