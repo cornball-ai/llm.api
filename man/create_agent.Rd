@@ -3,13 +3,9 @@
 \alias{create_agent}
 \title{Create an agent with MCP servers}
 \usage{
-create_agent(
-  servers = list(),
-  system = NULL,
-  model = NULL,
-  provider = c("anthropic", "openai", "ollama"),
-  verbose = TRUE
-)
+create_agent(servers = list(), system = NULL, model = NULL,
+             provider = c("anthropic", "openai", "moonshot", "ollama"),
+             verbose = TRUE)
 }
 \arguments{
 \item{servers}{Named list of server configs. Each can be:
@@ -20,7 +16,8 @@ create_agent(
 
 \item{model}{Character. Default model.}
 
-\item{provider}{Character. Provider: "anthropic", "openai", "ollama".}
+\item{provider}{Character. Provider: "anthropic", "openai", "moonshot",
+or "ollama".}
 
 \item{verbose}{Logical. Print tool calls.}
 }

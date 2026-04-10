@@ -3,13 +3,8 @@
 \alias{mcp_start}
 \title{Start and connect to an MCP server}
 \usage{
-mcp_start(
-  command,
-  args = character(),
-  port = NULL,
-  name = NULL,
-  startup_wait = 2
-)
+mcp_start(command, args = character(), port = NULL, name = NULL,
+          startup_wait = 2)
 }
 \arguments{
 \item{command}{Character. Command to run the server (e.g., "r", "Rscript").}

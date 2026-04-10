@@ -10,7 +10,8 @@
 #' @param history List or NULL. Previous conversation turns.
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
 #' @param max_tokens Integer or NULL. Maximum tokens in response.
-#' @param provider Character. Provider: "auto", "openai", "anthropic", "ollama".
+#' @param provider Character. Provider: "auto", "openai", "anthropic",
+#'   "moonshot", "ollama", or "local".
 #' @param stream Logical. Stream the response (prints as it arrives).
 #' @param ... Additional parameters passed to the API.
 #'
@@ -40,7 +41,7 @@ chat <- function(
   history = NULL,
   temperature = NULL,
   max_tokens = NULL,
-  provider = c("auto", "openai", "anthropic", "ollama", "local"),
+  provider = c("auto", "openai", "anthropic", "moonshot", "ollama", "local"),
   stream = FALSE,
   ...
 ) {
@@ -291,4 +292,3 @@ chat <- function(
   x,
   y
 ) if (is.null(x)) y else x
-
