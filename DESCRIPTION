@@ -3,14 +3,19 @@ Title: Minimal LLM Chat Interface
 Version: 0.1.1
 Authors@R: c(
     person("Troy", "Hernandez", role = c("aut", "cre"),
-           email = "troy@cornball.ai"),
+           email = "troy@cornball.ai",
+           comment = c(ORCID = "0009-0005-4248-604X")),
     person("ellmer team", role = "cph",
            comment = "API design derived from ellmer"))
-Description: A minimal-dependency R client for Large Language Model APIs.
-    Supports OpenAI, Anthropic Claude, Ollama, and other OpenAI-compatible
-    endpoints. API design derived from ellmer, reimplemented with only
-    base R and curl/jsonlite.
+Description: A minimal-dependency client for Large Language Model APIs.
+    Supports OpenAI, Anthropic Claude, Moonshot Kimi, Ollama, and other
+    OpenAI-compatible endpoints, plus local inference via 'localLLM'.
+    Includes an agent loop with tool use and a Model Context Protocol
+    client. API design derived from 'ellmer', reimplemented with only
+    base R, 'curl', and 'jsonlite'.
 License: MIT + file LICENSE
+URL: https://github.com/cornball-ai/llm.api
+BugReports: https://github.com/cornball-ai/llm.api/issues
 Encoding: UTF-8
 Imports:
     curl,
