@@ -141,6 +141,8 @@ mcp_call <- function(conn, name, arguments = list()) {
 #' Close an MCP connection
 #'
 #' @param conn An MCP connection object.
+#' @return \code{NULL}, invisibly. Called for its side effect of closing
+#'   the underlying socket.
 #' @export
 mcp_close <- function(conn) {
   tryCatch(close(conn$socket), error = function(e) NULL)
@@ -229,6 +231,14 @@ mcp_tools_for_claude <- mcp_tools_for_api
   invisible(NULL)
 }
 
+#' Print an MCP Connection
+#'
+#' S3 print method for MCP connection objects.
+#'
+#' @param x An MCP connection object.
+#' @param ... Unused.
+#' @return \code{x}, invisibly. Called for the side effect of printing a
+#'   summary of the connection state and available tools.
 #' @export
 print.mcp_connection <- function(x, ...) {
   status <- tryCatch({

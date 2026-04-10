@@ -2,14 +2,15 @@
 
 #' Set LLM API Base URL
 #'
-#' @param url Base URL for the API endpoint
-#' @return Invisibly returns the previous value
+#' Stores a base URL in the \code{llm.api.api_base} option, which
+#' \code{\link{chat}} uses as the default endpoint.
+#'
+#' @param url Character. Base URL for the API endpoint.
+#' @return The previous value of the option, invisibly.
 #' @export
 #' @examples
-#' \dontrun{
-#' llm_base("http://localhost:11434")  # Ollama
-#' llm_base("https://api.openai.com")
-#' }
+#' old <- llm_base("http://localhost:11434")  # 'Ollama'
+#' llm_base(old)  # restore
 llm_base <- function(url) {
   old <- getOption("llm.api.api_base")
   options(llm.api.api_base = url)
@@ -18,13 +19,15 @@ llm_base <- function(url) {
 
 #' Set LLM API Key
 #'
-#' @param key API key for authentication
-#' @return Invisibly returns the previous value
+#' Stores an API key in the \code{llm.api.api_key} option, which
+#' \code{\link{chat}} prefers over environment variables.
+#'
+#' @param key Character. API key for authentication.
+#' @return The previous value of the option, invisibly.
 #' @export
 #' @examples
-#' \dontrun{
-#' llm_key("sk-...")
-#' }
+#' old <- llm_key("sk-not-a-real-key")
+#' llm_key(old)  # restore
 llm_key <- function(key) {
   old <- getOption("llm.api.api_key")
   options(llm.api.api_key = key)

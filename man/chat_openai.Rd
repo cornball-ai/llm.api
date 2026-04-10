@@ -12,8 +12,12 @@ chat_openai(prompt, model = "gpt-4o-mini", ...)
 
 \item{...}{Additional parameters passed to the API.}
 }
+\value{
+The assistant's response as a character string, or a list when
+  \code{history} is in use. See \code{\link{chat}} for details.
+}
 \description{
-Convenience wrapper for OpenAI models.
+Convenience wrapper for 'OpenAI' models.
 }
 \examples{
 \dontrun{

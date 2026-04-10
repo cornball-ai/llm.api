@@ -6,17 +6,16 @@
 llm_base(url)
 }
 \arguments{
-\item{url}{Base URL for the API endpoint}
+\item{url}{Character. Base URL for the API endpoint.}
 }
 \value{
-Invisibly returns the previous value
+The previous value of the option, invisibly.
 }
 \description{
-Set LLM API Base URL
+Stores a base URL in the \code{llm.api.api_base} option, which
+\code{\link{chat}} uses as the default endpoint.
 }
 \examples{
-\dontrun{
-llm_base("http://localhost:11434")  # Ollama
-llm_base("https://api.openai.com")
-}
+old <- llm_base("http://localhost:11434")  # 'Ollama'
+llm_base(old)  # restore
 }

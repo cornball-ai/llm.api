@@ -10,13 +10,12 @@ list_local_models(paths = NULL)
 common model locations.}
 }
 \value{
-Character vector of found GGUF file paths.
+Character vector of found 'GGUF' file paths.
 }
 \description{
-Search for GGUF model files in common locations.
+Search for 'GGUF' model files in common locations.
 }
 \examples{
-\dontrun{
-list_local_models()
-}
+# Search a temp directory (no models, returns character(0))
+list_local_models(paths = tempdir())
 }

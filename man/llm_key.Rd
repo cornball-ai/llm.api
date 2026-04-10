@@ -6,16 +6,16 @@
 llm_key(key)
 }
 \arguments{
-\item{key}{API key for authentication}
+\item{key}{Character. API key for authentication.}
 }
 \value{
-Invisibly returns the previous value
+The previous value of the option, invisibly.
 }
 \description{
-Set LLM API Key
+Stores an API key in the \code{llm.api.api_key} option, which
+\code{\link{chat}} prefers over environment variables.
 }
 \examples{
-\dontrun{
-llm_key("sk-...")
-}
+old <- llm_key("sk-not-a-real-key")
+llm_key(old)  # restore
 }
