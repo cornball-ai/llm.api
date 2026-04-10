@@ -89,17 +89,16 @@ chat_local <- function(
 
 #' List Available Local Models
 #'
-#' Search for GGUF model files in common locations.
+#' Search for 'GGUF' model files in common locations.
 #'
 #' @param paths Character vector. Directories to search. Defaults to
 #'   common model locations.
 #'
-#' @return Character vector of found GGUF file paths.
+#' @return Character vector of found 'GGUF' file paths.
 #' @export
 #' @examples
-#' \dontrun{
-#' list_local_models()
-#' }
+#' # Search a temp directory (no models, returns character(0))
+#' list_local_models(paths = tempdir())
 list_local_models <- function(paths = NULL) {
   if (is.null(paths)) {
     paths <- c(

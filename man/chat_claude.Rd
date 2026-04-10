@@ -12,8 +12,12 @@ chat_claude(prompt, model = "claude-3-5-sonnet-latest", ...)
 
 \item{...}{Additional parameters passed to the API.}
 }
+\value{
+The assistant's response as a character string, or a list when
+  \code{history} is in use. See \code{\link{chat}} for details.
+}
 \description{
-Convenience wrapper for Claude models.
+Convenience wrapper for 'Anthropic' 'Claude' models.
 }
 \examples{
 \dontrun{

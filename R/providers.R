@@ -76,9 +76,11 @@
 
 #' Chat with OpenAI
 #'
-#' Convenience wrapper for OpenAI models.
+#' Convenience wrapper for 'OpenAI' models.
 #'
 #' @inheritParams chat
+#' @return The assistant's response as a character string, or a list when
+#'   \code{history} is in use. See \code{\link{chat}} for details.
 #' @export
 #' @examples
 #' \dontrun{
@@ -95,9 +97,11 @@ chat_openai <- function(
 
 #' Chat with Anthropic Claude
 #'
-#' Convenience wrapper for Claude models.
+#' Convenience wrapper for 'Anthropic' 'Claude' models.
 #'
 #' @inheritParams chat
+#' @return The assistant's response as a character string, or a list when
+#'   \code{history} is in use. See \code{\link{chat}} for details.
 #' @export
 #' @examples
 #' \dontrun{
@@ -114,9 +118,11 @@ chat_claude <- function(
 
 #' Chat with Ollama
 #'
-#' Convenience wrapper for local Ollama models.
+#' Convenience wrapper for local 'Ollama' models.
 #'
 #' @inheritParams chat
+#' @return The assistant's response as a character string, or a list when
+#'   \code{history} is in use. See \code{\link{chat}} for details.
 #' @export
 #' @examples
 #' \dontrun{
