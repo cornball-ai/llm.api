@@ -11,7 +11,7 @@
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
 #' @param max_tokens Integer or NULL. Maximum tokens in response.
 #' @param provider Character. Provider: "auto", "openai", "anthropic",
-#'   "moonshot", "ollama", or "local".
+#'   "moonshot", or "ollama".
 #' @param stream Logical. Stream the response (prints as it arrives).
 #' @param ... Additional parameters passed to the API.
 #'
@@ -41,7 +41,7 @@ chat <- function(
   history = NULL,
   temperature = NULL,
   max_tokens = NULL,
-  provider = c("auto", "openai", "anthropic", "moonshot", "ollama", "local"),
+  provider = c("auto", "openai", "anthropic", "moonshot", "ollama"),
   stream = FALSE,
   ...
 ) {
@@ -93,18 +93,7 @@ chat <- function(
   }
 
   # Make request
-  if (provider == "local") {
-    # Use localLLM for direct llama.cpp inference
-    result <- chat_local(
-      prompt = prompt,
-      model = model,
-      system = system,
-      n_predict = max_tokens %||% 256,
-      temperature = temperature %||% 0.7,
-      ...
-    )
-    result$usage <- NULL
-  } else if (provider == "anthropic") {
+  if (provider == "anthropic") {
     result <- .chat_anthropic(body, config, stream)
   } else {
     result <- .chat_openai_compatible(body, config, stream)
