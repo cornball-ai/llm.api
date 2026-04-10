@@ -11,11 +11,10 @@ Description: A minimal-dependency client for Large Language Model chat APIs.
     Supports 'OpenAI' <https://github.com/openai>, 'Anthropic' 'Claude'
     <https://claude.com/>, 'Moonshot' 'Kimi' <https://www.moonshot.ai/>,
     'Ollama' <https://ollama.com/>, and other 'OpenAI'-compatible
-    endpoints, plus local 'GGUF' inference via 'localLLM'. Includes an
-    agent loop with tool use and a 'Model Context Protocol' client
-    <https://modelcontextprotocol.io/>. API design is derived from the
-    'ellmer' package, reimplemented with only base R, 'curl', and
-    'jsonlite'.
+    endpoints. Includes an agent loop with tool use and a 'Model Context
+    Protocol' client <https://modelcontextprotocol.io/>. API design is
+    derived from the 'ellmer' package, reimplemented with only base R,
+    'curl', and 'jsonlite'.
 License: MIT + file LICENSE
 URL: https://github.com/cornball-ai/llm.api
 BugReports: https://github.com/cornball-ai/llm.api/issues
@@ -24,6 +23,4 @@ Imports:
     curl,
     jsonlite
 Suggests:
-    localLLM,
     tinytest
-RoxygenNote: 7.3.3

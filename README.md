@@ -12,8 +12,6 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 | `chat_openai(prompt)` | OpenAI GPT models |
 | `chat_claude(prompt)` | Anthropic Claude models |
 | `chat_ollama(prompt)` | Local Ollama server |
-| `chat_local(prompt, model)` | Direct llama.cpp via localLLM |
-| `list_local_models()` | Find GGUF files |
 | `list_ollama_models()` | List Ollama models |
 | `llm_base(url)` | Set API endpoint |
 | `llm_key(key)` | Set API key |
@@ -24,7 +22,6 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 - **anthropic**: Claude 3.5 Sonnet, Claude 3.5 Haiku
 - **moonshot**: Kimi K2 via Moonshot's OpenAI-compatible API
 - **ollama**: Llama 3.2, Mistral, Gemma, Phi, Qwen (via server)
-- **local**: Any GGUF model via llama.cpp (no server needed)
 
 ## Usage
 
@@ -41,10 +38,6 @@ chat_claude("Explain machine learning")
 # Explicit Moonshot/Kimi provider
 chat("Write a fast parser in R", provider = "moonshot", model = "kimi-k2")
 
-# Direct local inference (no server)
-chat_local("Explain R", model = "~/models/llama-3.2-1b.gguf")
-chat("Hello", model = "model.gguf")  # Auto-detects local
-
 # Conversation history
 result <- chat("Hi, I'm Troy")
 chat("What's my name?", history = result$history)
@@ -58,5 +51,4 @@ OpenAI credentials.
 
 ## Dependencies
 
-- **Required**: `curl`, `jsonlite`
-- **Optional**: `localLLM` (for direct llama.cpp inference)
+Only `curl` and `jsonlite`. No tidyverse, no compiled code.

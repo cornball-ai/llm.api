@@ -5,7 +5,7 @@
 \usage{
 chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
      max_tokens = NULL,
-     provider = c("auto", "openai", "anthropic", "moonshot", "ollama", "local"),
+     provider = c("auto", "openai", "anthropic", "moonshot", "ollama"),
      stream = FALSE, ...)
 }
 \arguments{
@@ -22,7 +22,7 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 \item{max_tokens}{Integer or NULL. Maximum tokens in response.}
 
 \item{provider}{Character. Provider: "auto", "openai", "anthropic",
-"moonshot", "ollama", or "local".}
+"moonshot", or "ollama".}
 
 \item{stream}{Logical. Stream the response (prints as it arrives).}
 

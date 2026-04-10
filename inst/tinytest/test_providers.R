@@ -26,10 +26,6 @@ expect_equal(llm.api:::.detect_provider("mistral"), "ollama")
 expect_equal(llm.api:::.detect_provider("phi3"), "ollama")
 expect_equal(llm.api:::.detect_provider("qwen2"), "ollama")
 
-# Local GGUF files
-expect_equal(llm.api:::.detect_provider("model.gguf"), "local")
-expect_equal(llm.api:::.detect_provider("/path/to/model.GGUF"), "local")
-
 # Default to openai for unknown
 expect_equal(llm.api:::.detect_provider("unknown-model"), "openai")
 expect_equal(llm.api:::.detect_provider(NULL), "openai")
