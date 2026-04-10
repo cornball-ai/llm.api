@@ -3,11 +3,8 @@
 \alias{chat_session_anthropic}
 \title{Create Anthropic chat session}
 \usage{
-chat_session_anthropic(
-  model = "claude-sonnet-4-20250514",
-  system_prompt = NULL,
-  ...
-)
+chat_session_anthropic(model = "claude-sonnet-4-20250514",
+                       system_prompt = NULL, ...)
 }
 \arguments{
 \item{model}{Character. Model name (default: "claude-sonnet-4-20250514").}

@@ -22,6 +22,7 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 
 - **openai**: GPT-4o, GPT-4o-mini, o1, o3
 - **anthropic**: Claude 3.5 Sonnet, Claude 3.5 Haiku
+- **moonshot**: Kimi K2 via Moonshot's OpenAI-compatible API
 - **ollama**: Llama 3.2, Mistral, Gemma, Phi, Qwen (via server)
 - **local**: Any GGUF model via llama.cpp (no server needed)
 
@@ -31,10 +32,14 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 # Auto-detect provider from model
 chat("Hello", model = "gpt-4o")
 chat("Hello", model = "claude-3-5-sonnet-latest")
+chat("Hello", model = "kimi-k2")
 
 # Use convenience wrappers
 chat_ollama("What is R?")
 chat_claude("Explain machine learning")
+
+# Explicit Moonshot/Kimi provider
+chat("Write a fast parser in R", provider = "moonshot", model = "kimi-k2")
 
 # Direct local inference (no server)
 chat_local("Explain R", model = "~/models/llama-3.2-1b.gguf")
@@ -47,6 +52,9 @@ chat("What's my name?", history = result$history)
 # Streaming
 chat("Write a story", stream = TRUE)
 ```
+
+Set `MOONSHOT_API_KEY` to use Moonshot/Kimi without overriding your
+OpenAI credentials.
 
 ## Dependencies
 

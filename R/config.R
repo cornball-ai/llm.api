@@ -40,15 +40,22 @@ llm_key <- function(key) {
 
 #' Get API Key
 #' @noRd
-.get_key <- function() {
+.get_key <- function(provider = NULL) {
   key <- getOption("llm.api.api_key")
   if (is.null(key) || nchar(key) == 0) {
-    # Try environment variables
-    key <- Sys.getenv("OPENAI_API_KEY", "")
-    if (nchar(key) == 0) {
-      key <- Sys.getenv("ANTHROPIC_API_KEY", "")
+    env_vars <- switch(provider %||% "",
+      anthropic = c("ANTHROPIC_API_KEY"),
+      openai = c("OPENAI_API_KEY"),
+      moonshot = c("MOONSHOT_API_KEY", "OPENAI_API_KEY"),
+      c("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY")
+    )
+
+    for (env_var in env_vars) {
+      key <- Sys.getenv(env_var, "")
+      if (nchar(key) > 0) {
+        break
+      }
     }
   }
   key
 }
-

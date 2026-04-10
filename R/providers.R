@@ -12,6 +12,7 @@
 
   # Check base URL first
   if (!is.null(base)) {
+    if (grepl("moonshot|kimi", base, ignore.case = TRUE)) return("moonshot")
     if (grepl("anthropic", base, ignore.case = TRUE)) return("anthropic")
     if (grepl("openai", base, ignore.case = TRUE)) return("openai")
     if (grepl("localhost|127\\.0\\.0\\.1", base)) return("ollama")
@@ -20,6 +21,11 @@
   # Check model name
   if (!is.null(model)) {
     if (grepl("^claude", model, ignore.case = TRUE)) return("anthropic")
+    if (grepl("^kimi|^moonshot-v1", model, ignore.case = TRUE)) return("moonshot")
+    if (grepl("^(llama|mistral|phi|qwen|gemma|codellama|deepseek)",
+              model, ignore.case = TRUE)) {
+      return("ollama")
+    }
     # Check if model is installed in Ollama
     ollama_models <- tryCatch(
       list_ollama_models()$name,
@@ -43,14 +49,20 @@
     openai = list(
       base_url = base %||% "https://api.openai.com",
       chat_path = "/v1/chat/completions",
-      api_key = Sys.getenv("OPENAI_API_KEY"),
+      api_key = .get_key("openai"),
       default_model = "gpt-4o-mini"
     ),
     anthropic = list(
       base_url = base %||% "https://api.anthropic.com",
       chat_path = "/v1/messages",
-      api_key = Sys.getenv("ANTHROPIC_API_KEY"),
+      api_key = .get_key("anthropic"),
       default_model = "claude-3-5-sonnet-latest"
+    ),
+    moonshot = list(
+      base_url = base %||% "https://api.moonshot.ai",
+      chat_path = "/v1/chat/completions",
+      api_key = .get_key("moonshot"),
+      default_model = "kimi-k2"
     ),
     ollama = list(
       base_url = base %||% "http://localhost:11434",
@@ -160,4 +172,3 @@ list_ollama_models <- function(base_url = "http://localhost:11434") {
     modified = as.character(as.POSIXct(data$models$modified_at))
   )
 }
-

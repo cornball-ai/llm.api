@@ -3,18 +3,9 @@
 \alias{agent}
 \title{Chat with tool use (agentic mode)}
 \usage{
-agent(
-  prompt,
-  tools = list(),
-  tool_handler = NULL,
-  system = NULL,
-  model = NULL,
-  provider = c("anthropic", "openai", "ollama"),
-  max_turns = 20L,
-  verbose = TRUE,
-  history = NULL,
-  ...
-)
+agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
+      provider = c("anthropic", "openai", "moonshot", "ollama"),
+      max_turns = 20L, verbose = TRUE, history = NULL, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message.}
@@ -27,7 +18,8 @@ agent(
 
 \item{model}{Character. Model name.}
 
-\item{provider}{Character. Provider: "anthropic", "openai", "ollama".}
+\item{provider}{Character. Provider: "anthropic", "openai", "moonshot",
+or "ollama".}
 
 \item{max_turns}{Integer. Maximum tool-use turns (default: 20).}
 

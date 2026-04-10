@@ -3,16 +3,8 @@
 \alias{chat_local}
 \title{Chat with Local GGUF Model}
 \usage{
-chat_local(
-  prompt,
-  model,
-  system = NULL,
-  n_predict = 256,
-  temperature = 0.7,
-  top_p = 0.9,
-  n_gpu_layers = 0,
-  ...
-)
+chat_local(prompt, model, system = NULL, n_predict = 256, temperature = 0.7,
+           top_p = 0.9, n_gpu_layers = 0, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}

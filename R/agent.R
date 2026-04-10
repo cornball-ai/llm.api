@@ -10,7 +10,8 @@
 #' @param tool_handler Function. Called with (name, args), returns result string.
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
-#' @param provider Character. Provider: "anthropic", "openai", "ollama".
+#' @param provider Character. Provider: "anthropic", "openai", "moonshot",
+#'   or "ollama".
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
 #' @param history List or NULL. Previous conversation history to continue from.
@@ -39,7 +40,7 @@ agent <- function(
     tool_handler = NULL,
     system = NULL,
     model = NULL,
-    provider = c("anthropic", "openai", "ollama"),
+    provider = c("anthropic", "openai", "moonshot", "ollama"),
     max_turns = 20L,
     verbose = TRUE,
     history = NULL,
@@ -58,6 +59,7 @@ agent <- function(
     model <- switch(provider,
       anthropic = "claude-sonnet-4-20250514",
       openai = "gpt-4o",
+      moonshot = "kimi-k2",
       ollama = "llama3.2"
     )
   }
@@ -82,6 +84,7 @@ agent <- function(
     response <- switch(provider,
       anthropic = .agent_anthropic(messages, provider_tools, system, model, config, ...),
       openai = .agent_openai(messages, provider_tools, system, model, config, ...),
+      moonshot = .agent_openai(messages, provider_tools, system, model, config, ...),
       ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
     )
 
@@ -101,6 +104,8 @@ agent <- function(
 
     # Check if done (no tool calls)
     if (length(response$tool_calls) == 0) {
+      # Append final assistant message so caller's history is complete
+      messages[[length(messages) + 1]] <- response$assistant_message
       return(list(
         content = response$text,
         model = model,
@@ -178,7 +183,8 @@ agent <- function(
   switch(provider,
     anthropic = tools,  # Already in Claude format
 
-    openai = lapply(tools, function(t) {
+    openai = ,
+    moonshot = lapply(tools, function(t) {
       list(
         type = "function",
         `function` = list(
@@ -374,6 +380,7 @@ agent <- function(
     },
 
     openai = ,
+    moonshot = ,
     ollama = {
       # OpenAI/Ollama: separate tool messages
       for (r in results) {
@@ -423,7 +430,8 @@ agent <- function(
 #'   - `list(command = "r", args = "server.R", port = 7850)` to start and connect
 #' @param system Character. Default system prompt.
 #' @param model Character. Default model.
-#' @param provider Character. Provider: "anthropic", "openai", "ollama".
+#' @param provider Character. Provider: "anthropic", "openai", "moonshot",
+#'   or "ollama".
 #' @param verbose Logical. Print tool calls.
 #'
 #' @return A function that takes a prompt and returns a response.
@@ -450,7 +458,7 @@ create_agent <- function(
     servers = list(),
     system = NULL,
     model = NULL,
-    provider = c("anthropic", "openai", "ollama"),
+    provider = c("anthropic", "openai", "moonshot", "ollama"),
     verbose = TRUE
 ) {
   provider <- match.arg(provider)

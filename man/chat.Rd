@@ -3,17 +3,10 @@
 \alias{chat}
 \title{Chat with an LLM}
 \usage{
-chat(
-  prompt,
-  model = NULL,
-  system = NULL,
-  history = NULL,
-  temperature = NULL,
-  max_tokens = NULL,
-  provider = c("auto", "openai", "anthropic", "ollama", "local"),
-  stream = FALSE,
-  ...
-)
+chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
+     max_tokens = NULL,
+     provider = c("auto", "openai", "anthropic", "moonshot", "ollama", "local"),
+     stream = FALSE, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}
@@ -28,7 +21,8 @@ chat(
 
 \item{max_tokens}{Integer or NULL. Maximum tokens in response.}
 
-\item{provider}{Character. Provider: "auto", "openai", "anthropic", "ollama".}
+\item{provider}{Character. Provider: "auto", "openai", "anthropic",
+"moonshot", "ollama", or "local".}
 
 \item{stream}{Logical. Stream the response (prints as it arrives).}
 
