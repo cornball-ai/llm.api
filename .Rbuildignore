@@ -3,4 +3,8 @@
 ^\.claude$
 ^CLAUDE\.md$
 ^\.git$
+^\.github$
 ^\.gitignore$
+^\.Rhistory$
+^man-md$
+^cran-comments\.md$
