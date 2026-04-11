@@ -15,3 +15,9 @@ mcp_close(conn)
 \description{
 Close an MCP connection
 }
+\examples{
+\dontrun{
+conn <- mcp_connect(port = 7850)
+mcp_close(conn)
+}
+}

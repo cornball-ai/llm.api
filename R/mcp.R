@@ -78,6 +78,11 @@ mcp_connect <- function(host = "localhost", port, name = NULL, timeout = 30) {
 #'
 #' @return An MCP connection object.
 #' @export
+#' @examples
+#' \dontrun{
+#' conn <- mcp_start("Rscript", args = "mcp_server.R", port = 7850)
+#' mcp_close(conn)
+#' }
 mcp_start <- function(command, args = character(), port = NULL, name = NULL,
                       startup_wait = 2) {
   # Pick random port if not specified
@@ -109,6 +114,12 @@ mcp_start <- function(command, args = character(), port = NULL, name = NULL,
 #' @param conn An MCP connection object.
 #' @return List of tool definitions.
 #' @export
+#' @examples
+#' \dontrun{
+#' conn <- mcp_connect(port = 7850)
+#' tools <- mcp_tools(conn)
+#' mcp_close(conn)
+#' }
 mcp_tools <- function(conn) {
   conn$tools
 }
@@ -121,6 +132,12 @@ mcp_tools <- function(conn) {
 #'
 #' @return Tool result (list with content and text).
 #' @export
+#' @examples
+#' \dontrun{
+#' conn <- mcp_connect(port = 7850)
+#' result <- mcp_call(conn, "read_file", list(path = "README.md"))
+#' mcp_close(conn)
+#' }
 mcp_call <- function(conn, name, arguments = list()) {
   result <- .mcp_request(conn, "tools/call", list(
     name = name,
@@ -144,6 +161,11 @@ mcp_call <- function(conn, name, arguments = list()) {
 #' @return \code{NULL}, invisibly. Called for its side effect of closing
 #'   the underlying socket.
 #' @export
+#' @examples
+#' \dontrun{
+#' conn <- mcp_connect(port = 7850)
+#' mcp_close(conn)
+#' }
 mcp_close <- function(conn) {
   tryCatch(close(conn$socket), error = function(e) NULL)
   invisible(NULL)
@@ -156,6 +178,12 @@ mcp_close <- function(conn) {
 #' @param conn An MCP connection, or list of connections.
 #' @return List of tools in API format.
 #' @export
+#' @examples
+#' \dontrun{
+#' conn <- mcp_connect(port = 7850)
+#' tools <- mcp_tools_for_api(conn)
+#' mcp_close(conn)
+#' }
 mcp_tools_for_api <- function(conn) {
   if (inherits(conn, "mcp_connection")) {
     conns <- list(conn)
@@ -249,6 +277,12 @@ mcp_tools_for_claude <- function(conn) {
 #' @return \code{x}, invisibly. Called for the side effect of printing a
 #'   summary of the connection state and available tools.
 #' @export
+#' @examples
+#' \dontrun{
+#' conn <- mcp_connect(port = 7850)
+#' print(conn)
+#' mcp_close(conn)
+#' }
 print.mcp_connection <- function(x, ...) {
   status <- tryCatch({
     if (isOpen(x$socket)) "connected" else "disconnected"

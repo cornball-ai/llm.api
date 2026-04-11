@@ -136,6 +136,12 @@ chat_session <- function(
 #'
 #' @return A chat session list.
 #' @export
+#' @examples
+#' # Construct a session (no network call yet)
+#' session <- chat_session_openai(system_prompt = "You are helpful.")
+#' \dontrun{
+#' session$chat("Hello")
+#' }
 chat_session_openai <- function(model = "gpt-4o", system_prompt = NULL, ...) {
   chat_session(model = model, system_prompt = system_prompt, provider = "openai", ...)
 }
@@ -150,6 +156,12 @@ chat_session_openai <- function(model = "gpt-4o", system_prompt = NULL, ...) {
 #'
 #' @return A chat session list.
 #' @export
+#' @examples
+#' # Construct a session (no network call yet)
+#' session <- chat_session_anthropic(system_prompt = "You are helpful.")
+#' \dontrun{
+#' session$chat("Hello")
+#' }
 chat_session_anthropic <- function(model = "claude-sonnet-4-20250514", system_prompt = NULL, ...) {
   chat_session(model = model, system_prompt = system_prompt, provider = "anthropic", ...)
 }
@@ -164,6 +176,12 @@ chat_session_anthropic <- function(model = "claude-sonnet-4-20250514", system_pr
 #'
 #' @return A chat session list.
 #' @export
+#' @examples
+#' # Construct a session (no network call yet)
+#' session <- chat_session_ollama(system_prompt = "You are helpful.")
+#' \dontrun{
+#' session$chat("Hello")
+#' }
 chat_session_ollama <- function(model = "llama3.2", system_prompt = NULL, ...) {
   chat_session(model = model, system_prompt = system_prompt, provider = "ollama", ...)
 }
