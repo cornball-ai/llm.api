@@ -178,12 +178,21 @@ mcp_tools_for_api <- function(conn) {
 
 #' Format MCP tools for Claude API
 #'
-#' Alias for mcp_tools_for_api.
+#' Wrapper for \code{\link{mcp_tools_for_api}}, retained for backwards
+#' compatibility.
 #'
 #' @param conn An MCP connection, or list of connections.
 #' @return List of tools in API format.
 #' @export
-mcp_tools_for_claude <- mcp_tools_for_api
+#' @examples
+#' \dontrun{
+#' conn <- mcp_connect(host = "localhost", port = 7850)
+#' tools <- mcp_tools_for_claude(conn)
+#' mcp_close(conn)
+#' }
+mcp_tools_for_claude <- function(conn) {
+  mcp_tools_for_api(conn)
+}
 
 # Internal: send JSON-RPC request and get response
 .mcp_request <- function(conn, method, params) {
