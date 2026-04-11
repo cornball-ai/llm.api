@@ -24,3 +24,9 @@ An MCP connection object.
 Spawns an MCP server process and connects to it.
 Requires the server script to support --port argument.
 }
+\examples{
+\dontrun{
+conn <- mcp_start("Rscript", args = "mcp_server.R", port = 7850)
+mcp_close(conn)
+}
+}

@@ -18,3 +18,10 @@ Tool result (list with content and text).
 \description{
 Call a tool on an MCP server
 }
+\examples{
+\dontrun{
+conn <- mcp_connect(port = 7850)
+result <- mcp_call(conn, "read_file", list(path = "README.md"))
+mcp_close(conn)
+}
+}

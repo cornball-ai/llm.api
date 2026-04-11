@@ -14,3 +14,10 @@ List of tools in API format.
 \description{
 Converts MCP tool definitions to the format used by Claude/OpenAI.
 }
+\examples{
+\dontrun{
+conn <- mcp_connect(port = 7850)
+tools <- mcp_tools_for_api(conn)
+mcp_close(conn)
+}
+}

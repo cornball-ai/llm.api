@@ -1,15 +1,24 @@
 % tinyrox says don't edit this manually, but it can't stop you!
-\docType{data}
 \name{mcp_tools_for_claude}
 \alias{mcp_tools_for_claude}
 \title{Format MCP tools for Claude API}
-\format{
-An object of class \code{function} of length 1.
-}
 \usage{
-mcp_tools_for_claude
+mcp_tools_for_claude(conn)
+}
+\arguments{
+\item{conn}{An MCP connection, or list of connections.}
+}
+\value{
+List of tools in API format.
 }
 \description{
-Alias for mcp_tools_for_api.
+Wrapper for \code{\link{mcp_tools_for_api}}, retained for backwards
+compatibility.
 }
-\keyword{datasets}
+\examples{
+\dontrun{
+conn <- mcp_connect(host = "localhost", port = 7850)
+tools <- mcp_tools_for_claude(conn)
+mcp_close(conn)
+}
+}

@@ -14,3 +14,10 @@ List of tool definitions.
 \description{
 List tools from an MCP connection
 }
+\examples{
+\dontrun{
+conn <- mcp_connect(port = 7850)
+tools <- mcp_tools(conn)
+mcp_close(conn)
+}
+}

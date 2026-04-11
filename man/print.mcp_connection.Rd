@@ -17,3 +17,10 @@
 \description{
 S3 print method for MCP connection objects.
 }
+\examples{
+\dontrun{
+conn <- mcp_connect(port = 7850)
+print(conn)
+mcp_close(conn)
+}
+}

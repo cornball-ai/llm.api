@@ -14,7 +14,7 @@
 This package provides a minimal-dependency client for several LLM HTTP APIs
 (OpenAI, Anthropic, Moonshot, Ollama) plus an agent loop with tool use and
 a Model Context Protocol client. The only required dependencies are `curl`
-and `jsonlite`. `localLLM` (in Suggests) enables direct local inference.
+and `jsonlite`.
 
 API design is derived from the `ellmer` package, reimplemented in base R
 with minimal dependencies. The `ellmer` team is credited as a copyright

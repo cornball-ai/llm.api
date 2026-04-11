@@ -18,3 +18,10 @@ A chat session list.
 \description{
 Convenience wrapper for chat_session with Ollama provider.
 }
+\examples{
+# Construct a session (no network call yet)
+session <- chat_session_ollama(system_prompt = "You are helpful.")
+\dontrun{
+session$chat("Hello")
+}
+}
