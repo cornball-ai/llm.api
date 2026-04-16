@@ -3,12 +3,12 @@
 \alias{chat_claude}
 \title{Chat with Anthropic Claude}
 \usage{
-chat_claude(prompt, model = "claude-3-5-sonnet-latest", ...)
+chat_claude(prompt, model = "claude-sonnet-4-6", ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}
 
-\item{model}{Character. Model name (e.g., "gpt-4o", "claude-3-5-sonnet-latest", "llama3.2").}
+\item{model}{Character. Model name (e.g., "gpt-4o", "claude-sonnet-4-6", "llama3.2").}
 
 \item{...}{Additional parameters passed to the API.}
 }
@@ -22,6 +22,6 @@ Convenience wrapper for 'Anthropic' 'Claude' models.
 \examples{
 \dontrun{
 chat_claude("Explain the theory of relativity")
-chat_claude("Write a poem", model = "claude-3-5-haiku-latest")
+chat_claude("Write a poem", model = "claude-haiku-4-5")
 }
 }

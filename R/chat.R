@@ -5,7 +5,7 @@
 #' Send a message to a Large Language Model and get a response.
 #'
 #' @param prompt Character. The user message to send.
-#' @param model Character. Model name (e.g., "gpt-4o", "claude-3-5-sonnet-latest", "llama3.2").
+#' @param model Character. Model name (e.g., "gpt-4o", "claude-sonnet-4-6", "llama3.2").
 #' @param system Character or NULL. System prompt to set context.
 #' @param history List or NULL. Previous conversation turns.
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).

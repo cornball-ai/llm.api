@@ -11,7 +11,7 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 \arguments{
 \item{prompt}{Character. The user message to send.}
 
-\item{model}{Character. Model name (e.g., "gpt-4o", "claude-3-5-sonnet-latest", "llama3.2").}
+\item{model}{Character. Model name (e.g., "gpt-4o", "claude-sonnet-4-6", "llama3.2").}
 
 \item{system}{Character or NULL. System prompt to set context.}
 
