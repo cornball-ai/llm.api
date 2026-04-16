@@ -51,7 +51,7 @@
       base_url = base %||% "https://api.anthropic.com",
       chat_path = "/v1/messages",
       api_key = .get_key("anthropic"),
-      default_model = "claude-3-5-sonnet-latest"
+      default_model = "claude-sonnet-4-6"
     ),
     moonshot = list(
       base_url = base %||% "https://api.moonshot.ai",
@@ -101,11 +101,11 @@ chat_openai <- function(
 #' @examples
 #' \dontrun{
 #' chat_claude("Explain the theory of relativity")
-#' chat_claude("Write a poem", model = "claude-3-5-haiku-latest")
+#' chat_claude("Write a poem", model = "claude-haiku-4-5")
 #' }
 chat_claude <- function(
   prompt,
-  model = "claude-3-5-sonnet-latest",
+  model = "claude-sonnet-4-6",
   ...
 ) {
   chat(prompt, model = model, provider = "anthropic", ...)
