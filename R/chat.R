@@ -17,6 +17,15 @@
 #'
 #' @return A list with:
 #'   \item{content}{The assistant's response text}
+#'   \item{thinking}{Chain-of-thought from reasoning models, or NULL.
+#'     Populated from \code{reasoning_content} (DeepSeek, Moonshot Kimi,
+#'     vLLM, SGLang), \code{reasoning} (OpenRouter), or Anthropic
+#'     \code{thinking} blocks. Normalized across providers.}
+#'   \item{finish_reason}{Why generation stopped. \code{"stop"} on a
+#'     normal completion, \code{"length"} when truncated by max_tokens.
+#'     A reasoning model that returns empty \code{content} with
+#'     \code{finish_reason == "length"} ran out of budget mid-thought;
+#'     raise \code{max_tokens}.}
 #'   \item{model}{Model used}
 #'   \item{usage}{Token usage (if available)}
 #'   \item{history}{Updated conversation history}
@@ -108,6 +117,8 @@ chat <- function(
 
   list(
     content = result$content,
+    thinking = result$thinking,
+    finish_reason = result$finish_reason,
     model = model,
     usage = result$usage,
     history = new_history
@@ -155,14 +166,24 @@ chat <- function(
     data <- jsonlite::fromJSON(rawToChar(resp$content))
 
     # Handle both list and data.frame formats from jsonlite
-    content <- if (is.data.frame(data$choices)) {
-      data$choices$message$content[1]
+    if (is.data.frame(data$choices)) {
+      msg <- data$choices$message
+      content <- msg$content[1]
+      thinking <- msg$reasoning_content[1] %||% msg$reasoning[1]
+      finish_reason <- data$choices$finish_reason[1]
     } else {
-      data$choices[[1]]$message$content
+      msg <- data$choices[[1]]$message
+      content <- msg$content
+      thinking <- msg$reasoning_content %||% msg$reasoning
+      finish_reason <- data$choices[[1]]$finish_reason
     }
+
+    .warn_if_truncated(content, thinking, finish_reason)
 
     list(
       content = content,
+      thinking = thinking,
+      finish_reason = finish_reason,
       usage = data$usage
     )
   }
@@ -229,17 +250,63 @@ chat <- function(
 
   data <- jsonlite::fromJSON(rawToChar(resp$content))
 
-  # Handle both data.frame and list formats from jsonlite
-  content <- if (is.data.frame(data$content)) {
-    data$content$text[1]
+  # Handle both data.frame and list formats from jsonlite. content is an
+  # ordered list of blocks; pull text out of "text" blocks and thinking
+  # out of "thinking" blocks.
+  if (is.data.frame(data$content)) {
+    types <- data$content$type
+    text_blocks <- data$content$text[types == "text"]
+    thinking_blocks <- data$content$thinking[types == "thinking"]
   } else {
-    data$content[[1]]$text
+    types <- vapply(data$content, function(b) b$type %||% "", character(1))
+    text_blocks <- vapply(data$content[types == "text"],
+                          function(b) b$text %||% "", character(1))
+    thinking_blocks <- vapply(data$content[types == "thinking"],
+                              function(b) b$thinking %||% "", character(1))
   }
+
+  content <- if (length(text_blocks)) paste(text_blocks, collapse = "\n") else ""
+  thinking <- if (length(thinking_blocks)) {
+    paste(thinking_blocks, collapse = "\n")
+  } else {
+    NULL
+  }
+  finish_reason <- .normalize_anthropic_stop_reason(data$stop_reason)
+
+  .warn_if_truncated(content, thinking, finish_reason)
 
   list(
     content = content,
+    thinking = thinking,
+    finish_reason = finish_reason,
     usage = data$usage
   )
+}
+
+# Map Anthropic's stop_reason to OpenAI-style finish_reason so callers see
+# one vocabulary across providers. "max_tokens" is Anthropic's name for
+# what OpenAI calls "length"; "end_turn" maps to "stop". Other values
+# ("stop_sequence", "tool_use", "pause_turn", "refusal") pass through.
+.normalize_anthropic_stop_reason <- function(stop_reason) {
+  if (is.null(stop_reason) || !nzchar(stop_reason)) return(NULL)
+  switch(stop_reason,
+         "end_turn" = "stop",
+         "max_tokens" = "length",
+         stop_reason)
+}
+
+# Surface the silent-empty-content failure mode of reasoning models. When
+# the model burns its budget on chain-of-thought without ever emitting a
+# user-facing answer, callers otherwise see content="" and assume the
+# model decided to say nothing.
+.warn_if_truncated <- function(content, thinking, finish_reason) {
+  if (identical(finish_reason, "length") &&
+      !nzchar(content %||% "") &&
+      nzchar(thinking %||% "")) {
+    warning("Model truncated mid-reasoning; partial chain-of-thought ",
+            "available in $thinking. Increase max_tokens.",
+            call. = FALSE)
+  }
 }
 
 #' Stream response with live output
@@ -249,6 +316,8 @@ chat <- function(
   handle
 ) {
   full_content <- ""
+  full_thinking <- ""
+  finish_reason <- NULL
 
   callback <- function(data) {
     lines <- strsplit(rawToChar(data), "\n") [[1]]
@@ -257,10 +326,19 @@ chat <- function(
         json_str <- substring(line, 7)
         tryCatch({
             chunk <- jsonlite::fromJSON(json_str)
-            delta <- chunk$choices[[1]]$delta$content
+            choice <- chunk$choices[[1]]
+            delta <- choice$delta$content
             if (!is.null(delta)) {
               cat(delta)
               full_content <<- paste0(full_content, delta)
+            }
+            think_delta <- choice$delta$reasoning_content %||%
+                           choice$delta$reasoning
+            if (!is.null(think_delta)) {
+              full_thinking <<- paste0(full_thinking, think_delta)
+            }
+            if (!is.null(choice$finish_reason)) {
+              finish_reason <<- choice$finish_reason
             }
           }, error = function(e) NULL)
       }
@@ -272,7 +350,15 @@ chat <- function(
   curl::curl_fetch_memory(url, handle = handle)
   cat("\n")
 
-  list(content = full_content, usage = NULL)
+  thinking <- if (nzchar(full_thinking)) full_thinking else NULL
+  .warn_if_truncated(full_content, thinking, finish_reason)
+
+  list(
+    content = full_content,
+    thinking = thinking,
+    finish_reason = finish_reason,
+    usage = NULL
+  )
 }
 
 #' Null coalescing operator
