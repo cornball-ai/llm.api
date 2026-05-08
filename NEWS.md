@@ -1,3 +1,17 @@
+# llm.api 0.1.2
+
+* `chat()` now returns `$thinking` and `$finish_reason`. Reasoning models
+  (DeepSeek-R1, Moonshot Kimi, Anthropic extended thinking, OpenRouter)
+  put their chain-of-thought in a separate field and previously had it
+  silently dropped. `$thinking` is normalized across providers
+  (`reasoning_content`, `reasoning`, Anthropic `thinking` blocks).
+  `$finish_reason` is normalized to OpenAI vocabulary; Anthropic's
+  `max_tokens` becomes `"length"` and `end_turn` becomes `"stop"`.
+* `chat()` now warns when a reasoning model truncates mid-thought
+  (`finish_reason == "length"` with empty content but populated
+  thinking). Previously this returned `content == ""` with no
+  indication; the actionable signal is "raise max_tokens".
+
 # llm.api 0.1.1
 
 * Initial CRAN submission.

@@ -59,7 +59,7 @@ expect_equal(cfg$default_model, "gpt-4o-mini")
 cfg <- llm.api:::.get_provider_config("anthropic")
 expect_equal(cfg$base_url, "https://api.anthropic.com")
 expect_equal(cfg$chat_path, "/v1/messages")
-expect_equal(cfg$default_model, "claude-3-5-sonnet-latest")
+expect_equal(cfg$default_model, "claude-sonnet-4-6")
 
 # Moonshot config
 cfg <- llm.api:::.get_provider_config("moonshot")

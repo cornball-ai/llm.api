@@ -31,6 +31,15 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 \value{
 A list with:
   \item{content}{The assistant's response text}
+  \item{thinking}{Chain-of-thought from reasoning models, or NULL.
+    Populated from \code{reasoning_content} (DeepSeek, Moonshot Kimi,
+    vLLM, SGLang), \code{reasoning} (OpenRouter), or Anthropic
+    \code{thinking} blocks. Normalized across providers.}
+  \item{finish_reason}{Why generation stopped. \code{"stop"} on a
+    normal completion, \code{"length"} when truncated by max_tokens.
+    A reasoning model that returns empty \code{content} with
+    \code{finish_reason == "length"} ran out of budget mid-thought;
+    raise \code{max_tokens}.}
   \item{model}{Model used}
   \item{usage}{Token usage (if available)}
   \item{history}{Updated conversation history}
