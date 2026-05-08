@@ -76,3 +76,12 @@ expect_null(cfg$api_key)
 
 # Unknown provider errors
 expect_error(llm.api:::.get_provider_config("unknown"), pattern = "Unknown provider")
+
+# provider_default_model() exposes the default model id for each
+# supported provider so client code (e.g., status lines) can resolve it
+# upfront without reaching into internals.
+expect_equal(provider_default_model("openai"), "gpt-4o-mini")
+expect_equal(provider_default_model("anthropic"), "claude-sonnet-4-6")
+expect_equal(provider_default_model("moonshot"), "kimi-k2")
+expect_equal(provider_default_model("ollama"), "llama3.2")
+expect_error(provider_default_model("nonsense"), pattern = "Unknown provider")

@@ -69,6 +69,24 @@
   )
 }
 
+#' Default model for a provider
+#'
+#' Returns the model name `chat()` falls back to when the caller
+#' doesn't specify one. Useful for client code that wants to display
+#' the resolved model upfront (e.g., in a status line) without
+#' duplicating the lookup table.
+#'
+#' @param provider Character. One of `"openai"`, `"anthropic"`,
+#'   `"moonshot"`, `"ollama"`.
+#' @return Character. The default model id for that provider.
+#' @export
+#' @examples
+#' provider_default_model("anthropic")
+#' provider_default_model("moonshot")
+provider_default_model <- function(provider) {
+  .get_provider_config(provider)$default_model
+}
+
 #' Chat with OpenAI
 #'
 #' Convenience wrapper for 'OpenAI' models.
