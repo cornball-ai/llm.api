@@ -1,7 +1,5 @@
 # llm.api
 
-*"Llamar" is Spanish for "to call"*
-
 Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/cornball-ai).
 
 ## Exports
