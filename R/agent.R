@@ -341,14 +341,22 @@ agent <- function(
 
   tool_calls <- list()
   if (!is.null(msg$tool_calls)) {
-    for (tc in msg$tool_calls) {
+    for (i in seq_along(msg$tool_calls)) {
+      tc <- msg$tool_calls[[i]]
       # Parse arguments from JSON string (same as OpenAI)
       args <- tryCatch(
         jsonlite::fromJSON(tc$`function`$arguments, simplifyVector = FALSE),
         error = function(e) list()
       )
+      # Ollama sometimes omits tc$id; synthesize one and write it back
+      # into the assistant message so the corresponding role="tool"
+      # result message can reference the same id. Without this the
+      # canonical tool_calls list and the on-the-wire history disagree
+      # on the call id, which breaks history walks.
+      synthesized_id <- tc$id %||% paste0("call_", sample(1e9, 1))
+      msg$tool_calls[[i]]$id <- synthesized_id
       tool_calls[[length(tool_calls) + 1]] <- list(
-        id = tc$id %||% paste0("call_", sample(1e9, 1)),
+        id = synthesized_id,
         name = tc$`function`$name,
         arguments = args
       )

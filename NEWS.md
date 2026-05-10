@@ -1,3 +1,21 @@
+# llm.api 0.1.3 (development)
+
+* New exported helpers `history_tool_calls(history)` and
+  `history_count_tool_calls(history, completed_only = FALSE)` for
+  walking the message history `agent()` returns. Provider history
+  must stay native (it's the input format on the next API call), but
+  consumers now get a single canonical record list instead of having
+  to know that Anthropic uses `content` blocks (`tool_use` /
+  `tool_result`) while OpenAI / moonshot / ollama use a separate
+  `tool_calls` field plus `role = "tool"` result messages. Each
+  record carries `id`, `name`, `arguments`, `result`, `completed`,
+  `call_message_index`, `result_message_index`, and `provider_shape`.
+* `agent()` now writes the synthesized tool-call id back into the
+  Ollama assistant message when the upstream response omits one.
+  Previously `assistant.tool_calls[i].id` and the corresponding
+  `role = "tool"` message's `tool_call_id` could disagree, breaking
+  history walks that paired calls with results.
+
 # llm.api 0.1.2.1
 
 * New exported helper `provider_default_model(provider)`. Returns the
