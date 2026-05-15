@@ -1,5 +1,13 @@
-# llm.api 0.1.3 (development)
+# llm.api 0.1.3
 
+* `chat()` and `agent()` now return `$usage$cost`, a USD scalar
+  derived from a bundled snapshot of BerriAI/litellm's
+  `model_prices_and_context_window.json` (the same upstream `ellmer`
+  uses). Ollama is treated as free (`cost = 0`); models absent from
+  the snapshot leave `cost = NA_real_`. A new exported helper
+  `prices_snapshot_date()` returns the snapshot date so callers can
+  decide when to refresh. Refresh by re-running
+  `data-raw/prices.R`.
 * New exported helpers `history_tool_calls(history)` and
   `history_count_tool_calls(history, completed_only = FALSE)` for
   walking the message history `agent()` returns. Provider history
