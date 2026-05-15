@@ -57,25 +57,25 @@ history_tool_calls <- function(history) {
     calls <- list()
     for (i in seq_along(history)) {
         entry <- history[[i]]
-        if (!is.list(entry)) next
+        if (!is.list(entry)) {
+            next
+        }
         role <- entry$role %||% ""
-        if (!identical(role, "assistant")) next
+        if (!identical(role, "assistant")) {
+            next
+        }
 
         cnt <- entry$content
         # Anthropic shape: content is a list of typed blocks.
         if (is.list(cnt)) {
             for (block in cnt) {
                 if (identical(block$type %||% "", "tool_use")) {
-                    calls[[length(calls) + 1L]] <- list(
-                        id = block$id %||% "",
+                    calls[[length(calls) + 1L]] <- list(id = block$id %||% "",
                         name = block$name %||% "",
-                        arguments = block$input %||% list(),
-                        result = NULL,
-                        completed = FALSE,
-                        call_message_index = i,
+                        arguments = block$input %||% list(), result = NULL,
+                        completed = FALSE, call_message_index = i,
                         result_message_index = NA_integer_,
-                        provider_shape = "anthropic"
-                    )
+                        provider_shape = "anthropic")
                 }
             }
         }
@@ -86,8 +86,8 @@ history_tool_calls <- function(history) {
                 args_raw <- fn$arguments %||% list()
                 args <- if (is.character(args_raw) && length(args_raw) == 1L) {
                     tryCatch(
-                        jsonlite::fromJSON(args_raw, simplifyVector = FALSE),
-                        error = function(e) list()
+                             jsonlite::fromJSON(args_raw, simplifyVector = FALSE),
+                             error = function(e) list()
                     )
                 } else {
                     args_raw
@@ -113,7 +113,9 @@ history_tool_calls <- function(history) {
     # Pass 2: pair results back to calls.
     for (i in seq_along(history)) {
         entry <- history[[i]]
-        if (!is.list(entry)) next
+        if (!is.list(entry)) {
+            next
+        }
         role <- entry$role %||% ""
 
         # Anthropic: tool_result blocks live in user-role messages.
@@ -123,7 +125,9 @@ history_tool_calls <- function(history) {
                 for (block in cnt) {
                     if (identical(block$type %||% "", "tool_result")) {
                         target_id <- block$tool_use_id %||% block$id %||% ""
-                        if (!nzchar(target_id)) next
+                        if (!nzchar(target_id)) {
+                            next
+                        }
                         result_text <- .history_block_result_text(block)
                         for (j in seq_along(calls)) {
                             if (!calls[[j]]$completed &&
@@ -143,7 +147,9 @@ history_tool_calls <- function(history) {
         # OpenAI: each tool result is its own role="tool" message.
         if (identical(role, "tool")) {
             target_id <- entry$tool_call_id %||% entry$id %||% ""
-            if (!nzchar(target_id)) next
+            if (!nzchar(target_id)) {
+                next
+            }
             result_text <- as.character(entry$content %||% "")
             for (j in seq_along(calls)) {
                 if (!calls[[j]]$completed &&
@@ -203,3 +209,4 @@ history_count_tool_calls <- function(history, completed_only = FALSE) {
 }
 
 # Note: `%||%` is defined in chat.R for the package; reused here.
+

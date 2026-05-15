@@ -41,7 +41,10 @@ A list with:
     \code{finish_reason == "length"} ran out of budget mid-thought;
     raise \code{max_tokens}.}
   \item{model}{Model used}
-  \item{usage}{Token usage (if available)}
+  \item{usage}{Token usage (if available). When the model is in the
+    bundled price snapshot, also carries \code{cost} as a USD scalar;
+    Ollama is treated as free (\code{cost = 0}); unknown models leave
+    \code{cost = NA_real_}. See \code{\link{prices_snapshot_date}}.}
   \item{history}{Updated conversation history}
 }
 \description{

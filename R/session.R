@@ -37,93 +37,85 @@
 #' # Clear and start over
 #' session$clear()
 #' }
-chat_session <- function(
-  model = NULL,
-  system_prompt = NULL,
-  provider = c("openai", "anthropic", "moonshot", "ollama"),
-  ...
-) {
-  provider <- match.arg(provider)
+chat_session <- function(model = NULL, system_prompt = NULL,
+                         provider = c("openai", "anthropic", "moonshot", "ollama"),
+                         ...) {
+    provider <- match.arg(provider)
 
- # Internal state
-  .history <- list()
-  .system <- system_prompt
-  .model <- model
-  .provider <- provider
-  .extra <- list(...)
-  .last_response <- NULL
+    # Internal state
+    .history <- list()
+    .system <- system_prompt
+    .model <- model
+    .provider <- provider
+    .extra <- list(...)
+    .last_response <- NULL
 
-  # Chat method - send message, return response text
-  chat_fn <- function(message) {
-    result <- do.call(chat, c(
-      list(
-        prompt = message,
-        model = .model,
-        system = if (length(.history) == 0) .system else NULL,
-        history = .history,
-        provider = .provider,
-        stream = FALSE
-      ),
-      .extra
-    ))
+    # Chat method - send message, return response text
+    chat_fn <- function(message) {
+        result <- do.call(chat, c(
+                                  list(prompt = message, model = .model,
+                                       system = if (length(.history) == 0) .system else NULL,
+                                       history = .history, provider = .provider, stream = FALSE),
+                                  .extra
+            ))
 
-    .history <<- result$history
-    .last_response <<- list(role = "assistant", text = result$content)
+        .history <<- result$history
+        .last_response <<- list(role = "assistant", text = result$content)
 
-    result$content
-  }
+        result$content
+    }
 
-  # Stream method - stream response, return full text
-  stream_fn <- function(message) {
-    result <- do.call(chat, c(
-      list(
-        prompt = message,
-        model = .model,
-        system = if (length(.history) == 0) .system else NULL,
-        history = .history,
-        provider = .provider,
-        stream = TRUE
-      ),
-      .extra
-    ))
+    # Stream method - stream response, return full text
+    stream_fn <- function(message) {
+        result <- do.call(chat, c(
+                                  list(
+                                       prompt = message,
+                                       model = .model,
+                                       system = if (length(.history) == 0) .system else NULL,
+                                       history = .history,
+                                       provider = .provider,
+                                       stream = TRUE
+                ),
+                                  .extra
+            ))
 
-    .history <<- result$history
-    .last_response <<- list(role = "assistant", text = result$content)
+        .history <<- result$history
+        .last_response <<- list(role = "assistant", text = result$content)
 
-    result$content
-  }
+        result$content
+    }
 
-  # Async stream for shinychat compatibility
-  # Returns string since true async requires coro package
-  stream_async_fn <- function(message) {
-    chat_fn(message)
-  }
+    # Async stream for shinychat compatibility
+    # Returns string since true async requires coro package
+    stream_async_fn <- function(message) {
+        chat_fn(message)
+    }
 
-  # Get last turn
-  last_turn_fn <- function() {
-    .last_response
-  }
+    # Get last turn
+    last_turn_fn <- function() {
+        .last_response
+    }
 
-  # Get history
-  history_fn <- function() {
-    .history
-  }
+    # Get history
+    history_fn <- function() {
+        .history
+    }
 
-  # Clear history
-  clear_fn <- function() {
-    .history <<- list()
-    .last_response <<- NULL
-    invisible(NULL)
-  }
+    # Clear history
+    clear_fn <- function() {
+        .history <<- list()
+        .last_response <<- NULL
+        invisible(NULL)
+    }
 
-  list(
-    chat = chat_fn,
-    stream = stream_fn,
-    stream_async = stream_async_fn,
-    last_turn = last_turn_fn,
-    history = history_fn,
-    clear = clear_fn
-  )
+    list(
+         chat = chat_fn,
+         stream = stream_fn,
+         stream_async = stream_async_fn,
+         last_turn = last_turn_fn,
+         history = history_fn,
+         clear = clear_fn
+    )
 }
 
 #' Create OpenAI chat session
@@ -143,7 +135,8 @@ chat_session <- function(
 #' session$chat("Hello")
 #' }
 chat_session_openai <- function(model = "gpt-4o", system_prompt = NULL, ...) {
-  chat_session(model = model, system_prompt = system_prompt, provider = "openai", ...)
+    chat_session(model = model, system_prompt = system_prompt,
+                 provider = "openai", ...)
 }
 
 #' Create Anthropic chat session
@@ -162,8 +155,10 @@ chat_session_openai <- function(model = "gpt-4o", system_prompt = NULL, ...) {
 #' \dontrun{
 #' session$chat("Hello")
 #' }
-chat_session_anthropic <- function(model = "claude-sonnet-4-20250514", system_prompt = NULL, ...) {
-  chat_session(model = model, system_prompt = system_prompt, provider = "anthropic", ...)
+chat_session_anthropic <- function(model = "claude-sonnet-4-20250514",
+                                   system_prompt = NULL, ...) {
+    chat_session(model = model, system_prompt = system_prompt,
+                 provider = "anthropic", ...)
 }
 
 #' Create Ollama chat session
@@ -183,5 +178,7 @@ chat_session_anthropic <- function(model = "claude-sonnet-4-20250514", system_pr
 #' session$chat("Hello")
 #' }
 chat_session_ollama <- function(model = "llama3.2", system_prompt = NULL, ...) {
-  chat_session(model = model, system_prompt = system_prompt, provider = "ollama", ...)
+    chat_session(model = model, system_prompt = system_prompt,
+                 provider = "ollama", ...)
 }
+

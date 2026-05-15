@@ -22,6 +22,7 @@ export(mcp_start)
 export(mcp_tools)
 export(mcp_tools_for_api)
 export(mcp_tools_for_claude)
+export(prices_snapshot_date)
 export(provider_default_model)
 
 S3method(print,mcp_connection)
