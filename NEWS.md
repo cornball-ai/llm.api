@@ -1,4 +1,4 @@
-# llm.api 0.1.3 (development)
+# llm.api 0.1.3
 
 * `chat()` and `agent()` now return `$usage$cost`, a USD scalar
   derived from a bundled snapshot of BerriAI/litellm's
