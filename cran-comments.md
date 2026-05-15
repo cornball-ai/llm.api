@@ -1,11 +1,16 @@
 ## Test environments
 
 * Local: Ubuntu 24.04, R 4.5.3
+* Local: Windows 10 x64, R 4.6.0 (release)
+* Local: Windows 10 x64, R-devel (R 4.7.0 ucrt, gcc 14.3.0)
 * GitHub Actions: macos-latest, ubuntu-latest
 
 ## R CMD check results
 
 0 errors | 0 warnings | 0 notes
+
+Identical clean result across all environments above, including
+`R CMD check --as-cran --no-manual` on the Windows hosts.
 
 ## Release summary
 
