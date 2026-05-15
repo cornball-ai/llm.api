@@ -1,5 +1,13 @@
 # llm.api 0.1.3 (development)
 
+* `chat()` and `agent()` now return `$usage$cost`, a USD scalar
+  derived from a bundled snapshot of BerriAI/litellm's
+  `model_prices_and_context_window.json` (the same upstream `ellmer`
+  uses). Ollama is treated as free (`cost = 0`); models absent from
+  the snapshot leave `cost = NA_real_`. A new exported helper
+  `prices_snapshot_date()` returns the snapshot date so callers can
+  decide when to refresh. Refresh by re-running
+  `data-raw/prices.R`.
 * New exported helpers `history_tool_calls(history)` and
   `history_count_tool_calls(history, completed_only = FALSE)` for
   walking the message history `agent()` returns. Provider history
@@ -15,16 +23,10 @@
   Previously `assistant.tool_calls[i].id` and the corresponding
   `role = "tool"` message's `tool_call_id` could disagree, breaking
   history walks that paired calls with results.
-
-# llm.api 0.1.2.1
-
 * New exported helper `provider_default_model(provider)`. Returns the
   model id `chat()` falls back to when no model is specified, so client
   code can display the resolved model upfront without duplicating the
   lookup table or reaching into internals.
-
-# llm.api 0.1.2
-
 * `chat()` now returns `$thinking` and `$finish_reason`. Reasoning models
   (DeepSeek-R1, Moonshot Kimi, Anthropic extended thinking, OpenRouter)
   put their chain-of-thought in a separate field and previously had it
