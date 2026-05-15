@@ -41,3 +41,9 @@ remain `curl` and `jsonlite`.
 API design is derived from the `ellmer` package; the `ellmer` team is
 credited as a copyright holder in `Authors@R`. Examples that hit live
 APIs are wrapped in `\dontrun{}` to avoid network calls during checks.
+
+## Downstream dependencies
+
+CRAN reverse dependency: `corteza`. No other CRAN reverse
+dependencies. `R CMD check` on `corteza` 0.6.3 (the current CRAN
+release) against `llm.api` 0.1.3 was clean (Status: OK).
