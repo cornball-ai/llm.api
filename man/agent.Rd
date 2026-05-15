@@ -30,7 +30,11 @@ or "ollama".}
 \item{...}{Additional parameters passed to the API.}
 }
 \value{
-List with final response and conversation history.
+List with final response and conversation history. The
+  returned \code{$usage} carries cumulative \code{input_tokens},
+  \code{output_tokens}, \code{total_tokens}, and \code{cost} (USD
+  scalar, derived from the bundled price snapshot; \code{0} for
+  Ollama; \code{NA_real_} for models not in the snapshot).
 }
 \description{
 Send a prompt to an LLM with tools. Automatically handles tool calls

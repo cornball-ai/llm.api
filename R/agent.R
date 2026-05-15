@@ -17,7 +17,11 @@
 #' @param history List or NULL. Previous conversation history to continue from.
 #' @param ... Additional parameters passed to the API.
 #'
-#' @return List with final response and conversation history.
+#' @return List with final response and conversation history. The
+#'   returned \code{$usage} carries cumulative \code{input_tokens},
+#'   \code{output_tokens}, \code{total_tokens}, and \code{cost} (USD
+#'   scalar, derived from the bundled price snapshot; \code{0} for
+#'   Ollama; \code{NA_real_} for models not in the snapshot).
 #' @export
 #'
 #' @examples
@@ -34,399 +38,390 @@
 #'   }
 #' )
 #' }
-agent <- function(
-    prompt,
-    tools = list(),
-    tool_handler = NULL,
-    system = NULL,
-    model = NULL,
-    provider = c("anthropic", "openai", "moonshot", "ollama"),
-    max_turns = 20L,
-    verbose = TRUE,
-    history = NULL,
-    ...
-) {
-  provider <- match.arg(provider)
+agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
+                  model = NULL,
+                  provider = c("anthropic", "openai", "moonshot", "ollama"),
+                  max_turns = 20L, verbose = TRUE, history = NULL, ...) {
+    provider <- match.arg(provider)
 
-  if (is.null(tool_handler) && length(tools) > 0) {
-    stop("tool_handler required when tools are provided", call. = FALSE)
-  }
-
-  config <- .get_provider_config(provider)
-
-  # Default models with tool support
-  if (is.null(model)) {
-    model <- switch(provider,
-      anthropic = "claude-sonnet-4-20250514",
-      openai = "gpt-4o",
-      moonshot = "kimi-k2",
-      ollama = "llama3.2"
-    )
-  }
-
-  # Convert tools to provider format
-  provider_tools <- .convert_tools(tools, provider)
-
-  # Build initial messages (prepend history if provided)
-  messages <- if (!is.null(history)) history else list()
-  messages[[length(messages) + 1]] <- list(role = "user", content = prompt)
-
-  turn <- 0L
-
-  # Track cumulative token usage
-  total_input_tokens <- 0L
-  total_output_tokens <- 0L
-
-  while (turn < max_turns) {
-    turn <- turn + 1L
-
-    # Make API request with tools
-    response <- switch(provider,
-      anthropic = .agent_anthropic(messages, provider_tools, system, model, config, ...),
-      openai = .agent_openai(messages, provider_tools, system, model, config, ...),
-      moonshot = .agent_openai(messages, provider_tools, system, model, config, ...),
-      ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
-    )
-
-    # Accumulate token usage
-    if (!is.null(response$usage)) {
-      # Anthropic format
-      if (!is.null(response$usage$input_tokens)) {
-        total_input_tokens <- total_input_tokens + response$usage$input_tokens
-        total_output_tokens <- total_output_tokens + response$usage$output_tokens
-      }
-      # OpenAI/Ollama format
-      if (!is.null(response$usage$prompt_tokens)) {
-        total_input_tokens <- total_input_tokens + response$usage$prompt_tokens
-        total_output_tokens <- total_output_tokens + response$usage$completion_tokens
-      }
+    if (is.null(tool_handler) && length(tools) > 0) {
+        stop("tool_handler required when tools are provided", call. = FALSE)
     }
 
-    # Check if done (no tool calls)
-    if (length(response$tool_calls) == 0) {
-      # Append final assistant message so caller's history is complete
-      messages[[length(messages) + 1]] <- response$assistant_message
-      return(list(
-        content = response$text,
-        model = model,
-        provider = provider,
-        turns = turn,
-        history = messages,
-        usage = list(
-          input_tokens = total_input_tokens,
-          output_tokens = total_output_tokens,
-          total_tokens = total_input_tokens + total_output_tokens
+    config <- .get_provider_config(provider)
+
+    # Default models with tool support
+    if (is.null(model)) {
+        model <- switch(provider, anthropic = "claude-sonnet-4-20250514",
+                        openai = "gpt-4o", moonshot = "kimi-k2",
+                        ollama = "llama3.2")
+    }
+
+    # Convert tools to provider format
+    provider_tools <- .convert_tools(tools, provider)
+
+    # Build initial messages (prepend history if provided)
+    if (!is.null(history)) {
+        messages <- history
+    } else {
+        messages <- list()
+    }
+    messages[[length(messages) + 1]] <- list(role = "user", content = prompt)
+
+    turn <- 0L
+
+    # Track cumulative token usage
+    total_input_tokens <- 0L
+    total_output_tokens <- 0L
+
+    while (turn < max_turns) {
+        turn <- turn + 1L
+
+        # Make API request with tools
+        response <- switch(provider,
+                           anthropic = .agent_anthropic(messages, provider_tools, system, model, config, ...),
+                           openai = .agent_openai(messages, provider_tools, system, model, config, ...),
+                           moonshot = .agent_openai(messages, provider_tools, system, model, config, ...),
+                           ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
         )
-      ))
+
+        # Accumulate token usage
+        if (!is.null(response$usage)) {
+            # Anthropic format
+            if (!is.null(response$usage$input_tokens)) {
+                total_input_tokens <- total_input_tokens + response$usage$input_tokens
+                total_output_tokens <- total_output_tokens + response$usage$output_tokens
+            }
+            # OpenAI/Ollama format
+            if (!is.null(response$usage$prompt_tokens)) {
+                total_input_tokens <- total_input_tokens + response$usage$prompt_tokens
+                total_output_tokens <- total_output_tokens + response$usage$completion_tokens
+            }
+        }
+
+        # Check if done (no tool calls)
+        if (length(response$tool_calls) == 0) {
+            # Append final assistant message so caller's history is complete
+            messages[[length(messages) + 1]] <- response$assistant_message
+            return(list(
+                        content = response$text,
+                        model = model,
+                        provider = provider,
+                        turns = turn,
+                        history = messages,
+                        usage = list(
+                                     input_tokens = total_input_tokens,
+                                     output_tokens = total_output_tokens,
+                                     total_tokens = total_input_tokens + total_output_tokens,
+                                     cost = .cost_for(model, provider, total_input_tokens, total_output_tokens)
+                    )
+                ))
+        }
+
+        # Add assistant message
+        messages[[length(messages) + 1]] <- response$assistant_message
+
+        # Process tool calls
+        tool_results <- list()
+
+        for (tc in response$tool_calls) {
+            if (verbose) {
+                cat(sprintf("\n[Tool: %s]\n", tc$name))
+                if (length(tc$arguments) > 0) {
+                    cat(sprintf("  Args: %s\n",
+                                jsonlite::toJSON(tc$arguments, auto_unbox = TRUE)))
+                }
+            }
+
+            # Call tool handler
+            result <- tryCatch(
+                               tool_handler(tc$name, tc$arguments),
+                               error = function(e) paste("Error:", e$message)
+            )
+
+            if (verbose) {
+                display <- if (nchar(result) > 500) {
+                    paste0(substr(result, 1, 500), "...")
+                } else {
+                    result
+                }
+                cat(sprintf("  Result: %s\n", display))
+            }
+
+            tool_results[[length(tool_results) + 1]] <- list(
+                id = tc$id,
+                name = tc$name,
+                result = result
+            )
+        }
+
+        # Add tool results to messages (format varies by provider)
+        messages <- .add_tool_results(messages, tool_results, provider)
     }
 
-    # Add assistant message
-    messages[[length(messages) + 1]] <- response$assistant_message
-
-    # Process tool calls
-    tool_results <- list()
-
-    for (tc in response$tool_calls) {
-      if (verbose) {
-        cat(sprintf("\n[Tool: %s]\n", tc$name))
-        if (length(tc$arguments) > 0) {
-          cat(sprintf("  Args: %s\n",
-            jsonlite::toJSON(tc$arguments, auto_unbox = TRUE)))
-        }
-      }
-
-      # Call tool handler
-      result <- tryCatch(
-        tool_handler(tc$name, tc$arguments),
-        error = function(e) paste("Error:", e$message)
-      )
-
-      if (verbose) {
-        display <- if (nchar(result) > 500) {
-          paste0(substr(result, 1, 500), "...")
-        } else {
-          result
-        }
-        cat(sprintf("  Result: %s\n", display))
-      }
-
-      tool_results[[length(tool_results) + 1]] <- list(
-        id = tc$id,
-        name = tc$name,
-        result = result
-      )
-    }
-
-    # Add tool results to messages (format varies by provider)
-    messages <- .add_tool_results(messages, tool_results, provider)
-  }
-
-  warning("Reached max_turns (", max_turns, ")")
-  list(
-    content = "[Max turns reached]",
-    model = model,
-    provider = provider,
-    turns = turn,
-    history = messages,
-    usage = list(
-      input_tokens = total_input_tokens,
-      output_tokens = total_output_tokens,
-      total_tokens = total_input_tokens + total_output_tokens
+    warning("Reached max_turns (", max_turns, ")")
+    list(
+         content = "[Max turns reached]",
+         model = model,
+         provider = provider,
+         turns = turn,
+         history = messages,
+         usage = list(
+                      input_tokens = total_input_tokens,
+                      output_tokens = total_output_tokens,
+                      total_tokens = total_input_tokens + total_output_tokens,
+                      cost = .cost_for(model, provider, total_input_tokens, total_output_tokens)
+        )
     )
-  )
 }
 
 # Convert tools to provider-specific format
 .convert_tools <- function(tools, provider) {
-  if (length(tools) == 0) return(list())
+    if (length(tools) == 0) {
+        return(list())
+    }
 
-  switch(provider,
-    anthropic = tools,  # Already in Claude format
+    switch(provider,
+           anthropic = tools, # Already in Claude format
 
-    openai = ,
-    moonshot = lapply(tools, function(t) {
-      list(
-        type = "function",
-        `function` = list(
-          name = t$name,
-          description = t$description %||% "",
-          parameters = t$input_schema
+           openai =,
+           moonshot = lapply(tools, function(t) {
+        list(
+             type = "function",
+             `function` = list(name = t$name,
+                               description = t$description %||% "",
+                               parameters = t$input_schema)
         )
-      )
     }),
 
-    ollama = lapply(tools, function(t) {
-      list(
-        type = "function",
-        `function` = list(
-          name = t$name,
-          description = t$description %||% "",
-          parameters = t$input_schema
+           ollama = lapply(tools, function(t) {
+        list(
+             type = "function",
+             `function` = list(
+                               name = t$name,
+                               description = t$description %||% "",
+                               parameters = t$input_schema
+            )
         )
-      )
     })
-  )
+    )
 }
 
 # Anthropic request
 .agent_anthropic <- function(messages, tools, system, model, config, ...) {
-  url <- paste0(config$base_url, config$chat_path)
+    url <- paste0(config$base_url, config$chat_path)
 
-  body <- list(
-    model = model,
-    messages = messages,
-    max_tokens = 4096
-  )
+    body <- list(model = model, messages = messages, max_tokens = 4096)
 
-  if (!is.null(system)) body$system <- system
-  if (length(tools) > 0) body$tools <- tools
-
-  extra <- list(...)
-  for (name in names(extra)) body[[name]] <- extra[[name]]
-
-  headers <- c(
-    "Content-Type" = "application/json",
-    "x-api-key" = config$api_key,
-    "anthropic-version" = "2023-06-01"
-  )
-
-  resp <- .post_json(url, body, headers)
-
-  # Parse response
-  text_parts <- character()
-  tool_calls <- list()
-
-  for (block in resp$content) {
-    if (block$type == "text") {
-      text_parts <- c(text_parts, block$text)
-    } else if (block$type == "tool_use") {
-      tool_calls[[length(tool_calls) + 1]] <- list(
-        id = block$id,
-        name = block$name,
-        arguments = block$input
-      )
+    if (!is.null(system)) {
+        body$system <- system
     }
-  }
+    if (length(tools) > 0) {
+        body$tools <- tools
+    }
 
-  list(
-    text = paste(text_parts, collapse = "\n"),
-    tool_calls = tool_calls,
-    assistant_message = list(role = "assistant", content = resp$content),
-    usage = resp$usage  # input_tokens, output_tokens
-  )
+    extra <- list(...)
+    for (name in names(extra)) {
+        body[[name]] <- extra[[name]]
+    }
+
+    headers <- c("Content-Type" = "application/json",
+                 "x-api-key" = config$api_key,
+                 "anthropic-version" = "2023-06-01")
+
+    resp <- .post_json(url, body, headers)
+
+    # Parse response
+    text_parts <- character()
+    tool_calls <- list()
+
+    for (block in resp$content) {
+        if (block$type == "text") {
+            text_parts <- c(text_parts, block$text)
+        } else if (block$type == "tool_use") {
+            tool_calls[[length(tool_calls) + 1]] <- list(
+                id = block$id,
+                name = block$name,
+                arguments = block$input
+            )
+        }
+    }
+
+    list(
+         text = paste(text_parts, collapse = "\n"),
+         tool_calls = tool_calls,
+         assistant_message = list(role = "assistant", content = resp$content),
+         usage = resp$usage # input_tokens, output_tokens
+    )
 }
 
 # OpenAI request
 .agent_openai <- function(messages, tools, system, model, config, ...) {
-  url <- paste0(config$base_url, config$chat_path)
+    url <- paste0(config$base_url, config$chat_path)
 
-  # Build messages with system
-  api_messages <- list()
-  if (!is.null(system)) {
-    api_messages[[1]] <- list(role = "system", content = system)
-  }
-  api_messages <- c(api_messages, messages)
-
-  body <- list(
-    model = model,
-    messages = api_messages
-  )
-
-  if (length(tools) > 0) body$tools <- tools
-
-  extra <- list(...)
-  for (name in names(extra)) body[[name]] <- extra[[name]]
-
-  headers <- c(
-    "Content-Type" = "application/json",
-    "Authorization" = paste("Bearer", config$api_key)
-  )
-
-  resp <- .post_json(url, body, headers)
-
-  # Parse response
-  choice <- resp$choices[[1]]
-  msg <- choice$message
-
-  tool_calls <- list()
-  if (!is.null(msg$tool_calls)) {
-    for (tc in msg$tool_calls) {
-      args <- tryCatch(
-        jsonlite::fromJSON(tc$`function`$arguments, simplifyVector = FALSE),
-        error = function(e) list()
-      )
-      tool_calls[[length(tool_calls) + 1]] <- list(
-        id = tc$id,
-        name = tc$`function`$name,
-        arguments = args
-      )
+    # Build messages with system
+    api_messages <- list()
+    if (!is.null(system)) {
+        api_messages[[1]] <- list(role = "system", content = system)
     }
-  }
+    api_messages <- c(api_messages, messages)
 
-  list(
-    text = msg$content %||% "",
-    tool_calls = tool_calls,
-    assistant_message = msg,
-    usage = resp$usage  # prompt_tokens, completion_tokens, total_tokens
-  )
+    body <- list(model = model, messages = api_messages)
+
+    if (length(tools) > 0) {
+        body$tools <- tools
+    }
+
+    extra <- list(...)
+    for (name in names(extra)) {
+        body[[name]] <- extra[[name]]
+    }
+
+    headers <- c("Content-Type" = "application/json",
+                 "Authorization" = paste("Bearer", config$api_key))
+
+    resp <- .post_json(url, body, headers)
+
+    # Parse response
+    choice <- resp$choices[[1]]
+    msg <- choice$message
+
+    tool_calls <- list()
+    if (!is.null(msg$tool_calls)) {
+        for (tc in msg$tool_calls) {
+            args <- tryCatch(
+                             jsonlite::fromJSON(tc$`function`$arguments, simplifyVector = FALSE),
+                             error = function(e) list()
+            )
+            tool_calls[[length(tool_calls) + 1]] <- list(
+                id = tc$id,
+                name = tc$`function`$name,
+                arguments = args
+            )
+        }
+    }
+
+    list(
+         text = msg$content %||% "",
+         tool_calls = tool_calls,
+         assistant_message = msg,
+         usage = resp$usage # prompt_tokens, completion_tokens, total_tokens
+    )
 }
 
 # Ollama request (OpenAI-compatible)
 .agent_ollama <- function(messages, tools, system, model, config, ...) {
-  url <- paste0(config$base_url, config$chat_path)
+    url <- paste0(config$base_url, config$chat_path)
 
-  api_messages <- list()
-  if (!is.null(system)) {
-    api_messages[[1]] <- list(role = "system", content = system)
-  }
-  api_messages <- c(api_messages, messages)
-
-  body <- list(
-    model = model,
-    messages = api_messages,
-    stream = FALSE
-  )
-
-  if (length(tools) > 0) body$tools <- tools
-
-  extra <- list(...)
-  for (name in names(extra)) body[[name]] <- extra[[name]]
-
-  headers <- c("Content-Type" = "application/json")
-
-  resp <- .post_json(url, body, headers)
-
-  # Parse response (OpenAI-compatible format: choices[].message)
-  msg <- resp$choices[[1]]$message
-
-  tool_calls <- list()
-  if (!is.null(msg$tool_calls)) {
-    for (i in seq_along(msg$tool_calls)) {
-      tc <- msg$tool_calls[[i]]
-      # Parse arguments from JSON string (same as OpenAI)
-      args <- tryCatch(
-        jsonlite::fromJSON(tc$`function`$arguments, simplifyVector = FALSE),
-        error = function(e) list()
-      )
-      # Ollama sometimes omits tc$id; synthesize one and write it back
-      # into the assistant message so the corresponding role="tool"
-      # result message can reference the same id. Without this the
-      # canonical tool_calls list and the on-the-wire history disagree
-      # on the call id, which breaks history walks.
-      synthesized_id <- tc$id %||% paste0("call_", sample(1e9, 1))
-      msg$tool_calls[[i]]$id <- synthesized_id
-      tool_calls[[length(tool_calls) + 1]] <- list(
-        id = synthesized_id,
-        name = tc$`function`$name,
-        arguments = args
-      )
+    api_messages <- list()
+    if (!is.null(system)) {
+        api_messages[[1]] <- list(role = "system", content = system)
     }
-  }
+    api_messages <- c(api_messages, messages)
 
-  list(
-    text = msg$content %||% "",
-    tool_calls = tool_calls,
-    assistant_message = msg,
-    usage = resp$usage
-  )
+    body <- list(model = model, messages = api_messages, stream = FALSE)
+
+    if (length(tools) > 0) {
+        body$tools <- tools
+    }
+
+    extra <- list(...)
+    for (name in names(extra)) {
+        body[[name]] <- extra[[name]]
+    }
+
+    headers <- c("Content-Type" = "application/json")
+
+    resp <- .post_json(url, body, headers)
+
+    # Parse response (OpenAI-compatible format: choices[].message)
+    msg <- resp$choices[[1]]$message
+
+    tool_calls <- list()
+    if (!is.null(msg$tool_calls)) {
+        for (i in seq_along(msg$tool_calls)) {
+            tc <- msg$tool_calls[[i]]
+            # Parse arguments from JSON string (same as OpenAI)
+            args <- tryCatch(
+                             jsonlite::fromJSON(tc$`function`$arguments,
+                    simplifyVector = FALSE),
+                             error = function(e) list()
+            )
+            # Ollama sometimes omits tc$id; synthesize one and write it back
+            # into the assistant message so the corresponding role="tool"
+            # result message can reference the same id. Without this the
+            # canonical tool_calls list and the on-the-wire history disagree
+            # on the call id, which breaks history walks.
+            synthesized_id <- tc$id %||% paste0("call_", sample(1e9, 1))
+            msg$tool_calls[[i]]$id <- synthesized_id
+            tool_calls[[length(tool_calls) + 1]] <- list(
+                id = synthesized_id,
+                name = tc$`function`$name,
+                arguments = args
+            )
+        }
+    }
+
+    list(
+         text = msg$content %||% "",
+         tool_calls = tool_calls,
+         assistant_message = msg,
+         usage = resp$usage
+    )
 }
 
 # Add tool results to message history
 .add_tool_results <- function(messages, results, provider) {
-  switch(provider,
-    anthropic = {
-      # Claude: tool_result blocks in user message
-      content <- lapply(results, function(r) {
-        list(
-          type = "tool_result",
-          tool_use_id = r$id,
-          content = r$result
-        )
-      })
-      messages[[length(messages) + 1]] <- list(role = "user", content = content)
-      messages
+    switch(provider,
+           anthropic = {
+        # Claude: tool_result blocks in user message
+        content <- lapply(results, function(r) {
+            list(type = "tool_result", tool_use_id = r$id, content = r$result)
+        })
+        messages[[length(messages) + 1]] <- list(role = "user",
+            content = content)
+        messages
     },
 
-    openai = ,
-    moonshot = ,
-    ollama = {
-      # OpenAI/Ollama: separate tool messages
-      for (r in results) {
-        messages[[length(messages) + 1]] <- list(
-          role = "tool",
-          tool_call_id = r$id,
-          name = r$name,
-          content = r$result
-        )
-      }
-      messages
+           openai =,
+           moonshot =,
+           ollama = {
+        # OpenAI/Ollama: separate tool messages
+        for (r in results) {
+            messages[[length(messages) + 1]] <- list(
+                role = "tool",
+                tool_call_id = r$id,
+                name = r$name,
+                content = r$result
+            )
+        }
+        messages
     }
-  )
+    )
 }
 
 # Helper: POST JSON request
 .post_json <- function(url, body, headers) {
-  h <- curl::new_handle()
-  curl::handle_setopt(h,
-    customrequest = "POST",
-    postfields = jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
-  )
-  curl::handle_setheaders(h, .list = as.list(headers))
-
-  resp <- curl::curl_fetch_memory(url, handle = h)
-
-  if (resp$status_code >= 400) {
-    err <- tryCatch(
-      jsonlite::fromJSON(rawToChar(resp$content)),
-      error = function(e) list(error = list(message = rawToChar(resp$content)))
+    h <- curl::new_handle()
+    curl::handle_setopt(h,
+                        customrequest = "POST",
+                        postfields = jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
     )
-    stop("API error (", resp$status_code, "): ",
-      err$error$message %||% "Unknown error", call. = FALSE)
-  }
+    curl::handle_setheaders(h, .list = as.list(headers))
 
-  jsonlite::fromJSON(rawToChar(resp$content), simplifyVector = FALSE)
+    resp <- curl::curl_fetch_memory(url, handle = h)
+
+    if (resp$status_code >= 400) {
+        err <- tryCatch(
+                        jsonlite::fromJSON(rawToChar(resp$content)),
+                        error = function(e) list(error = list(message = rawToChar(resp$content)))
+        )
+        stop("API error (", resp$status_code, "): ",
+             err$error$message %||% "Unknown error", call. = FALSE)
+    }
+
+    jsonlite::fromJSON(rawToChar(resp$content), simplifyVector = FALSE)
 }
-
 
 #' Create an agent with MCP servers
 #'
@@ -462,74 +457,67 @@ agent <- function(
 #'
 #' result <- chat_fn("List files in current directory")
 #' }
-create_agent <- function(
-    servers = list(),
-    system = NULL,
-    model = NULL,
-    provider = c("anthropic", "openai", "moonshot", "ollama"),
-    verbose = TRUE
-) {
-  provider <- match.arg(provider)
+create_agent <- function(servers = list(), system = NULL, model = NULL,
+                         provider = c("anthropic", "openai", "moonshot", "ollama"),
+                         verbose = TRUE) {
+    provider <- match.arg(provider)
 
-  # Connect to all servers
-  connections <- list()
-  for (name in names(servers)) {
-    srv <- servers[[name]]
+    # Connect to all servers
+    connections <- list()
+    for (name in names(servers)) {
+        srv <- servers[[name]]
 
-    if (!is.null(srv$command)) {
-      # Start server and connect
-      connections[[name]] <- mcp_start(
-        command = srv$command,
-        args = srv$args,
-        port = srv$port,
-        name = name
-      )
-    } else {
-      # Connect to existing server
-      connections[[name]] <- mcp_connect(
-        host = srv$host %||% "localhost",
-        port = srv$port,
-        name = name
-      )
+        if (!is.null(srv$command)) {
+            # Start server and connect
+            connections[[name]] <- mcp_start(command = srv$command,
+                args = srv$args, port = srv$port, name = name)
+        } else {
+            # Connect to existing server
+            connections[[name]] <- mcp_connect(
+                host = srv$host %||% "localhost",
+                port = srv$port,
+                name = name
+            )
+        }
     }
-  }
 
-  # Gather all tools (in Claude format - will be converted per-provider)
-  all_tools <- list()
-  tool_map <- list()
+    # Gather all tools (in Claude format - will be converted per-provider)
+    all_tools <- list()
+    tool_map <- list()
 
-  for (name in names(connections)) {
-    conn <- connections[[name]]
-    for (tool in conn$tools) {
-      all_tools[[length(all_tools) + 1]] <- list(
-        name = tool$name,
-        description = tool$description %||% "",
-        input_schema = tool$inputSchema
-      )
-      tool_map[[tool$name]] <- conn
+    for (name in names(connections)) {
+        conn <- connections[[name]]
+        for (tool in conn$tools) {
+            all_tools[[length(all_tools) + 1]] <- list(
+                name = tool$name,
+                description = tool$description %||% "",
+                input_schema = tool$inputSchema
+            )
+            tool_map[[tool$name]] <- conn
+        }
     }
-  }
 
-  # Create tool handler
-  handler <- function(name, args) {
-    conn <- tool_map[[name]]
-    if (is.null(conn)) {
-      return(paste("Unknown tool:", name))
+    # Create tool handler
+    handler <- function(name, args) {
+        conn <- tool_map[[name]]
+        if (is.null(conn)) {
+            return(paste("Unknown tool:", name))
+        }
+        mcp_call(conn, name, args)$text
     }
-    mcp_call(conn, name, args)$text
-  }
 
-  # Return chat function
-  function(prompt, ...) {
-    agent(
-      prompt = prompt,
-      tools = all_tools,
-      tool_handler = handler,
-      system = system,
-      model = model,
-      provider = provider,
-      verbose = verbose,
-      ...
-    )
-  }
+    # Return chat function
+    function(prompt, ...) {
+        agent(
+              prompt = prompt,
+              tools = all_tools,
+              tool_handler = handler,
+              system = system,
+              model = model,
+              provider = provider,
+              verbose = verbose,
+              ...
+        )
+    }
 }
+
