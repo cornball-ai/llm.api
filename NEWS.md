@@ -1,3 +1,16 @@
+# llm.api 0.1.3.1
+
+* `agent()` gains a `history_callback` parameter. The callback is
+  invoked with the current full history after each assistant message
+  is appended and after each tool result is appended. Callers (e.g.
+  `corteza`) use it to snapshot intermediate state so an interrupt
+  mid-turn doesn't lose tool calls that already completed in this
+  batch. Callback errors are swallowed so telemetry can't break a
+  turn. Tool results are now appended incrementally to history
+  (still as a single batched user message on Anthropic, per the API
+  contract); the old `.add_tool_results()` internal helper remains
+  for backwards compatibility.
+
 # llm.api 0.1.3
 
 * `chat()` and `agent()` now return `$usage$cost`, a USD scalar
