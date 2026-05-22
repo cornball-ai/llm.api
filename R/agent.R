@@ -15,6 +15,12 @@
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
 #' @param history List or NULL. Previous conversation history to continue from.
+#' @param history_callback Function or NULL. Called as
+#'   \code{history_callback(history)} after each assistant message is
+#'   appended and after each tool result is appended. Lets callers
+#'   snapshot intermediate state so an interrupt mid-turn doesn't lose
+#'   the work that was already done. Errors raised inside the callback
+#'   are swallowed so telemetry/snapshotting can't break a turn.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
@@ -41,7 +47,8 @@
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
                   provider = c("anthropic", "openai", "moonshot", "ollama"),
-                  max_turns = 20L, verbose = TRUE, history = NULL, ...) {
+                  max_turns = 20L, verbose = TRUE, history = NULL,
+                  history_callback = NULL, ...) {
     provider <- match.arg(provider)
 
     if (is.null(tool_handler) && length(tools) > 0) {
@@ -103,6 +110,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         if (length(response$tool_calls) == 0) {
             # Append final assistant message so caller's history is complete
             messages[[length(messages) + 1]] <- response$assistant_message
+            .fire_history_callback(history_callback, messages)
             return(list(
                         content = response$text,
                         model = model,
@@ -118,12 +126,15 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 ))
         }
 
-        # Add assistant message
+        # Add assistant message (carries the tool_use blocks for this round)
         messages[[length(messages) + 1]] <- response$assistant_message
+        .fire_history_callback(history_callback, messages)
 
-        # Process tool calls
-        tool_results <- list()
-
+        # Process tool calls one at a time and append each result to
+        # history as it's produced, firing the callback after each.
+        # This means an interrupt mid-batch leaves the completed tools'
+        # results in the snapshot the callback received, so the caller
+        # can preserve them instead of losing the whole batch.
         for (tc in response$tool_calls) {
             if (verbose) {
                 cat(sprintf("\n[Tool: %s]\n", tc$name))
@@ -148,15 +159,13 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 cat(sprintf("  Result: %s\n", display))
             }
 
-            tool_results[[length(tool_results) + 1]] <- list(
-                id = tc$id,
-                name = tc$name,
-                result = result
+            messages <- .append_tool_result(
+                messages,
+                list(id = tc$id, name = tc$name, result = result),
+                provider
             )
+            .fire_history_callback(history_callback, messages)
         }
-
-        # Add tool results to messages (format varies by provider)
-        messages <- .add_tool_results(messages, tool_results, provider)
     }
 
     warning("Reached max_turns (", max_turns, ")")
@@ -372,32 +381,63 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
 # Add tool results to message history
 .add_tool_results <- function(messages, results, provider) {
+    # Backwards-compatible batch wrapper. New code paths should call
+    # .append_tool_result directly so the history_callback in agent()
+    # can fire between each append.
+    for (r in results) {
+        messages <- .append_tool_result(messages, r, provider)
+    }
+    messages
+}
+
+# Append a single tool result to history in the provider's expected
+# shape. For Anthropic, multiple tool_results for one assistant turn
+# share a single trailing user message (extended in place); for the
+# OpenAI-family providers each tool result is its own role="tool"
+# message.
+.append_tool_result <- function(messages, result, provider) {
     switch(provider,
            anthropic = {
-        # Claude: tool_result blocks in user message
-        content <- lapply(results, function(r) {
-            list(type = "tool_result", tool_use_id = r$id, content = r$result)
-        })
-        messages[[length(messages) + 1]] <- list(role = "user",
-            content = content)
+        block <- list(type = "tool_result", tool_use_id = result$id,
+                      content = result$result)
+        last <- length(messages)
+        if (last >= 1L &&
+            identical(messages[[last]]$role, "user") &&
+            is.list(messages[[last]]$content) &&
+            length(messages[[last]]$content) > 0L &&
+            identical(messages[[last]]$content[[1]]$type, "tool_result")) {
+            # Extend the existing batch user message.
+            messages[[last]]$content <- c(messages[[last]]$content, list(block))
+        } else {
+            messages[[length(messages) + 1L]] <- list(role = "user",
+                content = list(block))
+        }
         messages
     },
-
            openai =,
            moonshot =,
            ollama = {
-        # OpenAI/Ollama: separate tool messages
-        for (r in results) {
-            messages[[length(messages) + 1]] <- list(
-                role = "tool",
-                tool_call_id = r$id,
-                name = r$name,
-                content = r$result
-            )
-        }
+        messages[[length(messages) + 1L]] <- list(
+            role = "tool",
+            tool_call_id = result$id,
+            name = result$name,
+            content = result$result
+        )
         messages
     }
     )
+}
+
+# Invoke the user-supplied history callback if any, swallowing errors.
+# Callers should pass the current full messages list; the callback
+# typically uses it to snapshot intermediate state so an interrupt
+# mid-turn doesn't lose completed tool calls.
+.fire_history_callback <- function(callback, messages) {
+    if (is.null(callback)) {
+        return(invisible(NULL))
+    }
+    tryCatch(callback(messages), error = function(e) NULL)
+    invisible(NULL)
 }
 
 # Helper: POST JSON request
