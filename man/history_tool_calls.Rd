@@ -18,6 +18,8 @@ Accepts either a `history` list as returned by [agent()] (in which
 case every entry is treated as a message) or any list-of-messages
 that follows the same shape. Returns a list of records, one per
 tool call, each with:
+}
+\details{
 \describe{
 \item{id}{Canonical call id (synthesized for Ollama responses
 that omit one).}
@@ -34,4 +36,5 @@ carrying the result, or `NA_integer_` for unfinished calls.}
 \item{provider_shape}{`"anthropic"` or `"openai"`. Useful when a
 consumer needs to branch on shape (rare).}
 }
+
 }

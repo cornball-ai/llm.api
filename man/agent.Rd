@@ -5,7 +5,8 @@
 \usage{
 agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
       provider = c("anthropic", "openai", "moonshot", "ollama"),
-      max_turns = 20L, verbose = TRUE, history = NULL, ...)
+      max_turns = 20L, verbose = TRUE, history = NULL, history_callback = NULL,
+      ...)
 }
 \arguments{
 \item{prompt}{Character. The user message.}
@@ -26,6 +27,13 @@ or "ollama".}
 \item{verbose}{Logical. Print tool calls and results.}
 
 \item{history}{List or NULL. Previous conversation history to continue from.}
+
+\item{history_callback}{Function or NULL. Called as
+\code{history_callback(history)} after each assistant message is
+appended and after each tool result is appended. Lets callers
+snapshot intermediate state so an interrupt mid-turn doesn't lose
+the work that was already done. Errors raised inside the callback
+are swallowed so telemetry/snapshotting can't break a turn.}
 
 \item{...}{Additional parameters passed to the API.}
 }
