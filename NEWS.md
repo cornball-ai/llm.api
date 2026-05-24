@@ -1,3 +1,16 @@
+# llm.api 0.1.3.3
+
+## Fix: `cache` / `thinking_budget_tokens` silently disabled under the default provider
+
+The Anthropic-only guards in `chat()` ran before provider
+auto-detection, comparing against the literal `"auto"` default. So
+`chat(prompt, model = "claude-...", cache = "5m")` tripped a spurious
+"Anthropic-only" warning, downgraded the opt-in, and fell through to
+the default provider. Detection now runs first, so the guards see the
+resolved provider. `.validate_thinking_budget()` still runs up front as
+provider-independent input validation. Network-free regression coverage
+added.
+
 # llm.api 0.1.3.2
 
 Three additions, all backward-compatible (new parameters default to
