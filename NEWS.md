@@ -1,3 +1,32 @@
+# llm.api 0.1.3.4
+
+## Cache-aware cost estimates
+
+`usage$cost` (from `chat()` and `agent()`) now accounts for prompt
+caching instead of billing every input token at the full rate.
+Anthropic cache writes/reads are priced from Anthropic's published
+multipliers (5-minute write 1.25x, 1-hour write 2x, read 0.1x of the
+base input rate), and OpenAI / Moonshot cache hits are priced from
+each model's cached-input rate in the bundled snapshot.
+
+New exported helpers:
+
+* `usage_cost(model, provider, usage)` returns the USD estimate for a
+  usage object (the same value attached as `usage$cost`), so callers
+  can price usage objects directly. Scalar return; cache-aware.
+* `prices_snapshot_stale(max_age_days = 90)` reports whether the
+  bundled price snapshot is older than a threshold, for staleness
+  alerts.
+
+`agent()$usage` now also carries cumulative `cache_read_input_tokens`
+and `cache_creation_input_tokens` so callers can inspect cache
+activity after a multi-turn run.
+
+The bundled price snapshot was refreshed (2026-05-24) to carry
+per-model cached-input rates; base input/output rates for existing
+models are unchanged. Cost estimates remain offline and approximate;
+`prices_snapshot_date()` docs now spell that out, with source URLs.
+
 # llm.api 0.1.3.3
 
 ## Fix: `cache` / `thinking_budget_tokens` silently disabled under the default provider
