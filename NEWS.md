@@ -1,3 +1,13 @@
+# llm.api 0.1.3.5
+
+## Default OpenAI model is now `gpt-5.4-mini`
+
+`chat()`, `agent()`, `chat_openai()`, and `chat_session_openai()`
+default to `gpt-5.4-mini` when no model is given, replacing the dated
+`gpt-4o-mini` / `gpt-4o`. It's the current cost-appropriate mini model
+and carries cached-input pricing. Pass `model =` explicitly to use any
+other model.
+
 # llm.api 0.1.3.4
 
 ## Cache-aware cost estimates
