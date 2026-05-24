@@ -91,7 +91,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     if (is.null(model)) {
         model <- switch(provider, anthropic = "claude-sonnet-4-6",
                         openai = "gpt-5.4-mini", moonshot = "kimi-k2",
-                        ollama = "llama3.2")
+                        ollama = "qwen3.5:9b")
     }
 
     # Convert tools to provider format

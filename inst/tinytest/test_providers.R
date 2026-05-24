@@ -71,7 +71,7 @@ expect_equal(cfg$default_model, "kimi-k2")
 cfg <- llm.api:::.get_provider_config("ollama")
 expect_equal(cfg$base_url, "http://localhost:11434")
 expect_equal(cfg$chat_path, "/v1/chat/completions")
-expect_equal(cfg$default_model, "llama3.2")
+expect_equal(cfg$default_model, "qwen3.5:9b")
 expect_null(cfg$api_key)
 
 # Unknown provider errors
@@ -83,5 +83,5 @@ expect_error(llm.api:::.get_provider_config("unknown"), pattern = "Unknown provi
 expect_equal(provider_default_model("openai"), "gpt-5.4-mini")
 expect_equal(provider_default_model("anthropic"), "claude-sonnet-4-6")
 expect_equal(provider_default_model("moonshot"), "kimi-k2")
-expect_equal(provider_default_model("ollama"), "llama3.2")
+expect_equal(provider_default_model("ollama"), "qwen3.5:9b")
 expect_error(provider_default_model("nonsense"), pattern = "Unknown provider")

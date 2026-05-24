@@ -3,10 +3,10 @@
 \alias{chat_session_ollama}
 \title{Create Ollama chat session}
 \usage{
-chat_session_ollama(model = "llama3.2", system_prompt = NULL, ...)
+chat_session_ollama(model = "qwen3.5:9b", system_prompt = NULL, ...)
 }
 \arguments{
-\item{model}{Character. Model name (default: "llama3.2").}
+\item{model}{Character. Model name (default: "qwen3.5:9b").}
 
 \item{system_prompt}{Character or NULL. System prompt.}
 

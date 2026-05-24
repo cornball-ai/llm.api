@@ -81,7 +81,7 @@
                          base_url = base %||% "http://localhost:11434",
                          chat_path = "/v1/chat/completions",
                          api_key = NULL,
-                         default_model = "llama3.2"
+                         default_model = "qwen3.5:9b"
         ),
            stop("Unknown provider: ", provider, call. = FALSE)
     )
@@ -152,7 +152,7 @@ chat_claude <- function(prompt, model = "claude-sonnet-4-6", ...) {
 #' chat_ollama("What is machine learning?")
 #' chat_ollama("Explain Docker", model = "mistral")
 #' }
-chat_ollama <- function(prompt, model = "llama3.2", ...) {
+chat_ollama <- function(prompt, model = "qwen3.5:9b", ...) {
     chat(prompt, model = model, provider = "ollama", ...)
 }
 

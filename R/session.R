@@ -166,7 +166,7 @@ chat_session_anthropic <- function(model = "claude-sonnet-4-6",
 #'
 #' Convenience wrapper for chat_session with Ollama provider.
 #'
-#' @param model Character. Model name (default: "llama3.2").
+#' @param model Character. Model name (default: "qwen3.5:9b").
 #' @param system_prompt Character or NULL. System prompt.
 #' @param ... Additional parameters passed to chat_session().
 #'
@@ -178,7 +178,7 @@ chat_session_anthropic <- function(model = "claude-sonnet-4-6",
 #' \dontrun{
 #' session$chat("Hello")
 #' }
-chat_session_ollama <- function(model = "llama3.2", system_prompt = NULL, ...) {
+chat_session_ollama <- function(model = "qwen3.5:9b", system_prompt = NULL, ...) {
     chat_session(model = model, system_prompt = system_prompt,
                  provider = "ollama", ...)
 }
