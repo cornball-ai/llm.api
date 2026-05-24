@@ -48,8 +48,30 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
                   provider = c("anthropic", "openai", "moonshot", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
-                  history_callback = NULL, ...) {
+                  history_callback = NULL, cache = c("none", "5m", "1h"),
+                  thinking_budget_tokens = NULL, ...) {
     provider <- match.arg(provider)
+    cache <- match.arg(cache)
+
+    # Anthropic-only feature opt-ins emit a one-time warning when a
+    # non-default value is passed against another provider so the
+    # caller knows the request will be silently degraded.
+    if (!identical(cache, "none") && !identical(provider, "anthropic")) {
+        warning("`cache` is Anthropic-only; ignoring for provider \"",
+                provider, "\".", call. = FALSE)
+        cache <- "none"
+    }
+    if (!is.null(thinking_budget_tokens)) {
+        # max_tokens flows in via ...; pull it out for validation.
+        extra_validate <- list(...)
+        .validate_thinking_budget(thinking_budget_tokens,
+                                  max_tokens = extra_validate$max_tokens)
+        if (!identical(provider, "anthropic")) {
+            warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
+                    "for provider \"", provider, "\".", call. = FALSE)
+            thinking_budget_tokens <- NULL
+        }
+    }
 
     if (is.null(tool_handler) && length(tools) > 0) {
         stop("tool_handler required when tools are provided", call. = FALSE)
@@ -86,7 +108,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
         # Make API request with tools
         response <- switch(provider,
-                           anthropic = .agent_anthropic(messages, provider_tools, system, model, config, ...),
+                           anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
+                cache = cache,
+                thinking_budget_tokens = thinking_budget_tokens, ...),
                            openai = .agent_openai(messages, provider_tools, system, model, config, ...),
                            moonshot = .agent_openai(messages, provider_tools, system, model, config, ...),
                            ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
@@ -217,16 +241,22 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 }
 
 # Anthropic request
-.agent_anthropic <- function(messages, tools, system, model, config, ...) {
+.agent_anthropic <- function(messages, tools, system, model, config,
+                             cache = "none", thinking_budget_tokens = NULL,
+                             ...) {
     url <- paste0(config$base_url, config$chat_path)
 
     body <- list(model = model, messages = messages, max_tokens = 4096)
 
     if (!is.null(system)) {
-        body$system <- system
+        body$system <- .anthropic_system_with_cache(system, cache)
     }
     if (length(tools) > 0) {
         body$tools <- tools
+    }
+    if (!is.null(thinking_budget_tokens)) {
+        body$thinking <- list(type = "enabled",
+                              budget_tokens = as.integer(thinking_budget_tokens))
     }
 
     extra <- list(...)
@@ -282,6 +312,16 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     }
 
     extra <- list(...)
+    # OpenAI deprecated max_tokens in favor of max_completion_tokens
+    # and reasoning (o-series) models reject max_tokens entirely. Map
+    # for the OpenAI endpoint only; Moonshot, which shares this
+    # helper, still expects max_tokens.
+    if (identical(config$provider, "openai") &&
+        !is.null(extra$max_tokens) &&
+        is.null(extra$max_completion_tokens)) {
+        extra$max_completion_tokens <- extra$max_tokens
+        extra$max_tokens <- NULL
+    }
     for (name in names(extra)) {
         body[[name]] <- extra[[name]]
     }
