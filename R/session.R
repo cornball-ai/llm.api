@@ -144,7 +144,7 @@ chat_session_openai <- function(model = "gpt-5.4-mini", system_prompt = NULL,
 #'
 #' Convenience wrapper for chat_session with Anthropic provider.
 #'
-#' @param model Character. Model name (default: "claude-sonnet-4-20250514").
+#' @param model Character. Model name (default: "claude-sonnet-4-6").
 #' @param system_prompt Character or NULL. System prompt.
 #' @param ... Additional parameters passed to chat_session().
 #'
@@ -156,7 +156,7 @@ chat_session_openai <- function(model = "gpt-5.4-mini", system_prompt = NULL,
 #' \dontrun{
 #' session$chat("Hello")
 #' }
-chat_session_anthropic <- function(model = "claude-sonnet-4-20250514",
+chat_session_anthropic <- function(model = "claude-sonnet-4-6",
                                    system_prompt = NULL, ...) {
     chat_session(model = model, system_prompt = system_prompt,
                  provider = "anthropic", ...)

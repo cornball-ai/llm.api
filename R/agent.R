@@ -89,7 +89,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     # Default models with tool support
     if (is.null(model)) {
-        model <- switch(provider, anthropic = "claude-sonnet-4-20250514",
+        model <- switch(provider, anthropic = "claude-sonnet-4-6",
                         openai = "gpt-5.4-mini", moonshot = "kimi-k2",
                         ollama = "llama3.2")
     }
