@@ -57,23 +57,27 @@
     key <- .get_key()
 
     switch(provider,
-           openai = list(base_url = base %||% "https://api.openai.com",
+           openai = list(provider = "openai",
+                         base_url = base %||% "https://api.openai.com",
                          chat_path = "/v1/chat/completions",
                          api_key = .get_key("openai"),
                          default_model = "gpt-4o-mini"),
            anthropic = list(
+                            provider = "anthropic",
                             base_url = base %||% "https://api.anthropic.com",
                             chat_path = "/v1/messages",
                             api_key = .get_key("anthropic"),
                             default_model = "claude-sonnet-4-6"
         ),
            moonshot = list(
+                           provider = "moonshot",
                            base_url = base %||% "https://api.moonshot.ai",
                            chat_path = "/v1/chat/completions",
                            api_key = .get_key("moonshot"),
                            default_model = "kimi-k2"
         ),
            ollama = list(
+                         provider = "ollama",
                          base_url = base %||% "http://localhost:11434",
                          chat_path = "/v1/chat/completions",
                          api_key = NULL,

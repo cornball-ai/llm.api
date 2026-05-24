@@ -6,7 +6,8 @@
 chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
      max_tokens = NULL,
      provider = c("auto", "openai", "anthropic", "moonshot", "ollama"),
-     stream = FALSE, ...)
+     stream = FALSE, cache = c("none", "5m", "1h"),
+     thinking_budget_tokens = NULL, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}
