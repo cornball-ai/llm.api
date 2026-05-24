@@ -21,13 +21,28 @@
 #'   snapshot intermediate state so an interrupt mid-turn doesn't lose
 #'   the work that was already done. Errors raised inside the callback
 #'   are swallowed so telemetry/snapshotting can't break a turn.
+#' @param cache Character. Anthropic prompt caching for the system
+#'   message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
+#'   ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
+#'   for other providers.
+#' @param thinking_budget_tokens Integer or NULL. Anthropic extended
+#'   thinking budget; must be at least 1024 and less than
+#'   \code{max_tokens}. Anthropic-only; ignored with a warning for
+#'   other providers.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
 #'   returned \code{$usage} carries cumulative \code{input_tokens},
 #'   \code{output_tokens}, \code{total_tokens}, and \code{cost} (USD
 #'   scalar, derived from the bundled price snapshot; \code{0} for
-#'   Ollama; \code{NA_real_} for models not in the snapshot).
+#'   Ollama; \code{NA_real_} for models not in the snapshot). It also
+#'   carries cumulative cache activity: \code{cache_read_input_tokens}
+#'   (Anthropic cache reads plus OpenAI/Moonshot cached prompt tokens),
+#'   \code{cache_creation_input_tokens} (total Anthropic cache writes),
+#'   and the per-TTL split \code{cache_creation$ephemeral_5m_input_tokens}
+#'   / \code{cache_creation$ephemeral_1h_input_tokens}. Passing this
+#'   \code{$usage} back to \code{\link{usage_cost}} recomputes the same
+#'   \code{cost}.
 #' @export
 #'
 #' @examples
@@ -81,9 +96,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     # Default models with tool support
     if (is.null(model)) {
-        model <- switch(provider, anthropic = "claude-sonnet-4-20250514",
-                        openai = "gpt-4o", moonshot = "kimi-k2",
-                        ollama = "llama3.2")
+        model <- switch(provider, anthropic = "claude-sonnet-4-6",
+                        openai = "gpt-5.4-mini", moonshot = "kimi-k2.5",
+                        ollama = "qwen3.5:9b")
     }
 
     # Convert tools to provider format
@@ -99,9 +114,17 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     turn <- 0L
 
-    # Track cumulative token usage
+    # Track cumulative token usage and cost. Cost is summed per turn:
+    # cache token classes are per-response, so pricing each turn and
+    # adding is correct and lets a single unpriceable turn propagate to
+    # an NA total.
     total_input_tokens <- 0L
     total_output_tokens <- 0L
+    total_cache_read <- 0L
+    total_cache_write_5m <- 0L
+    total_cache_write_1h <- 0L
+    total_cost <- 0
+    cost_na <- FALSE
 
     while (turn < max_turns) {
         turn <- turn + 1L
@@ -116,17 +139,35 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                            ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
         )
 
-        # Accumulate token usage
+        # Accumulate token usage and per-turn cost. Uses `[[` exact
+        # matching throughout: `$` would partial-match (e.g.
+        # prompt_tokens -> prompt_tokens_details).
         if (!is.null(response$usage)) {
+            u <- response$usage
             # Anthropic format
-            if (!is.null(response$usage$input_tokens)) {
-                total_input_tokens <- total_input_tokens + response$usage$input_tokens
-                total_output_tokens <- total_output_tokens + response$usage$output_tokens
+            if (!is.null(u[["input_tokens"]])) {
+                total_input_tokens <- total_input_tokens + u[["input_tokens"]]
+                total_output_tokens <- total_output_tokens + u[["output_tokens"]]
             }
             # OpenAI/Ollama format
-            if (!is.null(response$usage$prompt_tokens)) {
-                total_input_tokens <- total_input_tokens + response$usage$prompt_tokens
-                total_output_tokens <- total_output_tokens + response$usage$completion_tokens
+            if (!is.null(u[["prompt_tokens"]])) {
+                total_input_tokens <- total_input_tokens + u[["prompt_tokens"]]
+                total_output_tokens <- total_output_tokens + u[["completion_tokens"]]
+            }
+            # Cache token classes via the shared extractor so the
+            # per-TTL Anthropic write split is captured (not just the
+            # flat total); cache_read covers Anthropic reads, and
+            # .openai_cached_tokens adds OpenAI cached prompt tokens.
+            ct <- .cache_tokens(u)
+            total_cache_read <- total_cache_read + ct$read +
+                .openai_cached_tokens(u)
+            total_cache_write_5m <- total_cache_write_5m + ct$write_5m
+            total_cache_write_1h <- total_cache_write_1h + ct$write_1h
+            turn_cost <- usage_cost(model, provider, u)
+            if (is.na(turn_cost)) {
+                cost_na <- TRUE
+            } else {
+                total_cost <- total_cost + turn_cost
             }
         }
 
@@ -145,7 +186,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                                      input_tokens = total_input_tokens,
                                      output_tokens = total_output_tokens,
                                      total_tokens = total_input_tokens + total_output_tokens,
-                                     cost = .cost_for(model, provider, total_input_tokens, total_output_tokens)
+                                     cache_read_input_tokens = total_cache_read,
+                                     cache_creation_input_tokens = total_cache_write_5m + total_cache_write_1h,
+                                     cache_creation = list(
+                                         ephemeral_5m_input_tokens = total_cache_write_5m,
+                                         ephemeral_1h_input_tokens = total_cache_write_1h),
+                                     cost = if (cost_na) NA_real_ else total_cost
                     )
                 ))
         }
@@ -203,7 +249,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       input_tokens = total_input_tokens,
                       output_tokens = total_output_tokens,
                       total_tokens = total_input_tokens + total_output_tokens,
-                      cost = .cost_for(model, provider, total_input_tokens, total_output_tokens)
+                      cache_read_input_tokens = total_cache_read,
+                      cache_creation_input_tokens = total_cache_write_5m + total_cache_write_1h,
+                      cache_creation = list(
+                          ephemeral_5m_input_tokens = total_cache_write_5m,
+                          ephemeral_1h_input_tokens = total_cache_write_1h),
+                      cost = if (cost_na) NA_real_ else total_cost
         )
     )
 }

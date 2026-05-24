@@ -61,7 +61,7 @@
                          base_url = base %||% "https://api.openai.com",
                          chat_path = "/v1/chat/completions",
                          api_key = .get_key("openai"),
-                         default_model = "gpt-4o-mini"),
+                         default_model = "gpt-5.4-mini"),
            anthropic = list(
                             provider = "anthropic",
                             base_url = base %||% "https://api.anthropic.com",
@@ -74,14 +74,14 @@
                            base_url = base %||% "https://api.moonshot.ai",
                            chat_path = "/v1/chat/completions",
                            api_key = .get_key("moonshot"),
-                           default_model = "kimi-k2"
+                           default_model = "kimi-k2.5"
         ),
            ollama = list(
                          provider = "ollama",
                          base_url = base %||% "http://localhost:11434",
                          chat_path = "/v1/chat/completions",
                          api_key = NULL,
-                         default_model = "llama3.2"
+                         default_model = "qwen3.5:9b"
         ),
            stop("Unknown provider: ", provider, call. = FALSE)
     )
@@ -116,9 +116,9 @@ provider_default_model <- function(provider) {
 #' @examples
 #' \dontrun{
 #' chat_openai("Explain quantum computing")
-#' chat_openai("Write a haiku", model = "gpt-4o")
+#' chat_openai("Write a haiku", model = "gpt-5.4-mini")
 #' }
-chat_openai <- function(prompt, model = "gpt-4o-mini", ...) {
+chat_openai <- function(prompt, model = "gpt-5.4-mini", ...) {
     chat(prompt, model = model, provider = "openai", ...)
 }
 
@@ -152,7 +152,7 @@ chat_claude <- function(prompt, model = "claude-sonnet-4-6", ...) {
 #' chat_ollama("What is machine learning?")
 #' chat_ollama("Explain Docker", model = "mistral")
 #' }
-chat_ollama <- function(prompt, model = "llama3.2", ...) {
+chat_ollama <- function(prompt, model = "qwen3.5:9b", ...) {
     chat(prompt, model = model, provider = "ollama", ...)
 }
 

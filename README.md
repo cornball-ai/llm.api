@@ -25,16 +25,16 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 
 ```r
 # Auto-detect provider from model
-chat("Hello", model = "gpt-4o")
+chat("Hello", model = "gpt-5.4-mini")
 chat("Hello", model = "claude-3-5-sonnet-latest")
-chat("Hello", model = "kimi-k2")
+chat("Hello", model = "kimi-k2.5")
 
 # Use convenience wrappers
 chat_ollama("What is R?")
 chat_claude("Explain machine learning")
 
 # Explicit Moonshot/Kimi provider
-chat("Write a fast parser in R", provider = "moonshot", model = "kimi-k2")
+chat("Write a fast parser in R", provider = "moonshot", model = "kimi-k2.5")
 
 # Conversation history
 result <- chat("Hi, I'm Troy")

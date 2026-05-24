@@ -12,7 +12,7 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 \arguments{
 \item{prompt}{Character. The user message to send.}
 
-\item{model}{Character. Model name (e.g., "gpt-4o", "claude-sonnet-4-6", "llama3.2").}
+\item{model}{Character. Model name (e.g., "gpt-5.4-mini", "claude-sonnet-4-6", "qwen3.5:9b").}
 
 \item{system}{Character or NULL. System prompt to set context.}
 
@@ -26,6 +26,16 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 "moonshot", or "ollama".}
 
 \item{stream}{Logical. Stream the response (prints as it arrives).}
+
+\item{cache}{Character. Anthropic prompt caching for the system
+message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
+ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
+for other providers.}
+
+\item{thinking_budget_tokens}{Integer or NULL. Anthropic extended
+thinking budget; must be at least 1024 and less than
+\code{max_tokens}. Anthropic-only; ignored with a warning for
+other providers.}
 
 \item{...}{Additional parameters passed to the API.}
 }

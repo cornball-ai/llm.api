@@ -48,7 +48,7 @@
 #' Send a message to a Large Language Model and get a response.
 #'
 #' @param prompt Character. The user message to send.
-#' @param model Character. Model name (e.g., "gpt-4o", "claude-sonnet-4-6", "llama3.2").
+#' @param model Character. Model name (e.g., "gpt-5.4-mini", "claude-sonnet-4-6", "qwen3.5:9b").
 #' @param system Character or NULL. System prompt to set context.
 #' @param history List or NULL. Previous conversation turns.
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
@@ -56,6 +56,14 @@
 #' @param provider Character. Provider: "auto", "openai", "anthropic",
 #'   "moonshot", or "ollama".
 #' @param stream Logical. Stream the response (prints as it arrives).
+#' @param cache Character. Anthropic prompt caching for the system
+#'   message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
+#'   ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
+#'   for other providers.
+#' @param thinking_budget_tokens Integer or NULL. Anthropic extended
+#'   thinking budget; must be at least 1024 and less than
+#'   \code{max_tokens}. Anthropic-only; ignored with a warning for
+#'   other providers.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return A list with:
@@ -192,19 +200,17 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     )
 }
 
-# Attach a USD cost field to a provider-shaped usage list. Anthropic
-# returns input_tokens/output_tokens, OpenAI-compatible returns
-# prompt_tokens/completion_tokens; we read whichever is present. Cost
-# is appended without renaming the existing token fields so callers
-# that already destructure usage keep working.
+# Attach a USD cost field to a provider-shaped usage list. Delegates to
+# usage_cost(), which reads the Anthropic or OpenAI-compatible token
+# shape and accounts for prompt caching. Cost is appended without
+# renaming the existing token fields so callers that already
+# destructure usage keep working.
 #' @noRd
 .augment_usage_with_cost <- function(usage, model, provider) {
     if (is.null(usage)) {
         return(usage)
     }
-    input_tokens <- usage$input_tokens %||% usage$prompt_tokens
-    output_tokens <- usage$output_tokens %||% usage$completion_tokens
-    usage$cost <- .cost_for(model, provider, input_tokens, output_tokens)
+    usage$cost <- usage_cost(model, provider, usage)
     usage
 }
 

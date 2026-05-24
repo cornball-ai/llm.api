@@ -3,12 +3,12 @@
 \alias{chat_openai}
 \title{Chat with OpenAI}
 \usage{
-chat_openai(prompt, model = "gpt-4o-mini", ...)
+chat_openai(prompt, model = "gpt-5.4-mini", ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}
 
-\item{model}{Character. Model name (e.g., "gpt-4o", "claude-sonnet-4-6", "llama3.2").}
+\item{model}{Character. Model name (e.g., "gpt-5.4-mini", "claude-sonnet-4-6", "qwen3.5:9b").}
 
 \item{...}{Additional parameters passed to the API.}
 }
@@ -22,6 +22,6 @@ Convenience wrapper for 'OpenAI' models.
 \examples{
 \dontrun{
 chat_openai("Explain quantum computing")
-chat_openai("Write a haiku", model = "gpt-4o")
+chat_openai("Write a haiku", model = "gpt-5.4-mini")
 }
 }
