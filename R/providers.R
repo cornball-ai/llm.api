@@ -116,7 +116,7 @@ provider_default_model <- function(provider) {
 #' @examples
 #' \dontrun{
 #' chat_openai("Explain quantum computing")
-#' chat_openai("Write a haiku", model = "gpt-4o")
+#' chat_openai("Write a haiku", model = "gpt-5.4-mini")
 #' }
 chat_openai <- function(prompt, model = "gpt-5.4-mini", ...) {
     chat(prompt, model = model, provider = "openai", ...)

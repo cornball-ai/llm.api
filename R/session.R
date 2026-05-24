@@ -24,7 +24,7 @@
 #' @examples
 #' \dontrun{
 #' # Create a session
-#' session <- chat_session(model = "gpt-4o", system_prompt = "You are helpful.")
+#' session <- chat_session(model = "gpt-5.4-mini", system_prompt = "You are helpful.")
 #'
 #' # Chat (history maintained automatically)
 #' response <- session$chat("Hello")

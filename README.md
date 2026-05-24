@@ -25,7 +25,7 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 
 ```r
 # Auto-detect provider from model
-chat("Hello", model = "gpt-4o")
+chat("Hello", model = "gpt-5.4-mini")
 chat("Hello", model = "claude-3-5-sonnet-latest")
 chat("Hello", model = "kimi-k2")
 
