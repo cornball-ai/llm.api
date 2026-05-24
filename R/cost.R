@@ -40,8 +40,7 @@
 #' @return Numeric scalar (USD) or `NA_real_`.
 #' @noRd
 .cost_for <- function(model, provider, input_tokens, output_tokens,
-                      cache_write_5m = 0, cache_write_1h = 0,
-                      cache_read = 0) {
+                      cache_write_5m = 0, cache_write_1h = 0, cache_read = 0) {
     if (identical(provider, "ollama")) {
         return(0)
     }
@@ -91,8 +90,16 @@
 .cache_tokens <- function(usage) {
     read <- .num0(usage[["cache_read_input_tokens"]])
     cc <- usage[["cache_creation"]]
-    w5 <- if (is.null(cc)) NULL else cc[["ephemeral_5m_input_tokens"]]
-    w1 <- if (is.null(cc)) NULL else cc[["ephemeral_1h_input_tokens"]]
+    if (is.null(cc)) {
+        w5 <- NULL
+    } else {
+        w5 <- cc[["ephemeral_5m_input_tokens"]]
+    }
+    if (is.null(cc)) {
+        w1 <- NULL
+    } else {
+        w1 <- cc[["ephemeral_1h_input_tokens"]]
+    }
     if (is.null(w5) && is.null(w1)) {
         w5 <- usage[["cache_creation_input_tokens"]]
         w1 <- 0
@@ -153,8 +160,7 @@ usage_cost <- function(model, provider, usage) {
                          input_tokens = usage[["input_tokens"]],
                          output_tokens = out_tokens,
                          cache_write_5m = ct$write_5m,
-                         cache_write_1h = ct$write_1h,
-                         cache_read = ct$read))
+                         cache_write_1h = ct$write_1h, cache_read = ct$read))
     }
 
     # OpenAI-compatible: prompt_tokens includes cached tokens, so split

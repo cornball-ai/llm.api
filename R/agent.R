@@ -139,9 +139,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             # Cache token classes: cache_read covers Anthropic reads and
             # OpenAI cached prompt tokens; cache_write is Anthropic-only.
             total_cache_read <- total_cache_read +
-                .num0(u$cache_read_input_tokens) + .openai_cached_tokens(u)
+            .num0(u$cache_read_input_tokens) + .openai_cached_tokens(u)
             total_cache_write <- total_cache_write +
-                .num0(u$cache_creation_input_tokens)
+            .num0(u$cache_creation_input_tokens)
             turn_cost <- usage_cost(model, provider, u)
             if (is.na(turn_cost)) {
                 cost_na <- TRUE
