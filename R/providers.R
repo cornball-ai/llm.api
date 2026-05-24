@@ -74,7 +74,7 @@
                            base_url = base %||% "https://api.moonshot.ai",
                            chat_path = "/v1/chat/completions",
                            api_key = .get_key("moonshot"),
-                           default_model = "kimi-k2"
+                           default_model = "kimi-k2.5"
         ),
            ollama = list(
                          provider = "ollama",

@@ -1,12 +1,20 @@
 # llm.api 0.1.3.5
 
-## Default OpenAI model is now `gpt-5.4-mini`
+## Refreshed default models
 
-`chat()`, `agent()`, `chat_openai()`, and `chat_session_openai()`
-default to `gpt-5.4-mini` when no model is given, replacing the dated
-`gpt-4o-mini` / `gpt-4o`. It's the current cost-appropriate mini model
-and carries cached-input pricing. Pass `model =` explicitly to use any
-other model.
+When no model is given, each provider now defaults to a current,
+cost-appropriate, snapshot-priceable model, replacing dated defaults:
+
+* OpenAI: `gpt-5.4-mini` (was `gpt-4o-mini` / `gpt-4o`)
+* Anthropic: `claude-sonnet-4-6` everywhere, including `agent()` and
+  `chat_session_anthropic()` (which still defaulted to the dated
+  `claude-sonnet-4-20250514`)
+* Moonshot: `kimi-k2.5` (was `kimi-k2`, which wasn't in the price
+  snapshot, so cost estimates came back `NA`)
+* Ollama: `qwen3.5:9b` (was `llama3.2`)
+
+This affects `chat()`, `agent()`, and the `chat_*()` / `chat_session_*()`
+wrappers. Pass `model =` explicitly to use any other model.
 
 # llm.api 0.1.3.4
 

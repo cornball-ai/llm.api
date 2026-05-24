@@ -65,7 +65,7 @@ expect_equal(cfg$default_model, "claude-sonnet-4-6")
 cfg <- llm.api:::.get_provider_config("moonshot")
 expect_equal(cfg$base_url, "https://api.moonshot.ai")
 expect_equal(cfg$chat_path, "/v1/chat/completions")
-expect_equal(cfg$default_model, "kimi-k2")
+expect_equal(cfg$default_model, "kimi-k2.5")
 
 # Ollama config
 cfg <- llm.api:::.get_provider_config("ollama")
@@ -82,6 +82,6 @@ expect_error(llm.api:::.get_provider_config("unknown"), pattern = "Unknown provi
 # upfront without reaching into internals.
 expect_equal(provider_default_model("openai"), "gpt-5.4-mini")
 expect_equal(provider_default_model("anthropic"), "claude-sonnet-4-6")
-expect_equal(provider_default_model("moonshot"), "kimi-k2")
+expect_equal(provider_default_model("moonshot"), "kimi-k2.5")
 expect_equal(provider_default_model("ollama"), "qwen3.5:9b")
 expect_error(provider_default_model("nonsense"), pattern = "Unknown provider")
