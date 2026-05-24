@@ -228,4 +228,11 @@ local({
     expect_equal(res$usage$cache_creation_input_tokens, 3000)
     # 10*3e-06 + 5*1.5e-05 + 1000*3e-06*1.25 + 2000*3e-06*2 = 0.015855
     expect_equal(res$usage$cost, 0.015855)
+    # agent()$usage preserves the 5m/1h split, so recomputing the cost
+    # from the aggregate round-trips to the stored value (a flat-only
+    # aggregate would mis-price the 1h writes as 5m).
+    expect_equal(res$usage$cache_creation$ephemeral_5m_input_tokens, 1000)
+    expect_equal(res$usage$cache_creation$ephemeral_1h_input_tokens, 2000)
+    expect_equal(llm.api::usage_cost("claude-sonnet-4-6", "anthropic", res$usage),
+                 res$usage$cost)
 })

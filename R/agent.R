@@ -114,7 +114,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     total_input_tokens <- 0L
     total_output_tokens <- 0L
     total_cache_read <- 0L
-    total_cache_write <- 0L
+    total_cache_write_5m <- 0L
+    total_cache_write_1h <- 0L
     total_cost <- 0
     cost_na <- FALSE
 
@@ -153,7 +154,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             ct <- .cache_tokens(u)
             total_cache_read <- total_cache_read + ct$read +
                 .openai_cached_tokens(u)
-            total_cache_write <- total_cache_write + ct$write_5m + ct$write_1h
+            total_cache_write_5m <- total_cache_write_5m + ct$write_5m
+            total_cache_write_1h <- total_cache_write_1h + ct$write_1h
             turn_cost <- usage_cost(model, provider, u)
             if (is.na(turn_cost)) {
                 cost_na <- TRUE
@@ -178,7 +180,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                                      output_tokens = total_output_tokens,
                                      total_tokens = total_input_tokens + total_output_tokens,
                                      cache_read_input_tokens = total_cache_read,
-                                     cache_creation_input_tokens = total_cache_write,
+                                     cache_creation_input_tokens = total_cache_write_5m + total_cache_write_1h,
+                                     cache_creation = list(
+                                         ephemeral_5m_input_tokens = total_cache_write_5m,
+                                         ephemeral_1h_input_tokens = total_cache_write_1h),
                                      cost = if (cost_na) NA_real_ else total_cost
                     )
                 ))
@@ -238,7 +243,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       output_tokens = total_output_tokens,
                       total_tokens = total_input_tokens + total_output_tokens,
                       cache_read_input_tokens = total_cache_read,
-                      cache_creation_input_tokens = total_cache_write,
+                      cache_creation_input_tokens = total_cache_write_5m + total_cache_write_1h,
+                      cache_creation = list(
+                          ephemeral_5m_input_tokens = total_cache_write_5m,
+                          ephemeral_1h_input_tokens = total_cache_write_1h),
                       cost = if (cost_na) NA_real_ else total_cost
         )
     )
