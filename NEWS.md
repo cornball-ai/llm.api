@@ -2,7 +2,7 @@
 
 ## Refreshed default models
 
-When no model is given, each provider now defaults to a current,
+When no model is given, each provider now defaults to a recent,
 cost-appropriate, snapshot-priceable model, replacing dated defaults:
 
 * OpenAI: `gpt-5.4-mini` (was `gpt-4o-mini` / `gpt-4o`)
