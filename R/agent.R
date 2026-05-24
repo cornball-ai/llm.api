@@ -21,6 +21,14 @@
 #'   snapshot intermediate state so an interrupt mid-turn doesn't lose
 #'   the work that was already done. Errors raised inside the callback
 #'   are swallowed so telemetry/snapshotting can't break a turn.
+#' @param cache Character. Anthropic prompt caching for the system
+#'   message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
+#'   ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
+#'   for other providers.
+#' @param thinking_budget_tokens Integer or NULL. Anthropic extended
+#'   thinking budget; must be at least 1024 and less than
+#'   \code{max_tokens}. Anthropic-only; ignored with a warning for
+#'   other providers.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The

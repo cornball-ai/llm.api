@@ -27,6 +27,16 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 
 \item{stream}{Logical. Stream the response (prints as it arrives).}
 
+\item{cache}{Character. Anthropic prompt caching for the system
+message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
+ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
+for other providers.}
+
+\item{thinking_budget_tokens}{Integer or NULL. Anthropic extended
+thinking budget; must be at least 1024 and less than
+\code{max_tokens}. Anthropic-only; ignored with a warning for
+other providers.}
+
 \item{...}{Additional parameters passed to the API.}
 }
 \value{

@@ -212,7 +212,7 @@ usage_cost <- function(model, provider, usage) {
 #' (\url{https://platform.openai.com/docs/guides/prompt-caching}),
 #' Moonshot (\url{https://www.kimi.com/help/kimi-api/api-pricing}), and
 #' Anthropic
-#' (\url{https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching}).
+#' (\url{https://platform.claude.com/en/docs/build-with-claude/prompt-caching}).
 #'
 #' @return Character scalar in `YYYY-MM-DD` format.
 #' @seealso [prices_snapshot_stale()], [usage_cost()]

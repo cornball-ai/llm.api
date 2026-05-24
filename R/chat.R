@@ -56,6 +56,14 @@
 #' @param provider Character. Provider: "auto", "openai", "anthropic",
 #'   "moonshot", or "ollama".
 #' @param stream Logical. Stream the response (prints as it arrives).
+#' @param cache Character. Anthropic prompt caching for the system
+#'   message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
+#'   ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
+#'   for other providers.
+#' @param thinking_budget_tokens Integer or NULL. Anthropic extended
+#'   thinking budget; must be at least 1024 and less than
+#'   \code{max_tokens}. Anthropic-only; ignored with a warning for
+#'   other providers.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return A list with:
