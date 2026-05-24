@@ -164,9 +164,15 @@ usage_cost <- function(model, provider, usage) {
     }
 
     # OpenAI-compatible: prompt_tokens includes cached tokens, so split
-    # them out and price the cached portion at the cache_read rate.
+    # them out and price the cached portion at the cache_read rate. A
+    # raw response carries cached reads under prompt_tokens_details;
+    # agent() aggregates expose them flat as cache_read_input_tokens, so
+    # fall back to that shape.
     prompt <- .num0(usage[["prompt_tokens"]] %||% usage[["input_tokens"]])
     cached <- .openai_cached_tokens(usage)
+    if (cached == 0) {
+        cached <- .num0(usage[["cache_read_input_tokens"]])
+    }
     uncached <- max(prompt - cached, 0)
     .cost_for(model, provider,
               input_tokens = uncached,

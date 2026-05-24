@@ -131,25 +131,29 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                            ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
         )
 
-        # Accumulate token usage and per-turn cost
+        # Accumulate token usage and per-turn cost. Uses `[[` exact
+        # matching throughout: `$` would partial-match (e.g.
+        # prompt_tokens -> prompt_tokens_details).
         if (!is.null(response$usage)) {
             u <- response$usage
             # Anthropic format
-            if (!is.null(u$input_tokens)) {
-                total_input_tokens <- total_input_tokens + u$input_tokens
-                total_output_tokens <- total_output_tokens + u$output_tokens
+            if (!is.null(u[["input_tokens"]])) {
+                total_input_tokens <- total_input_tokens + u[["input_tokens"]]
+                total_output_tokens <- total_output_tokens + u[["output_tokens"]]
             }
             # OpenAI/Ollama format
-            if (!is.null(u$prompt_tokens)) {
-                total_input_tokens <- total_input_tokens + u$prompt_tokens
-                total_output_tokens <- total_output_tokens + u$completion_tokens
+            if (!is.null(u[["prompt_tokens"]])) {
+                total_input_tokens <- total_input_tokens + u[["prompt_tokens"]]
+                total_output_tokens <- total_output_tokens + u[["completion_tokens"]]
             }
-            # Cache token classes: cache_read covers Anthropic reads and
-            # OpenAI cached prompt tokens; cache_write is Anthropic-only.
-            total_cache_read <- total_cache_read +
-            .num0(u$cache_read_input_tokens) + .openai_cached_tokens(u)
-            total_cache_write <- total_cache_write +
-            .num0(u$cache_creation_input_tokens)
+            # Cache token classes via the shared extractor so the
+            # per-TTL Anthropic write split is captured (not just the
+            # flat total); cache_read covers Anthropic reads, and
+            # .openai_cached_tokens adds OpenAI cached prompt tokens.
+            ct <- .cache_tokens(u)
+            total_cache_read <- total_cache_read + ct$read +
+                .openai_cached_tokens(u)
+            total_cache_write <- total_cache_write + ct$write_5m + ct$write_1h
             turn_cost <- usage_cost(model, provider, u)
             if (is.na(turn_cost)) {
                 cost_na <- TRUE

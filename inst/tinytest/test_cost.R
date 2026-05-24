@@ -188,3 +188,44 @@ local({
     expect_equal(res$usage$cache_read_input_tokens, 2000)
     expect_equal(res$usage$cache_creation_input_tokens, 2000)
 })
+
+# ---- usage_cost() handles agent()-shaped aggregates ----
+# agent() exposes OpenAI cached reads flat as cache_read_input_tokens
+# (no prompt_tokens_details). Same price as the raw-response shape.
+oa_agg <- list(input_tokens = 1000, output_tokens = 500,
+               cache_read_input_tokens = 400)
+expect_equal(llm.api::usage_cost("gpt-5.4-mini", "openai", oa_agg), 0.00273)
+
+# agent() aggregates the Anthropic per-TTL write split (not just the
+# flat total): a turn with only the nested cache_creation shape must
+# still sum into cache_creation_input_tokens and price correctly.
+local({
+    ns <- asNamespace("llm.api")
+    responses <- list(
+        list(text = "final",
+             assistant_message = list(role = "assistant", content = "x"),
+             tool_calls = list(),
+             usage = list(input_tokens = 10, output_tokens = 5,
+                          cache_creation = list(
+                              ephemeral_5m_input_tokens = 1000,
+                              ephemeral_1h_input_tokens = 2000),
+                          cache_read_input_tokens = 0))
+    )
+    i <- 0L
+    stub <- function(messages, provider_tools, system, model, config, ...) {
+        i <<- i + 1L
+        responses[[i]]
+    }
+    orig <- get(".agent_anthropic", envir = ns, inherits = FALSE)
+    assignInNamespace(".agent_anthropic", stub, ns = "llm.api")
+    res <- tryCatch(
+        llm.api::agent(prompt = "go", tools = list(),
+                       tool_handler = function(name, args) "ok",
+                       provider = "anthropic", model = "claude-sonnet-4-6",
+                       verbose = FALSE, max_turns = 3L),
+        finally = assignInNamespace(".agent_anthropic", orig, ns = "llm.api"))
+    # split writes aggregated: 1000 + 2000
+    expect_equal(res$usage$cache_creation_input_tokens, 3000)
+    # 10*3e-06 + 5*1.5e-05 + 1000*3e-06*1.25 + 2000*3e-06*2 = 0.015855
+    expect_equal(res$usage$cost, 0.015855)
+})
