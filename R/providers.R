@@ -61,7 +61,7 @@
                          base_url = base %||% "https://api.openai.com",
                          chat_path = "/v1/chat/completions",
                          api_key = .get_key("openai"),
-                         default_model = "gpt-4o-mini"),
+                         default_model = "gpt-5.4-mini"),
            anthropic = list(
                             provider = "anthropic",
                             base_url = base %||% "https://api.anthropic.com",
@@ -118,7 +118,7 @@ provider_default_model <- function(provider) {
 #' chat_openai("Explain quantum computing")
 #' chat_openai("Write a haiku", model = "gpt-4o")
 #' }
-chat_openai <- function(prompt, model = "gpt-4o-mini", ...) {
+chat_openai <- function(prompt, model = "gpt-5.4-mini", ...) {
     chat(prompt, model = model, provider = "openai", ...)
 }
 

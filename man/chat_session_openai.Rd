@@ -3,10 +3,10 @@
 \alias{chat_session_openai}
 \title{Create OpenAI chat session}
 \usage{
-chat_session_openai(model = "gpt-4o", system_prompt = NULL, ...)
+chat_session_openai(model = "gpt-5.4-mini", system_prompt = NULL, ...)
 }
 \arguments{
-\item{model}{Character. Model name (default: "gpt-4o").}
+\item{model}{Character. Model name (default: "gpt-5.4-mini").}
 
 \item{system_prompt}{Character or NULL. System prompt.}
 

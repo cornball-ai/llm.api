@@ -122,7 +122,7 @@ chat_session <- function(model = NULL, system_prompt = NULL,
 #'
 #' Convenience wrapper for chat_session with OpenAI provider.
 #'
-#' @param model Character. Model name (default: "gpt-4o").
+#' @param model Character. Model name (default: "gpt-5.4-mini").
 #' @param system_prompt Character or NULL. System prompt.
 #' @param ... Additional parameters passed to chat_session().
 #'
@@ -134,7 +134,8 @@ chat_session <- function(model = NULL, system_prompt = NULL,
 #' \dontrun{
 #' session$chat("Hello")
 #' }
-chat_session_openai <- function(model = "gpt-4o", system_prompt = NULL, ...) {
+chat_session_openai <- function(model = "gpt-5.4-mini", system_prompt = NULL,
+                                ...) {
     chat_session(model = model, system_prompt = system_prompt,
                  provider = "openai", ...)
 }

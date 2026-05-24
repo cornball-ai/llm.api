@@ -3,7 +3,7 @@
 \alias{chat_openai}
 \title{Chat with OpenAI}
 \usage{
-chat_openai(prompt, model = "gpt-4o-mini", ...)
+chat_openai(prompt, model = "gpt-5.4-mini", ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}
