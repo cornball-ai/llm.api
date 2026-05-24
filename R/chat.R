@@ -97,6 +97,20 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     provider <- match.arg(provider)
     cache <- match.arg(cache)
 
+    # Validate the thinking-budget range up front. This is provider-
+    # independent input validation and should fail fast, before any
+    # provider resolution.
+    if (!is.null(thinking_budget_tokens)) {
+        .validate_thinking_budget(thinking_budget_tokens, max_tokens)
+    }
+
+    # Resolve "auto" to a concrete provider before the Anthropic-only
+    # guards below, otherwise they compare against "auto" and wrongly
+    # disable cache / thinking_budget_tokens for genuine Anthropic calls.
+    if (provider == "auto") {
+        provider <- .detect_provider(model)
+    }
+
     # Anthropic-only feature opt-ins emit a one-time warning when a
     # non-default value is passed against another provider so the
     # caller knows the request will be silently degraded.
@@ -105,19 +119,10 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                 provider, "\".", call. = FALSE)
         cache <- "none"
     }
-    if (!is.null(thinking_budget_tokens)) {
-        .validate_thinking_budget(thinking_budget_tokens, max_tokens)
-        if (!identical(provider, "anthropic")) {
-            warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
-                    "for provider \"", provider, "\".", call. = FALSE)
-            thinking_budget_tokens <- NULL
-        }
-    }
-
-    # Auto-detect provider from model name or base URL
-
-    if (provider == "auto") {
-        provider <- .detect_provider(model)
+    if (!is.null(thinking_budget_tokens) && !identical(provider, "anthropic")) {
+        warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
+                "for provider \"", provider, "\".", call. = FALSE)
+        thinking_budget_tokens <- NULL
     }
 
     # Get provider config
