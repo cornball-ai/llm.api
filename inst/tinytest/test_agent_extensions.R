@@ -227,3 +227,71 @@ local({
     })
     expect_equal(openai_capture_body$max_completion_tokens, 500L)
 })
+
+# --- chat() resolves provider BEFORE the Anthropic-only guards -------
+# Regression (0.1.3.3): the cache / thinking_budget_tokens guards used
+# to run against the literal "auto" default, before .detect_provider(),
+# so a Claude model under the default provider had its opt-ins silently
+# downgraded with a spurious "Anthropic-only" warning. Detection now
+# runs first. We stub chat()'s network dispatch so only the guard logic
+# is exercised -- no key, no network, runs under R CMD check.
+
+collect_warnings <- function(expr) {
+    w <- character(0)
+    withCallingHandlers(
+        force(expr),
+        warning = function(cond) {
+            w[[length(w) + 1L]] <<- conditionMessage(cond)
+            invokeRestart("muffleWarning")
+        })
+    w
+}
+
+with_stubbed <- function(name, stub, expr) {
+    orig <- get(name, envir = ns, inherits = FALSE)
+    assignInNamespace(name, stub, ns = "llm.api")
+    tryCatch(force(expr),
+             finally = assignInNamespace(name, orig, ns = "llm.api"))
+}
+
+captured <- NULL
+anthropic_stub <- function(body, config, stream, cache = "none",
+                           thinking_budget_tokens = NULL) {
+    captured <<- list(cache = cache, thinking = thinking_budget_tokens)
+    list(content = "ok", thinking = NULL, finish_reason = "stop", usage = NULL)
+}
+
+# Claude model + default ("auto") provider + cache: no warning, and the
+# cache value reaches the dispatch instead of being zeroed to "none".
+local({
+    captured <<- NULL
+    w <- collect_warnings(with_stubbed(".chat_anthropic", anthropic_stub, {
+        llm.api::chat("hi", model = "claude-sonnet-4-6", cache = "5m")
+    }))
+    expect_false(any(grepl("Anthropic-only", w)))
+    expect_equal(captured$cache, "5m")
+})
+
+# Same for thinking_budget_tokens.
+local({
+    captured <<- NULL
+    w <- collect_warnings(with_stubbed(".chat_anthropic", anthropic_stub, {
+        llm.api::chat("hi", model = "claude-sonnet-4-6",
+                      thinking_budget_tokens = 2000L, max_tokens = 4000L)
+    }))
+    expect_false(any(grepl("Anthropic-only", w)))
+    expect_equal(captured$thinking, 2000L)
+})
+
+# Positive control: a genuine OpenAI model still trips the guard and the
+# warning fires (detection resolves "auto" -> openai before the guard).
+local({
+    openai_stub <- function(body, config, stream) {
+        list(content = "ok", thinking = NULL, finish_reason = "stop",
+             usage = NULL)
+    }
+    w <- collect_warnings(with_stubbed(".chat_openai_compatible", openai_stub, {
+        llm.api::chat("hi", model = "gpt-4o", cache = "5m")
+    }))
+    expect_true(any(grepl("cache.*Anthropic-only", w)))
+})
