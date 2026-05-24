@@ -99,9 +99,16 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     turn <- 0L
 
-    # Track cumulative token usage
+    # Track cumulative token usage and cost. Cost is summed per turn:
+    # cache token classes are per-response, so pricing each turn and
+    # adding is correct and lets a single unpriceable turn propagate to
+    # an NA total.
     total_input_tokens <- 0L
     total_output_tokens <- 0L
+    total_cache_read <- 0L
+    total_cache_write <- 0L
+    total_cost <- 0
+    cost_na <- FALSE
 
     while (turn < max_turns) {
         turn <- turn + 1L
@@ -116,17 +123,30 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                            ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
         )
 
-        # Accumulate token usage
+        # Accumulate token usage and per-turn cost
         if (!is.null(response$usage)) {
+            u <- response$usage
             # Anthropic format
-            if (!is.null(response$usage$input_tokens)) {
-                total_input_tokens <- total_input_tokens + response$usage$input_tokens
-                total_output_tokens <- total_output_tokens + response$usage$output_tokens
+            if (!is.null(u$input_tokens)) {
+                total_input_tokens <- total_input_tokens + u$input_tokens
+                total_output_tokens <- total_output_tokens + u$output_tokens
             }
             # OpenAI/Ollama format
-            if (!is.null(response$usage$prompt_tokens)) {
-                total_input_tokens <- total_input_tokens + response$usage$prompt_tokens
-                total_output_tokens <- total_output_tokens + response$usage$completion_tokens
+            if (!is.null(u$prompt_tokens)) {
+                total_input_tokens <- total_input_tokens + u$prompt_tokens
+                total_output_tokens <- total_output_tokens + u$completion_tokens
+            }
+            # Cache token classes: cache_read covers Anthropic reads and
+            # OpenAI cached prompt tokens; cache_write is Anthropic-only.
+            total_cache_read <- total_cache_read +
+                .num0(u$cache_read_input_tokens) + .openai_cached_tokens(u)
+            total_cache_write <- total_cache_write +
+                .num0(u$cache_creation_input_tokens)
+            turn_cost <- usage_cost(model, provider, u)
+            if (is.na(turn_cost)) {
+                cost_na <- TRUE
+            } else {
+                total_cost <- total_cost + turn_cost
             }
         }
 
@@ -145,7 +165,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                                      input_tokens = total_input_tokens,
                                      output_tokens = total_output_tokens,
                                      total_tokens = total_input_tokens + total_output_tokens,
-                                     cost = .cost_for(model, provider, total_input_tokens, total_output_tokens)
+                                     cache_read_input_tokens = total_cache_read,
+                                     cache_creation_input_tokens = total_cache_write,
+                                     cost = if (cost_na) NA_real_ else total_cost
                     )
                 ))
         }
@@ -203,7 +225,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       input_tokens = total_input_tokens,
                       output_tokens = total_output_tokens,
                       total_tokens = total_input_tokens + total_output_tokens,
-                      cost = .cost_for(model, provider, total_input_tokens, total_output_tokens)
+                      cache_read_input_tokens = total_cache_read,
+                      cache_creation_input_tokens = total_cache_write,
+                      cost = if (cost_na) NA_real_ else total_cost
         )
     )
 }

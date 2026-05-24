@@ -192,19 +192,17 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     )
 }
 
-# Attach a USD cost field to a provider-shaped usage list. Anthropic
-# returns input_tokens/output_tokens, OpenAI-compatible returns
-# prompt_tokens/completion_tokens; we read whichever is present. Cost
-# is appended without renaming the existing token fields so callers
-# that already destructure usage keep working.
+# Attach a USD cost field to a provider-shaped usage list. Delegates to
+# usage_cost(), which reads the Anthropic or OpenAI-compatible token
+# shape and accounts for prompt caching. Cost is appended without
+# renaming the existing token fields so callers that already
+# destructure usage keep working.
 #' @noRd
 .augment_usage_with_cost <- function(usage, model, provider) {
     if (is.null(usage)) {
         return(usage)
     }
-    input_tokens <- usage$input_tokens %||% usage$prompt_tokens
-    output_tokens <- usage$output_tokens %||% usage$completion_tokens
-    usage$cost <- .cost_for(model, provider, input_tokens, output_tokens)
+    usage$cost <- usage_cost(model, provider, usage)
     usage
 }
 
