@@ -1,3 +1,24 @@
+# llm.api 0.1.4
+
+CRAN release consolidating the 0.1.3.1–0.1.3.5 development cycle.
+Highlights since the on-CRAN 0.1.3:
+
+* Cache-aware cost estimates. New exported `usage_cost()` prices a
+  usage object (Anthropic cache writes/reads via published
+  multipliers; 'OpenAI' / 'Moonshot' cache hits from the bundled
+  per-model rate), and `chat()` / `agent()` carry it as `usage$cost`.
+  New `prices_snapshot_stale()` for staleness alerts. (0.1.3.4)
+* Refreshed default models per provider: 'OpenAI' `gpt-5.4-mini`,
+  'Anthropic' `claude-sonnet-4-6`, 'Moonshot' `kimi-k2.5`, 'Ollama'
+  `qwen3.5:9b`. (0.1.3.5)
+* `agent()` gains a `history_callback` for snapshotting intermediate
+  state across an interrupt. (0.1.3.1)
+* `chat()` / `agent()` gain `cache` (Anthropic prompt caching) and
+  `thinking_budget_tokens` (extended thinking); 'OpenAI'
+  `max_tokens` is mapped to `max_completion_tokens`. (0.1.3.2)
+
+The per-cycle detail follows.
+
 # llm.api 0.1.3.5
 
 ## Refreshed default models
