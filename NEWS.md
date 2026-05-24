@@ -1,3 +1,40 @@
+# llm.api 0.1.3.2
+
+Three additions, all backward-compatible (new parameters default to
+no-op behaviour) and zero new dependencies.
+
+## Anthropic prompt caching (`cache` parameter)
+
+`chat(cache = c("none", "5m", "1h"))` and
+`agent(cache = c("none", "5m", "1h"))`. Default `"none"` preserves
+current behaviour; opting in wraps the system message in an
+`ephemeral` cache_control block. `"5m"` uses Anthropic's default
+TTL; `"1h"` requests the longer cache window. Worth turning on when
+the system prompt is long-lived across calls — cache reads cost
+~10% of normal input tokens but cache writes cost ~25% more, so
+opt-in is the right default. Anthropic-only; warns and degrades to
+no-op for other providers.
+
+## Anthropic extended thinking budget (`thinking_budget_tokens`)
+
+`chat(thinking_budget_tokens = N)` and
+`agent(thinking_budget_tokens = N)`. When set, sends
+`thinking = {type: "enabled", budget_tokens: N}` to the Anthropic
+Messages API. Validates inputs early: must be a single integer
+>= 1024, and (when `max_tokens` is set) must be strictly less than
+it since the budget is counted against `max_tokens`. Anthropic-only;
+warns and degrades for other providers.
+
+## OpenAI `max_tokens` → `max_completion_tokens` mapping
+
+OpenAI deprecated `max_tokens` in favour of `max_completion_tokens`,
+and o-series reasoning models reject `max_tokens` entirely. `chat()`
+and `agent()` now rename for OpenAI requests only; Moonshot and
+Ollama (which share the OpenAI-compatible code path) continue to
+receive `max_tokens` since their endpoints still expect it. The
+rename is gated on the caller not already passing
+`max_completion_tokens`, so explicit-set values win.
+
 # llm.api 0.1.3.1
 
 * `agent()` gains a `history_callback` parameter. The callback is

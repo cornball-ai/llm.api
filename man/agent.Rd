@@ -6,7 +6,7 @@
 agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
       provider = c("anthropic", "openai", "moonshot", "ollama"),
       max_turns = 20L, verbose = TRUE, history = NULL, history_callback = NULL,
-      ...)
+      cache = c("none", "5m", "1h"), thinking_budget_tokens = NULL, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message.}
