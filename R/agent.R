@@ -35,7 +35,14 @@
 #'   returned \code{$usage} carries cumulative \code{input_tokens},
 #'   \code{output_tokens}, \code{total_tokens}, and \code{cost} (USD
 #'   scalar, derived from the bundled price snapshot; \code{0} for
-#'   Ollama; \code{NA_real_} for models not in the snapshot).
+#'   Ollama; \code{NA_real_} for models not in the snapshot). It also
+#'   carries cumulative cache activity: \code{cache_read_input_tokens}
+#'   (Anthropic cache reads plus OpenAI/Moonshot cached prompt tokens),
+#'   \code{cache_creation_input_tokens} (total Anthropic cache writes),
+#'   and the per-TTL split \code{cache_creation$ephemeral_5m_input_tokens}
+#'   / \code{cache_creation$ephemeral_1h_input_tokens}. Passing this
+#'   \code{$usage} back to \code{\link{usage_cost}} recomputes the same
+#'   \code{cost}.
 #' @export
 #'
 #' @examples

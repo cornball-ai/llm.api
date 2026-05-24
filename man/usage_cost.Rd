@@ -25,8 +25,11 @@ shape the provider returned (Anthropic's `input_tokens` /
 `output_tokens`, or the OpenAI-compatible `prompt_tokens` /
 `completion_tokens`) and accounts for prompt caching: Anthropic
 cache writes/reads via published multipliers, OpenAI / Moonshot
-cache hits (`prompt_tokens_details$cached_tokens`) at the bundled
-per-model `cache_read` rate.
+cache hits at the bundled per-model `cache_read` rate. OpenAI cache
+hits are read from `prompt_tokens_details$cached_tokens` on a raw
+response, falling back to a flat `cache_read_input_tokens` field as
+exposed by `agent()` aggregates, so an `agent()$usage` object
+recomputes to the same cost it already carries.
 }
 \details{
 Costs come from the bundled price snapshot, so they are offline,
