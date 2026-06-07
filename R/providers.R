@@ -13,6 +13,9 @@
         if (grepl("anthropic", base, ignore.case = TRUE)) {
             return("anthropic")
         }
+        if (grepl("chatgpt.com|codex", base, ignore.case = TRUE)) {
+            return("openai_codex")
+        }
         if (grepl("openai", base, ignore.case = TRUE)) {
             return("openai")
         }
@@ -40,6 +43,9 @@
         )
         if (model %in% ollama_models) {
             return("ollama")
+        }
+        if (grepl("^gpt-[0-9.]+-codex", model, ignore.case = TRUE)) {
+            return("openai_codex")
         }
         if (grepl("^gpt|^o1|^o3", model, ignore.case = TRUE)) {
             return("openai")
@@ -76,6 +82,13 @@
                            api_key = .get_key("moonshot"),
                            default_model = "kimi-k2.5"
         ),
+           openai_codex = list(
+                               provider = "openai_codex",
+                               base_url = base %||% "https://chatgpt.com/backend-api",
+                               chat_path = "/codex/responses",
+                               credentials = openai_codex_credentials(),
+                               default_model = "gpt-5.5"
+        ),
            ollama = list(
                          provider = "ollama",
                          base_url = base %||% "http://localhost:11434",
@@ -95,7 +108,7 @@
 #' duplicating the lookup table.
 #'
 #' @param provider Character. One of `"openai"`, `"anthropic"`,
-#'   `"moonshot"`, `"ollama"`.
+#'   `"moonshot"`, `"openai_codex"`, `"ollama"`.
 #' @return Character. The default model id for that provider.
 #' @export
 #' @examples
@@ -188,7 +201,8 @@ list_ollama_models <- function(base_url = "http://localhost:11434") {
 
     if (is.null(data$models) || length(data$models) == 0) {
         message("No models found. Use 'ollama pull <model>' to download models.")
-        return(invisible(data.frame(name = character(), size = numeric(), modified = character())))
+        return(invisible(data.frame(name = character(), size = numeric(),
+                                    modified = character())))
     }
 
     data.frame(

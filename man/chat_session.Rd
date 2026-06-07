@@ -4,7 +4,8 @@
 \title{Create a stateful chat session}
 \usage{
 chat_session(model = NULL, system_prompt = NULL,
-             provider = c("openai", "anthropic", "moonshot", "ollama"), ...)
+             provider = c("openai", "anthropic", "moonshot", "openai_codex", "ollama"),
+             ...)
 }
 \arguments{
 \item{model}{Character. Model name.}
@@ -12,7 +13,7 @@ chat_session(model = NULL, system_prompt = NULL,
 \item{system_prompt}{Character or NULL. System prompt.}
 
 \item{provider}{Character. Provider: "openai", "anthropic", "moonshot",
-or "ollama".}
+"openai_codex", or "ollama".}
 
 \item{...}{Additional parameters passed to chat().}
 }

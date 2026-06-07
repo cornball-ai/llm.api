@@ -54,7 +54,7 @@
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
 #' @param max_tokens Integer or NULL. Maximum tokens in response.
 #' @param provider Character. Provider: "auto", "openai", "anthropic",
-#'   "moonshot", or "ollama".
+#'   "moonshot", "openai_codex", or "ollama".
 #' @param stream Logical. Stream the response (prints as it arrives).
 #' @param cache Character. Anthropic prompt caching for the system
 #'   message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
@@ -99,7 +99,8 @@
 #' }
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  temperature = NULL, max_tokens = NULL,
-                 provider = c("auto", "openai", "anthropic", "moonshot", "ollama"),
+                 provider = c("auto", "openai", "anthropic", "moonshot", "openai_codex",
+                              "ollama"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, ...) {
     provider <- match.arg(provider)
@@ -177,6 +178,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         result <- .chat_anthropic(body, config, stream,
                                   cache = cache,
                                   thinking_budget_tokens = thinking_budget_tokens)
+    } else if (provider == "openai_codex") {
+        result <- .chat_openai_codex(body, config, stream)
     } else {
         result <- .chat_openai_compatible(body, config, stream)
     }

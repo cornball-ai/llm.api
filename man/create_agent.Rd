@@ -4,7 +4,7 @@
 \title{Create an agent with MCP servers}
 \usage{
 create_agent(servers = list(), system = NULL, model = NULL,
-             provider = c("anthropic", "openai", "moonshot", "ollama"),
+             provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
              verbose = TRUE)
 }
 \arguments{
@@ -17,7 +17,7 @@ create_agent(servers = list(), system = NULL, model = NULL,
 \item{model}{Character. Default model.}
 
 \item{provider}{Character. Provider: "anthropic", "openai", "moonshot",
-or "ollama".}
+"openai_codex", or "ollama".}
 
 \item{verbose}{Logical. Print tool calls.}
 }

@@ -8,6 +8,7 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 |----------|---------|
 | `chat(prompt, model)` | Chat with any LLM |
 | `chat_openai(prompt)` | OpenAI GPT models |
+| `chat_openai_codex(prompt)` | OpenAI Codex via ChatGPT subscription auth |
 | `chat_claude(prompt)` | Anthropic Claude models |
 | `chat_ollama(prompt)` | Local Ollama server |
 | `list_ollama_models()` | List Ollama models |
@@ -19,6 +20,7 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 - **openai**: GPT-4o, GPT-4o-mini, o1, o3
 - **anthropic**: Claude 3.5 Sonnet, Claude 3.5 Haiku
 - **moonshot**: Kimi K2 via Moonshot's OpenAI-compatible API
+- **openai_codex**: Codex Responses via ChatGPT subscription OAuth
 - **ollama**: Llama 3.2, Mistral, Gemma, Phi, Qwen (via server)
 
 ## Usage
@@ -36,6 +38,10 @@ chat_claude("Explain machine learning")
 # Explicit Moonshot/Kimi provider
 chat("Write a fast parser in R", provider = "moonshot", model = "kimi-k2.5")
 
+# ChatGPT subscription-backed Codex provider
+creds <- openai_codex_credentials()
+chat_openai_codex("Write a small R function", credentials = creds)
+
 # Conversation history
 result <- chat("Hi, I'm Troy")
 chat("What's my name?", history = result$history)
@@ -45,7 +51,8 @@ chat("Write a story", stream = TRUE)
 ```
 
 Set `MOONSHOT_API_KEY` to use Moonshot/Kimi without overriding your
-OpenAI credentials.
+OpenAI credentials. Set `OPENAI_CODEX_REFRESH_TOKEN` or run
+`openai_codex_login()` for ChatGPT subscription-backed Codex.
 
 ## Dependencies
 
