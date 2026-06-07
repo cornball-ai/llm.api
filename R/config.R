@@ -49,10 +49,9 @@ llm_key <- function(key) {
                            anthropic = c("ANTHROPIC_API_KEY"),
                            openai = c("OPENAI_API_KEY"),
                            moonshot = c("MOONSHOT_API_KEY", "OPENAI_API_KEY"),
-                           openai_codex = c("OPENAI_CODEX_ACCESS_TOKEN",
-                "OPENAI_CODEX_REFRESH_TOKEN"),
+                           openai_codex = c("OPENAI_CODEX_ACCESS_TOKEN"),
                            c("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY",
-                             "OPENAI_CODEX_ACCESS_TOKEN", "OPENAI_CODEX_REFRESH_TOKEN")
+                             "OPENAI_CODEX_ACCESS_TOKEN")
         )
 
         for (env_var in env_vars) {

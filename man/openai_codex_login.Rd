@@ -8,13 +8,13 @@ openai_codex_login(timeout = 600, open_url = interactive())
 \arguments{
 \item{timeout}{Maximum number of seconds to wait for login.}
 
-\item{open_url}{Logical. Whether to open the verification URL in a
-browser.}
+\item{open_url}{Logical. Whether to open the verification URL in a browser.}
 }
 \value{
 A zero-argument credentials function.
 }
 \description{
-Starts a ChatGPT Codex OAuth device-code login and returns an
-\code{openai_codex_credentials()} callback for the current R session.
+Runs tinyoauth's ChatGPT Codex device-login flow, caching the token for reuse
+across sessions, and returns an \code{\link{openai_codex_credentials}}
+callback.
 }

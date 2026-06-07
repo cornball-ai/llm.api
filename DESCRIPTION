@@ -24,6 +24,9 @@ BugReports: https://github.com/cornball-ai/llm.api/issues
 Encoding: UTF-8
 Imports:
     curl,
-    jsonlite
+    jsonlite,
+    tinyoauth
 Suggests:
     tinytest
+Remotes:
+    cornball-ai/tinyoauth

@@ -38,9 +38,9 @@ chat_claude("Explain machine learning")
 # Explicit Moonshot/Kimi provider
 chat("Write a fast parser in R", provider = "moonshot", model = "kimi-k2.5")
 
-# ChatGPT subscription-backed Codex provider
-creds <- openai_codex_credentials()
-chat_openai_codex("Write a small R function", credentials = creds)
+# ChatGPT subscription-backed Codex provider (log in once; see below)
+chat_openai_codex("Write a small R function")
+chat("Refactor this loop", provider = "openai_codex", model = "gpt-5.5")
 
 # Conversation history
 result <- chat("Hi, I'm Troy")
@@ -51,9 +51,36 @@ chat("Write a story", stream = TRUE)
 ```
 
 Set `MOONSHOT_API_KEY` to use Moonshot/Kimi without overriding your
-OpenAI credentials. Set `OPENAI_CODEX_REFRESH_TOKEN` or run
-`openai_codex_login()` for ChatGPT subscription-backed Codex.
+OpenAI credentials.
+
+### OpenAI Codex (ChatGPT subscription)
+
+The `openai_codex` provider talks to Codex using your ChatGPT
+subscription instead of an API key. Authentication is a one-time device
+login; the token is cached and refreshed by
+[tinyoauth](https://github.com/cornball-ai/tinyoauth), so you log in
+once and it persists across R sessions.
+
+```r
+# One-time: device-code login. Prints a URL + code to authorize in a
+# browser. The token is cached under tools::R_user_dir("tinyoauth").
+openai_codex_login()
+
+# Thereafter, just use the provider; credentials come from the cache
+# and refresh automatically.
+chat_openai_codex("Write a small R function")
+chat("Refactor this", provider = "openai_codex", model = "gpt-5.5")
+```
+
+Models: `gpt-5.5` (default), `gpt-5.4`, `gpt-5.4-mini`,
+`gpt-5.3-codex-spark`.
+
+To use an externally-obtained token instead of logging in, set
+`OPENAI_CODEX_ACCESS_TOKEN` (and optionally `OPENAI_CODEX_ACCOUNT_ID`);
+these override the cache.
 
 ## Dependencies
 
-Only `curl` and `jsonlite`. No tidyverse, no compiled code.
+`curl`, `jsonlite`, and
+[tinyoauth](https://github.com/cornball-ai/tinyoauth) (for Codex device
+login and token caching). No tidyverse, no compiled code.
