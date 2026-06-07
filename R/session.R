@@ -9,7 +9,7 @@
 #' @param model Character. Model name.
 #' @param system_prompt Character or NULL. System prompt.
 #' @param provider Character. Provider: "openai", "anthropic", "moonshot",
-#'   or "ollama".
+#'   "openai_codex", or "ollama".
 #' @param ... Additional parameters passed to chat().
 #'
 #' @return A list with functions:
@@ -38,7 +38,7 @@
 #' session$clear()
 #' }
 chat_session <- function(model = NULL, system_prompt = NULL,
-                         provider = c("openai", "anthropic", "moonshot", "ollama"),
+                         provider = c("openai", "anthropic", "moonshot", "openai_codex", "ollama"),
                          ...) {
     provider <- match.arg(provider)
 
@@ -140,6 +140,27 @@ chat_session_openai <- function(model = "gpt-5.4-mini", system_prompt = NULL,
                  provider = "openai", ...)
 }
 
+#' Create OpenAI Codex chat session
+#'
+#' Convenience wrapper for chat_session with the OpenAI Codex provider.
+#'
+#' @param model Character. Model name (default: "gpt-5.5").
+#' @param system_prompt Character or NULL. System prompt.
+#' @param ... Additional parameters passed to chat_session().
+#'
+#' @return A chat session list.
+#' @export
+#' @examples
+#' \dontrun{
+#' session <- chat_session_openai_codex()
+#' session$chat("Hello")
+#' }
+chat_session_openai_codex <- function(model = "gpt-5.5",
+                                      system_prompt = NULL, ...) {
+    chat_session(model = model, system_prompt = system_prompt,
+                 provider = "openai_codex", ...)
+}
+
 #' Create Anthropic chat session
 #'
 #' Convenience wrapper for chat_session with Anthropic provider.
@@ -178,7 +199,8 @@ chat_session_anthropic <- function(model = "claude-sonnet-4-6",
 #' \dontrun{
 #' session$chat("Hello")
 #' }
-chat_session_ollama <- function(model = "qwen3.5:9b", system_prompt = NULL, ...) {
+chat_session_ollama <- function(model = "qwen3.5:9b", system_prompt = NULL,
+                                ...) {
     chat_session(model = model, system_prompt = system_prompt,
                  provider = "ollama", ...)
 }

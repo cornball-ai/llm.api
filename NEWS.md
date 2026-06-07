@@ -1,3 +1,10 @@
+# llm.api (development version)
+
+* New `openai_codex` provider supports ChatGPT subscription-backed OpenAI
+  Codex Responses calls via `chat_openai_codex()`, `agent(provider =
+  "openai_codex")`, `openai_codex_credentials()`, `openai_codex_login()`,
+  and `openai_codex_refresh()`.
+
 # llm.api 0.1.4
 
 CRAN release consolidating the 0.1.3.1–0.1.3.5 development cycle.

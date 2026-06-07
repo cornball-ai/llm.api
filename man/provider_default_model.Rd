@@ -7,7 +7,7 @@ provider_default_model(provider)
 }
 \arguments{
 \item{provider}{Character. One of `"openai"`, `"anthropic"`,
-`"moonshot"`, `"ollama"`.}
+`"moonshot"`, `"openai_codex"`, `"ollama"`.}
 }
 \value{
 Character. The default model id for that provider.

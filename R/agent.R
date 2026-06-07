@@ -11,7 +11,7 @@
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
 #' @param provider Character. Provider: "anthropic", "openai", "moonshot",
-#'   or "ollama".
+#'   "openai_codex", or "ollama".
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
 #' @param history List or NULL. Previous conversation history to continue from.
@@ -61,7 +61,7 @@
 #' }
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
-                  provider = c("anthropic", "openai", "moonshot", "ollama"),
+                  provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, ...) {
@@ -98,7 +98,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     if (is.null(model)) {
         model <- switch(provider, anthropic = "claude-sonnet-4-6",
                         openai = "gpt-5.4-mini", moonshot = "kimi-k2.5",
-                        ollama = "qwen3.5:9b")
+                        openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
     }
 
     # Convert tools to provider format
@@ -134,9 +134,14 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                            anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens, ...),
-                           openai = .agent_openai(messages, provider_tools, system, model, config, ...),
-                           moonshot = .agent_openai(messages, provider_tools, system, model, config, ...),
-                           ollama = .agent_ollama(messages, provider_tools, system, model, config, ...)
+                           openai = .agent_openai(messages, provider_tools, system, model,
+                config, ...),
+                           moonshot = .agent_openai(messages, provider_tools, system,
+                model, config, ...),
+                           openai_codex = .agent_openai_codex(messages, provider_tools,
+                system, model, config, ...),
+                           ollama = .agent_ollama(messages, provider_tools, system, model,
+                config, ...)
         )
 
         # Accumulate token usage and per-turn cost. Uses `[[` exact
@@ -160,7 +165,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             # .openai_cached_tokens adds OpenAI cached prompt tokens.
             ct <- .cache_tokens(u)
             total_cache_read <- total_cache_read + ct$read +
-                .openai_cached_tokens(u)
+            .openai_cached_tokens(u)
             total_cache_write_5m <- total_cache_write_5m + ct$write_5m
             total_cache_write_1h <- total_cache_write_1h + ct$write_1h
             turn_cost <- usage_cost(model, provider, u)
@@ -189,8 +194,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                                      cache_read_input_tokens = total_cache_read,
                                      cache_creation_input_tokens = total_cache_write_5m + total_cache_write_1h,
                                      cache_creation = list(
-                                         ephemeral_5m_input_tokens = total_cache_write_5m,
-                                         ephemeral_1h_input_tokens = total_cache_write_1h),
+                            ephemeral_5m_input_tokens = total_cache_write_5m,
+                            ephemeral_1h_input_tokens = total_cache_write_1h),
                                      cost = if (cost_na) NA_real_ else total_cost
                     )
                 ))
@@ -252,8 +257,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       cache_read_input_tokens = total_cache_read,
                       cache_creation_input_tokens = total_cache_write_5m + total_cache_write_1h,
                       cache_creation = list(
-                          ephemeral_5m_input_tokens = total_cache_write_5m,
-                          ephemeral_1h_input_tokens = total_cache_write_1h),
+                ephemeral_5m_input_tokens = total_cache_write_5m,
+                ephemeral_1h_input_tokens = total_cache_write_1h),
                       cost = if (cost_na) NA_real_ else total_cost
         )
     )
@@ -275,6 +280,15 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
              `function` = list(name = t$name,
                                description = t$description %||% "",
                                parameters = t$input_schema)
+        )
+    }),
+
+           openai_codex = lapply(tools, function(t) {
+        list(
+             type = "function",
+             name = t$name,
+             description = t$description %||% "",
+             parameters = t$input_schema
         )
     }),
 
@@ -390,7 +404,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     if (!is.null(msg$tool_calls)) {
         for (tc in msg$tool_calls) {
             args <- tryCatch(
-                             jsonlite::fromJSON(tc$`function`$arguments, simplifyVector = FALSE),
+                             jsonlite::fromJSON(tc$`function`$arguments,
+                    simplifyVector = FALSE),
                              error = function(e) list()
             )
             tool_calls[[length(tool_calls) + 1]] <- list(
@@ -515,6 +530,14 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             content = result$result
         )
         messages
+    },
+           openai_codex = {
+        messages[[length(messages) + 1L]] <- list(
+            type = "function_call_output",
+            call_id = result$id,
+            output = result$result
+        )
+        messages
     }
     )
 }
@@ -565,7 +588,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' @param system Character. Default system prompt.
 #' @param model Character. Default model.
 #' @param provider Character. Provider: "anthropic", "openai", "moonshot",
-#'   or "ollama".
+#'   "openai_codex", or "ollama".
 #' @param verbose Logical. Print tool calls.
 #'
 #' @return A function that takes a prompt and returns a response.
@@ -589,7 +612,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' result <- chat_fn("List files in current directory")
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
-                         provider = c("anthropic", "openai", "moonshot", "ollama"),
+                         provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
                          verbose = TRUE) {
     provider <- match.arg(provider)
 
