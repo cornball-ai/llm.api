@@ -67,11 +67,21 @@ openai_codex_credentials <- function(access_token = Sys.getenv("OPENAI_CODEX_ACC
 #'
 #' @param timeout Maximum number of seconds to wait for login.
 #' @param open_url Logical. Whether to open the verification URL in a browser.
-#' @return A zero-argument credentials function.
+#' @return A zero-argument credentials function, invisibly. You don't normally
+#'   need it: the cached token is picked up automatically by
+#'   \code{chat(provider = "openai_codex")} and friends.
 #' @export
 openai_codex_login <- function(timeout = 600, open_url = interactive()) {
-    tinyoauth::oauth_token_openai_codex(open_url = open_url, timeout = timeout)
-    openai_codex_credentials()
+    tok <- tinyoauth::oauth_token_openai_codex(open_url = open_url,
+                                               timeout = timeout)
+    acct <- if (!is.null(tok$account_id)) {
+        paste0(" (account ", tok$account_id, ")")
+    } else {
+        ""
+    }
+    message("Logged in to OpenAI Codex", acct,
+            ". Token cached; no need to log in again.")
+    invisible(openai_codex_credentials())
 }
 
 #' Chat with OpenAI Codex

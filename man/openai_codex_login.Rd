@@ -11,7 +11,9 @@ openai_codex_login(timeout = 600, open_url = interactive())
 \item{open_url}{Logical. Whether to open the verification URL in a browser.}
 }
 \value{
-A zero-argument credentials function.
+A zero-argument credentials function, invisibly. You don't normally
+  need it: the cached token is picked up automatically by
+  \code{chat(provider = "openai_codex")} and friends.
 }
 \description{
 Runs tinyoauth's ChatGPT Codex device-login flow, caching the token for reuse

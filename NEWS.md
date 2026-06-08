@@ -1,3 +1,9 @@
+# llm.api 0.1.4.2
+
+* `openai_codex_login()` now returns its credentials callback invisibly (it was
+  echoing the whole function body to the console) and prints a confirmation
+  with the logged-in account id.
+
 # llm.api 0.1.4.1
 
 * New `openai_codex` provider for ChatGPT subscription-backed OpenAI Codex
