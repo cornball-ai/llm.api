@@ -1,9 +1,10 @@
-# llm.api (development version)
+# llm.api 0.1.4.1
 
-* New `openai_codex` provider supports ChatGPT subscription-backed OpenAI
-  Codex Responses calls via `chat_openai_codex()`, `agent(provider =
-  "openai_codex")`, `openai_codex_credentials()`, `openai_codex_login()`,
-  and `openai_codex_refresh()`.
+* New `openai_codex` provider for ChatGPT subscription-backed OpenAI Codex
+  Responses calls: `chat_openai_codex()`, `agent(provider = "openai_codex")`,
+  `openai_codex_credentials()`, and `openai_codex_login()`. Device login,
+  token refresh, and on-disk caching are handled by
+  [tinyoauth](https://github.com/cornball-ai/tinyoauth).
 
 # llm.api 0.1.4
 
