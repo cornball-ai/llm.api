@@ -9,3 +9,4 @@
 ^man-md$
 ^cran-comments\.md$
 ^data-raw$
+^CONTRIBUTING\.md$
