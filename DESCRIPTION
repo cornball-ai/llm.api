@@ -28,5 +28,3 @@ Imports:
     tinyoauth
 Suggests:
     tinytest
-Remotes:
-    cornball-ai/tinyoauth
