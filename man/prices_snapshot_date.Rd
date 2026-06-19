@@ -25,10 +25,10 @@ The table is generated from BerriAI/litellm's
 Cost estimates are offline and approximate, and may differ from
 current provider billing. Cached-input pricing follows each
 provider's published model: OpenAI
-(\url{https://platform.openai.com/docs/guides/prompt-caching}),
+(\url{https://developers.openai.com/api/docs/guides/prompt-caching}),
 Moonshot (\url{https://www.kimi.com/help/kimi-api/api-pricing}), and
 Anthropic
-(\url{https://platform.claude.com/en/docs/build-with-claude/prompt-caching}).
+(\url{https://platform.claude.com/docs/en/build-with-claude/prompt-caching}).
 
 }
 \examples{
