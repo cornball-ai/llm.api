@@ -155,6 +155,11 @@ usage_cost <- function(model, provider, usage) {
     if (is.null(usage)) {
         return(NA_real_)
     }
+    # Subscription OAuth shares Anthropic's usage shape and prices; the figure
+    # is the API-equivalent cost.
+    if (identical(provider, "anthropic_oauth")) {
+        provider <- "anthropic"
+    }
     out_tokens <- usage[["output_tokens"]] %||% usage[["completion_tokens"]]
 
     if (identical(provider, "anthropic")) {

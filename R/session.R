@@ -38,7 +38,8 @@
 #' session$clear()
 #' }
 chat_session <- function(model = NULL, system_prompt = NULL,
-                         provider = c("openai", "anthropic", "moonshot", "openai_codex", "ollama"),
+                         provider = c("openai", "anthropic", "anthropic_oauth",
+                                      "moonshot", "openai_codex", "ollama"),
                          ...) {
     provider <- match.arg(provider)
 
