@@ -280,4 +280,3 @@ print.mcp_connection <- function(x, ...) {
     }
     invisible(x)
 }
-

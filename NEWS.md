@@ -1,3 +1,12 @@
+# llm.api 0.1.4.3
+
+* New `anthropic_claude` provider: drive Claude on a Claude subscription via an
+  OAuth token (from `claude_oauth_login()`) instead of an API key. Adds
+  `claude_oauth_login()`, `anthropic_claude_credentials()`, and
+  `chat_claude_oauth()`. The OAuth flow lives in tinyoauth (>= 0.0.1.7); the
+  provider reuses the existing Messages API path, so caching, thinking, tool
+  use, usage, and cost work the same as the API-key `anthropic` provider.
+
 # llm.api 0.1.4.2
 
 * `openai_codex_login()` now returns its credentials callback invisibly (it was

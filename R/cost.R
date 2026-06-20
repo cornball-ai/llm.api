@@ -29,7 +29,7 @@
 #' cache reads occurred but no such rate is bundled.
 #'
 #' @param model Character. Model id as sent to the provider.
-#' @param provider Character. "anthropic", "openai", "moonshot",
+#' @param provider Character. "anthropic", "anthropic_claude", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param input_tokens Integer. Non-cached prompt tokens.
 #' @param output_tokens Integer. Completion tokens.
@@ -139,7 +139,7 @@
 #' [prices_snapshot_date()].
 #'
 #' @param model Character. Model id as sent to the provider.
-#' @param provider Character. "anthropic", "openai", "moonshot",
+#' @param provider Character. "anthropic", "anthropic_claude", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param usage A usage list as found in `chat()$usage` or
 #'   `agent()$usage`.
@@ -154,6 +154,11 @@
 usage_cost <- function(model, provider, usage) {
     if (is.null(usage)) {
         return(NA_real_)
+    }
+    # Subscription OAuth shares Anthropic's usage shape and prices; the figure
+    # is the API-equivalent cost.
+    if (identical(provider, "anthropic_claude")) {
+        provider <- "anthropic"
     }
     out_tokens <- usage[["output_tokens"]] %||% usage[["completion_tokens"]]
 
@@ -210,8 +215,7 @@ usage_cost <- function(model, provider, usage) {
 
 .openai_codex_price_lookup <- function(model) {
     prices <- list(
-                   `gpt-5.3-codex-spark` = list(input = 1.75 / 1e6,
-            output = 14 / 1e6,
+                   `gpt-5.3-codex-spark` = list(input = 1.75 / 1e6, output = 14 / 1e6,
             cache_read = 0.175 / 1e6),
                    `gpt-5.4` = list(input = 2.5 / 1e6,
                                     output = 15 / 1e6,
@@ -275,4 +279,3 @@ prices_snapshot_stale <- function(max_age_days = 90) {
     age <- as.numeric(Sys.Date() - as.Date(.PRICES_SNAPSHOT_DATE))
     age > max_age_days
 }
-

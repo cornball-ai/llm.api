@@ -75,6 +75,13 @@
                             api_key = .get_key("anthropic"),
                             default_model = "claude-sonnet-4-6"
         ),
+           anthropic_claude = list(
+                                   provider = "anthropic_claude",
+                                   base_url = base %||% "https://api.anthropic.com",
+                                   chat_path = "/v1/messages",
+                                   credentials = anthropic_claude_credentials(),
+                                   default_model = "claude-sonnet-4-6"
+        ),
            moonshot = list(
                            provider = "moonshot",
                            base_url = base %||% "https://api.moonshot.ai",
@@ -211,4 +218,3 @@ list_ollama_models <- function(base_url = "http://localhost:11434") {
                modified = as.character(as.POSIXct(data$models$modified_at))
     )
 }
-

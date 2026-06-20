@@ -27,7 +27,8 @@
 #'   \code{OPENAI_CODEX_ACCOUNT_ID}, then from the access-token JWT.
 #' @return A zero-argument credentials function returning request headers.
 #' @export
-openai_codex_credentials <- function(access_token = Sys.getenv("OPENAI_CODEX_ACCESS_TOKEN", ""),
+openai_codex_credentials <- function(access_token = Sys.getenv("OPENAI_CODEX_ACCESS_TOKEN",
+        ""),
                                      account_id = Sys.getenv("OPENAI_CODEX_ACCOUNT_ID", "")) {
     if (identical(access_token, "")) {
         access_token <- NULL
@@ -54,8 +55,7 @@ openai_codex_credentials <- function(access_token = Sys.getenv("OPENAI_CODEX_ACC
             stop("Can't determine ChatGPT account id from the access token.",
                  call. = FALSE)
         }
-        list(Authorization = paste("Bearer", at),
-             `chatgpt-account-id` = acct)
+        list(Authorization = paste("Bearer", at), `chatgpt-account-id` = acct)
     }
 }
 
@@ -73,7 +73,7 @@ openai_codex_credentials <- function(access_token = Sys.getenv("OPENAI_CODEX_ACC
 #' @export
 openai_codex_login <- function(timeout = 600, open_url = interactive()) {
     tok <- tinyoauth::oauth_token_openai_codex(open_url = open_url,
-                                               timeout = timeout)
+        timeout = timeout)
     acct <- if (!is.null(tok$account_id)) {
         paste0(" (account ", tok$account_id, ")")
     } else {
@@ -114,16 +114,12 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
         extra$reasoning_effort <- NULL
     }
 
-    body <- list(
-                 model = model,
-                 instructions = system,
+    body <- list(model = model, instructions = system,
                  input = .openai_codex_messages_to_input(messages),
                  stream = TRUE,
                  text = list(verbosity = extra$text_verbosity %||% "low"),
                  reasoning = reasoning,
-                 include = list("reasoning.encrypted_content"),
-                 store = FALSE
-    )
+                 include = list("reasoning.encrypted_content"), store = FALSE)
     extra$text_verbosity <- NULL
 
     if (length(tools) > 0L) {
@@ -179,13 +175,10 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
 .openai_codex_request <- function(messages, tools, system, model, config, ...) {
     url <- paste0(config$base_url, config$chat_path)
     credentials <- config$credentials()
-    headers <- c(
-                 "Content-Type" = "application/json",
+    headers <- c("Content-Type" = "application/json",
                  "OpenAI-Beta" = "responses=experimental",
-                 "originator" = "llm.api",
-                 "accept" = "text/event-stream",
-                 unlist(credentials)
-    )
+                 "originator" = "llm.api", "accept" = "text/event-stream",
+                 unlist(credentials))
     body <- .openai_codex_body(messages, tools, system, model, ...)
     .openai_codex_post_sse(url, body, headers)
 }
@@ -350,11 +343,8 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     extra$stream <- NULL
     resp <- do.call(
                     .openai_codex_request,
-                    c(list(messages = extracted$messages,
-                           tools = list(),
-                           system = extracted$system,
-                           model = body$model,
-                           config = config),
+                    c(list(messages = extracted$messages, tools = list(),
+                           system = extracted$system, model = body$model, config = config),
                       extra)
     )
     parsed <- .openai_codex_parse_response(resp)
@@ -379,4 +369,3 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     )
     .openai_codex_parse_response(resp)
 }
-
