@@ -19,7 +19,7 @@ agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
 
 \item{model}{Character. Model name.}
 
-\item{provider}{Character. Provider: "anthropic", "openai", "moonshot",
+\item{provider}{Character. Provider: "anthropic", "anthropic_oauth", "openai", "moonshot",
 "openai_codex", or "ollama".}
 
 \item{max_turns}{Integer. Maximum tool-use turns (default: 20).}

@@ -29,7 +29,7 @@
 #' cache reads occurred but no such rate is bundled.
 #'
 #' @param model Character. Model id as sent to the provider.
-#' @param provider Character. "anthropic", "openai", "moonshot",
+#' @param provider Character. "anthropic", "anthropic_oauth", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param input_tokens Integer. Non-cached prompt tokens.
 #' @param output_tokens Integer. Completion tokens.
@@ -139,7 +139,7 @@
 #' [prices_snapshot_date()].
 #'
 #' @param model Character. Model id as sent to the provider.
-#' @param provider Character. "anthropic", "openai", "moonshot",
+#' @param provider Character. "anthropic", "anthropic_oauth", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param usage A usage list as found in `chat()$usage` or
 #'   `agent()$usage`.

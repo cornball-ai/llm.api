@@ -22,7 +22,7 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 
 \item{max_tokens}{Integer or NULL. Maximum tokens in response.}
 
-\item{provider}{Character. Provider: "auto", "openai", "anthropic",
+\item{provider}{Character. Provider: "auto", "openai", "anthropic", "anthropic_oauth",
 "moonshot", "openai_codex", or "ollama".}
 
 \item{stream}{Logical. Stream the response (prints as it arrives).}

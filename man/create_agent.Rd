@@ -16,7 +16,7 @@ create_agent(servers = list(), system = NULL, model = NULL,
 
 \item{model}{Character. Default model.}
 
-\item{provider}{Character. Provider: "anthropic", "openai", "moonshot",
+\item{provider}{Character. Provider: "anthropic", "anthropic_oauth", "openai", "moonshot",
 "openai_codex", or "ollama".}
 
 \item{verbose}{Logical. Print tool calls.}

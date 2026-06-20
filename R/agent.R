@@ -10,7 +10,7 @@
 #' @param tool_handler Function. Called with (name, args), returns result string.
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
-#' @param provider Character. Provider: "anthropic", "openai", "moonshot",
+#' @param provider Character. Provider: "anthropic", "anthropic_oauth", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
@@ -586,7 +586,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #'   - `list(command = "r", args = "server.R", port = 7850)` to start and connect
 #' @param system Character. Default system prompt.
 #' @param model Character. Default model.
-#' @param provider Character. Provider: "anthropic", "openai", "moonshot",
+#' @param provider Character. Provider: "anthropic", "anthropic_oauth", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param verbose Logical. Print tool calls.
 #'
