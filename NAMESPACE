@@ -1,7 +1,7 @@
 # tinyrox says don't edit this manually, but it can't stop you!
 
 export(agent)
-export(anthropic_oauth_credentials)
+export(anthropic_claude_credentials)
 export(chat)
 export(chat_claude)
 export(chat_claude_oauth)

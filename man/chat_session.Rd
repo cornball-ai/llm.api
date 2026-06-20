@@ -4,7 +4,7 @@
 \title{Create a stateful chat session}
 \usage{
 chat_session(model = NULL, system_prompt = NULL,
-             provider = c("openai", "anthropic", "anthropic_oauth", "moonshot", "openai_codex", "ollama"),
+             provider = c("openai", "anthropic", "anthropic_claude", "moonshot", "openai_codex", "ollama"),
              ...)
 }
 \arguments{
