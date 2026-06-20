@@ -61,7 +61,8 @@
 #' }
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
-                  provider = c("anthropic", "anthropic_oauth", "openai", "moonshot", "openai_codex", "ollama"),
+                  provider = c("anthropic", "anthropic_oauth", "openai", "moonshot",
+                               "openai_codex", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, ...) {
@@ -96,7 +97,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     # Default models with tool support
     if (is.null(model)) {
-        model <- switch(provider, anthropic = ,
+        model <- switch(provider, anthropic =,
                         anthropic_oauth = "claude-sonnet-4-6",
                         openai = "gpt-5.4-mini", moonshot = "kimi-k2.5",
                         openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
@@ -132,7 +133,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
         # Make API request with tools
         response <- switch(provider,
-                           anthropic = ,
+                           anthropic =,
                            anthropic_oauth = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens, ...),
@@ -273,7 +274,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     }
 
     switch(provider,
-           anthropic = ,
+           anthropic =,
            anthropic_oauth = tools, # Already in Claude format
 
            openai =,
@@ -344,11 +345,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         if (block$type == "text") {
             text_parts <- c(text_parts, block$text)
         } else if (block$type == "tool_use") {
-            tool_calls[[length(tool_calls) + 1]] <- list(
-                id = block$id,
-                name = block$name,
-                arguments = block$input
-            )
+            tool_calls[[length(tool_calls) + 1]] <- list(id = block$id,
+                name = block$name, arguments = block$input)
         }
     }
 
@@ -613,7 +611,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' result <- chat_fn("List files in current directory")
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
-                         provider = c("anthropic", "anthropic_oauth", "openai", "moonshot", "openai_codex", "ollama"),
+                         provider = c("anthropic", "anthropic_oauth", "openai", "moonshot",
+                                      "openai_codex", "ollama"),
                          verbose = TRUE) {
     provider <- match.arg(provider)
 
@@ -675,4 +674,3 @@ create_agent <- function(servers = list(), system = NULL, model = NULL,
         )
     }
 }
-

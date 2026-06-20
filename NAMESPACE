@@ -1,8 +1,10 @@
 # tinyrox says don't edit this manually, but it can't stop you!
 
 export(agent)
+export(anthropic_oauth_credentials)
 export(chat)
 export(chat_claude)
+export(chat_claude_oauth)
 export(chat_ollama)
 export(chat_openai)
 export(chat_openai_codex)
@@ -11,6 +13,7 @@ export(chat_session_anthropic)
 export(chat_session_ollama)
 export(chat_session_openai)
 export(chat_session_openai_codex)
+export(claude_oauth_login)
 export(create_agent)
 export(history_count_tool_calls)
 export(history_tool_calls)

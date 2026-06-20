@@ -30,9 +30,12 @@ hits are read from `prompt_tokens_details$cached_tokens` on a raw
 response, falling back to a flat `cache_read_input_tokens` field as
 exposed by `agent()` aggregates, so an `agent()$usage` object
 recomputes to the same cost it already carries.
+}
+\details{
 Costs come from the bundled price snapshot, so they are offline,
 approximate, and may differ from current provider billing. See
 [prices_snapshot_date()].
+
 }
 \examples{
 \dontrun{

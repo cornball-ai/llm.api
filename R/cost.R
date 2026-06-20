@@ -215,8 +215,7 @@ usage_cost <- function(model, provider, usage) {
 
 .openai_codex_price_lookup <- function(model) {
     prices <- list(
-                   `gpt-5.3-codex-spark` = list(input = 1.75 / 1e6,
-            output = 14 / 1e6,
+                   `gpt-5.3-codex-spark` = list(input = 1.75 / 1e6, output = 14 / 1e6,
             cache_read = 0.175 / 1e6),
                    `gpt-5.4` = list(input = 2.5 / 1e6,
                                     output = 15 / 1e6,
@@ -280,4 +279,3 @@ prices_snapshot_stale <- function(max_age_days = 90) {
     age <- as.numeric(Sys.Date() - as.Date(.PRICES_SNAPSHOT_DATE))
     age > max_age_days
 }
-

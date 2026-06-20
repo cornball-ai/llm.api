@@ -100,8 +100,7 @@
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  temperature = NULL, max_tokens = NULL,
                  provider = c("auto", "openai", "anthropic", "anthropic_oauth",
-                              "moonshot", "openai_codex",
-                              "ollama"),
+                              "moonshot", "openai_codex", "ollama"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, ...) {
     provider <- match.arg(provider)
@@ -461,4 +460,3 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 } else {
     x
 }
-

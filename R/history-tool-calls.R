@@ -209,4 +209,3 @@ history_count_tool_calls <- function(history, completed_only = FALSE) {
 }
 
 # Note: `%||%` is defined in chat.R for the package; reused here.
-
