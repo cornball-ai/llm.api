@@ -10,7 +10,7 @@
 #' @param tool_handler Function. Called with (name, args), returns result string.
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
-#' @param provider Character. Provider: "anthropic", "anthropic_oauth", "openai", "moonshot",
+#' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
@@ -61,7 +61,7 @@
 #' }
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
-                  provider = c("anthropic", "anthropic_oauth", "openai", "moonshot",
+                  provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
                                "openai_codex", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
@@ -98,7 +98,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # Default models with tool support
     if (is.null(model)) {
         model <- switch(provider, anthropic =,
-                        anthropic_oauth = "claude-sonnet-4-6",
+                        anthropic_claude = "claude-sonnet-4-6",
                         openai = "gpt-5.4-mini", moonshot = "kimi-k2.5",
                         openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
     }
@@ -134,7 +134,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         # Make API request with tools
         response <- switch(provider,
                            anthropic =,
-                           anthropic_oauth = .agent_anthropic(messages, provider_tools, system, model, config,
+                           anthropic_claude = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens, ...),
                            openai = .agent_openai(messages, provider_tools, system, model,
@@ -275,7 +275,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     switch(provider,
            anthropic =,
-           anthropic_oauth = tools, # Already in Claude format
+           anthropic_claude = tools, # Already in Claude format
 
            openai =,
            moonshot = lapply(tools, function(t) {
@@ -586,7 +586,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #'   - `list(command = "r", args = "server.R", port = 7850)` to start and connect
 #' @param system Character. Default system prompt.
 #' @param model Character. Default model.
-#' @param provider Character. Provider: "anthropic", "anthropic_oauth", "openai", "moonshot",
+#' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param verbose Logical. Print tool calls.
 #'
@@ -611,7 +611,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' result <- chat_fn("List files in current directory")
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
-                         provider = c("anthropic", "anthropic_oauth", "openai", "moonshot",
+                         provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
                                       "openai_codex", "ollama"),
                          verbose = TRUE) {
     provider <- match.arg(provider)

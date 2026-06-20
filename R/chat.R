@@ -53,7 +53,7 @@
 #' @param history List or NULL. Previous conversation turns.
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
 #' @param max_tokens Integer or NULL. Maximum tokens in response.
-#' @param provider Character. Provider: "auto", "openai", "anthropic", "anthropic_oauth",
+#' @param provider Character. Provider: "auto", "openai", "anthropic", "anthropic_claude",
 #'   "moonshot", "openai_codex", or "ollama".
 #' @param stream Logical. Stream the response (prints as it arrives).
 #' @param cache Character. Anthropic prompt caching for the system
@@ -99,7 +99,7 @@
 #' }
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  temperature = NULL, max_tokens = NULL,
-                 provider = c("auto", "openai", "anthropic", "anthropic_oauth",
+                 provider = c("auto", "openai", "anthropic", "anthropic_claude",
                               "moonshot", "openai_codex", "ollama"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, ...) {

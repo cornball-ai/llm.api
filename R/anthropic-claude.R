@@ -13,13 +13,13 @@
 #' parsing, and cost all treat them alike.
 #' @noRd
 .is_anthropic <- function(provider) {
-    provider %in% c("anthropic", "anthropic_oauth")
+    provider %in% c("anthropic", "anthropic_claude")
 }
 
 #' Anthropic request headers (API key or subscription OAuth)
 #'
 #' Returns the header vector for a Messages API request. When the provider
-#' config carries a \code{credentials} function (the \code{anthropic_oauth}
+#' config carries a \code{credentials} function (the \code{anthropic_claude}
 #' provider), its headers are used (a bearer token plus the OAuth beta header);
 #' otherwise the \code{x-api-key} header is used.
 #' @noRd
@@ -35,20 +35,20 @@
 
 #' Anthropic Claude subscription (OAuth) credentials
 #'
-#' Builds a zero-argument credentials function for the \code{anthropic_oauth}
+#' Builds a zero-argument credentials function for the \code{anthropic_claude}
 #' provider. Tokens are obtained, cached, and refreshed by tinyoauth (see
 #' \code{\link[tinyoauth]{oauth_token_anthropic}}); this returns the request
 #' headers (\code{Authorization} and the OAuth beta header) for the current
 #' token.
 #'
-#' The \code{ANTHROPIC_OAUTH_ACCESS_TOKEN} environment variable overrides the
+#' The \code{ANTHROPIC_CLAUDE_ACCESS_TOKEN} environment variable overrides the
 #' cache when set.
 #'
 #' @param access_token Optional access token. If omitted, read from
-#'   \code{ANTHROPIC_OAUTH_ACCESS_TOKEN}, then from the tinyoauth cache.
+#'   \code{ANTHROPIC_CLAUDE_ACCESS_TOKEN}, then from the tinyoauth cache.
 #' @return A zero-argument credentials function returning request headers.
 #' @export
-anthropic_oauth_credentials <- function(access_token = Sys.getenv("ANTHROPIC_OAUTH_ACCESS_TOKEN",
+anthropic_claude_credentials <- function(access_token = Sys.getenv("ANTHROPIC_CLAUDE_ACCESS_TOKEN",
         "")) {
     if (identical(access_token, "")) {
         access_token <- NULL
@@ -60,7 +60,7 @@ anthropic_oauth_credentials <- function(access_token = Sys.getenv("ANTHROPIC_OAU
             tok <- tinyoauth::oauth_token_anthropic(login = FALSE)
             if (is.null(tok)) {
                 stop("No Claude OAuth credentials available. Run ",
-                     "claude_oauth_login() (or set ANTHROPIC_OAUTH_ACCESS_TOKEN).",
+                     "claude_oauth_login() (or set ANTHROPIC_CLAUDE_ACCESS_TOKEN).",
                      call. = FALSE)
             }
             at <- tok$access_token
@@ -73,19 +73,19 @@ anthropic_oauth_credentials <- function(access_token = Sys.getenv("ANTHROPIC_OAU
 #' Log in to Claude with the subscription OAuth flow
 #'
 #' Runs tinyoauth's Claude (Claude Code) login flow, caching the token for reuse
-#' across sessions, and returns an \code{\link{anthropic_oauth_credentials}}
+#' across sessions, and returns an \code{\link{anthropic_claude_credentials}}
 #' callback. The login is manual-paste: open the printed URL, approve, and paste
 #' the displayed code back.
 #'
 #' @param open_url Logical. Whether to open the authorization URL in a browser.
 #' @return A zero-argument credentials function, invisibly. You don't normally
 #'   need it: the cached token is picked up automatically by
-#'   \code{chat(provider = "anthropic_oauth")} and \code{chat_claude_oauth()}.
+#'   \code{chat(provider = "anthropic_claude")} and \code{chat_claude_oauth()}.
 #' @export
 claude_oauth_login <- function(open_url = interactive()) {
     tinyoauth::oauth_token_anthropic(open_url = open_url)
     message("Logged in to Claude. Token cached; no need to log in again.")
-    invisible(anthropic_oauth_credentials())
+    invisible(anthropic_claude_credentials())
 }
 
 #' Chat with Claude on a subscription (OAuth)
@@ -102,5 +102,5 @@ claude_oauth_login <- function(open_url = interactive()) {
 #' chat_claude_oauth("Explain the theory of relativity")
 #' }
 chat_claude_oauth <- function(prompt, model = "claude-sonnet-4-6", ...) {
-    chat(prompt, model = model, provider = "anthropic_oauth", ...)
+    chat(prompt, model = model, provider = "anthropic_claude", ...)
 }
