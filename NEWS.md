@@ -1,3 +1,11 @@
+# llm.api 0.1.4.4
+
+* Fix a 400 from the `openai_codex` provider when `max_tokens` is passed (e.g.
+  via `agent()` or `chat()`). The ChatGPT Codex backend rejects both `max_tokens`
+  and `max_output_tokens`, so they are now dropped before the request rather than
+  forwarded. Since `max_tokens` is a documented argument that Codex can't honor,
+  a warning is emitted once per session when a token cap is supplied.
+
 # llm.api 0.1.4.3
 
 * New `anthropic_claude` provider: drive Claude on a Claude subscription via an
