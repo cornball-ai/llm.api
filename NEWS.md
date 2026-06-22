@@ -1,3 +1,11 @@
+# llm.api 0.1.5.1
+
+* Provider-native web search: a `web_search` argument on `chat()` and `agent()`
+  (FALSE | TRUE | a list of options). When on, the model runs server-side web
+  search and the result carries `citations` and `searches`. First wired for the
+  `openai_codex` provider (OpenAI Responses `web_search` tool); other providers
+  follow.
+
 # llm.api 0.1.5
 
 * First release of the `openai_codex` provider for ChatGPT-subscription-backed
