@@ -1,3 +1,11 @@
+# llm.api 0.1.5
+
+* First release of the `openai_codex` provider for ChatGPT-subscription-backed
+  Codex (OpenAI Responses API): `chat_openai_codex()`, `agent(provider =
+  "openai_codex")`, `openai_codex_credentials()`, and `openai_codex_login()`,
+  with device login / token refresh / caching via tinyoauth. Consolidates the
+  0.1.4.1-0.1.4.4 development cycle (the per-cycle detail follows).
+
 # llm.api 0.1.4.4
 
 * Fix a 400 from the `openai_codex` provider when `max_tokens` is passed (e.g.
@@ -5,15 +13,6 @@
   and `max_output_tokens`, so they are now dropped before the request rather than
   forwarded. Since `max_tokens` is a documented argument that Codex can't honor,
   a warning is emitted once per session when a token cap is supplied.
-
-# llm.api 0.1.4.3
-
-* New `anthropic_claude` provider: drive Claude on a Claude subscription via an
-  OAuth token (from `claude_oauth_login()`) instead of an API key. Adds
-  `claude_oauth_login()`, `anthropic_claude_credentials()`, and
-  `chat_claude_oauth()`. The OAuth flow lives in tinyoauth (>= 0.0.1.7); the
-  provider reuses the existing Messages API path, so caching, thinking, tool
-  use, usage, and cost work the same as the API-key `anthropic` provider.
 
 # llm.api 0.1.4.2
 
