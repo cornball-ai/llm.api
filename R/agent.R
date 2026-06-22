@@ -34,10 +34,12 @@
 #'   (\code{allowed_domains}, \code{user_location}). Server-side, so it is
 #'   not gated by \code{tool_handler}; the result accumulates
 #'   \code{citations} and \code{searches} across turns. Wired for
-#'   \code{"openai_codex"}, \code{"openai"} (OpenAI Responses
+#'   \code{"openai_codex"} and \code{"openai"} (OpenAI Responses
 #'   \code{web_search} tool; for \code{"openai"} the run is routed through
-#'   the Responses endpoint), and \code{"anthropic"}; ignored with a
-#'   warning otherwise.
+#'   the Responses endpoint), \code{"anthropic"}, and \code{"moonshot"}
+#'   (the \code{$web_search} builtin, whose calls are handled internally
+#'   rather than via \code{tool_handler}); ignored with a warning
+#'   otherwise.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
@@ -130,6 +132,15 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     # Convert tools to provider format
     provider_tools <- .convert_tools(tools, wire)
+
+    # Moonshot web search is a `$web_search` builtin tool the model calls and we
+    # echo back (see R/moonshot.R); add it alongside any user tools. The agent
+    # loop intercepts those calls instead of routing them to tool_handler.
+    moonshot_search <- identical(provider, "moonshot") && !isFALSE(web_search)
+    if (moonshot_search) {
+        provider_tools <- c(provider_tools,
+                            list(.moonshot_web_search_tool(web_search)))
+    }
 
     # Build initial messages (prepend history if provided)
     if (!is.null(history)) {
@@ -257,11 +268,21 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 }
             }
 
-            # Call tool handler
-            result <- tryCatch(
-                               tool_handler(tc$name, tc$arguments),
-                               error = function(e) paste("Error:", e$message)
-            )
+            # Moonshot's $web_search builtin is handled server-side: echo the
+            # call's arguments straight back (the search_id inside is what the
+            # backend keys on) and record the search, rather than dispatching to
+            # the caller's tool_handler.
+            if (moonshot_search && .is_moonshot_web_search(tc)) {
+                result <- .moonshot_web_search_echo(tc$arguments)
+                total_searches <- c(total_searches,
+                                    list(list(query = NA_character_, status = "completed")))
+            } else {
+                # Call tool handler
+                result <- tryCatch(
+                                   tool_handler(tc$name, tc$arguments),
+                                   error = function(e) paste("Error:", e$message)
+                )
+            }
 
             if (verbose) {
                 display <- if (nchar(result) > 500) {

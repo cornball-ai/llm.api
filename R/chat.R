@@ -47,7 +47,7 @@
 # native mechanism is added (openai_codex/openai Responses tool, anthropic
 # web_search_<date>, moonshot $web_search).
 .web_search_providers <- function() {
-    c("openai_codex", "openai", "anthropic")
+    c("openai_codex", "openai", "anthropic", "moonshot")
 }
 
 # Anthropic server-side web search tool from the provider-neutral toggle, or
@@ -123,12 +123,15 @@
 #'   \code{FALSE} (default), \code{TRUE}, or a list of options
 #'   (\code{allowed_domains}, \code{user_location}). The model searches
 #'   on its own when useful; the result carries \code{citations} and
-#'   \code{searches}. Wired for \code{"openai_codex"}, \code{"openai"}
-#'   (both via the OpenAI Responses \code{web_search} tool), and
-#'   \code{"anthropic"} (Messages \code{web_search}); ignored with a
-#'   warning for providers not yet supported. For \code{"openai"}, the
-#'   request is routed through the Responses endpoint so search works on
-#'   the default model.
+#'   \code{searches}. Wired for \code{"openai_codex"} and \code{"openai"}
+#'   (OpenAI Responses \code{web_search} tool), \code{"anthropic"}
+#'   (Messages \code{web_search}), and \code{"moonshot"} (the
+#'   \code{$web_search} builtin); ignored with a warning for other
+#'   providers. For \code{"openai"}, the request is routed through the
+#'   Responses endpoint so search works on the default model. Moonshot
+#'   doesn't expose the query or structured citations, so its
+#'   \code{searches} carry \code{query = NA} and \code{citations} is
+#'   empty (citations are inlined in the answer text).
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return A list with:
@@ -260,6 +263,10 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         # Server-side web search needs the Responses endpoint; the
         # chat-completions path can't run it on the default models.
         result <- .chat_openai_responses(body, config, stream)
+    } else if (provider == "moonshot" && !isFALSE(web_search)) {
+        # Moonshot's $web_search builtin round-trips through tool calls;
+        # drive that echo loop internally.
+        result <- .chat_moonshot_websearch(body, config, stream)
     } else {
         result <- .chat_openai_compatible(body, config, stream)
     }

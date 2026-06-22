@@ -41,12 +41,15 @@ other providers.}
 \code{FALSE} (default), \code{TRUE}, or a list of options
 (\code{allowed_domains}, \code{user_location}). The model searches
 on its own when useful; the result carries \code{citations} and
-\code{searches}. Wired for \code{"openai_codex"}, \code{"openai"}
-(both via the OpenAI Responses \code{web_search} tool), and
-\code{"anthropic"} (Messages \code{web_search}); ignored with a
-warning for providers not yet supported. For \code{"openai"}, the
-request is routed through the Responses endpoint so search works on
-the default model.}
+\code{searches}. Wired for \code{"openai_codex"} and \code{"openai"}
+(OpenAI Responses \code{web_search} tool), \code{"anthropic"}
+(Messages \code{web_search}), and \code{"moonshot"} (the
+\code{$web_search} builtin); ignored with a warning for other
+providers. For \code{"openai"}, the request is routed through the
+Responses endpoint so search works on the default model. Moonshot
+doesn't expose the query or structured citations, so its
+\code{searches} carry \code{query = NA} and \code{citations} is
+empty (citations are inlined in the answer text).}
 
 \item{...}{Additional parameters passed to the API.}
 }

@@ -51,10 +51,12 @@ other providers.}
 (\code{allowed_domains}, \code{user_location}). Server-side, so it is
 not gated by \code{tool_handler}; the result accumulates
 \code{citations} and \code{searches} across turns. Wired for
-\code{"openai_codex"}, \code{"openai"} (OpenAI Responses
+\code{"openai_codex"} and \code{"openai"} (OpenAI Responses
 \code{web_search} tool; for \code{"openai"} the run is routed through
-the Responses endpoint), and \code{"anthropic"}; ignored with a
-warning otherwise.}
+the Responses endpoint), \code{"anthropic"}, and \code{"moonshot"}
+(the \code{$web_search} builtin, whose calls are handled internally
+rather than via \code{tool_handler}); ignored with a warning
+otherwise.}
 
 \item{...}{Additional parameters passed to the API.}
 }
