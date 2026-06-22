@@ -156,3 +156,57 @@ local({
     expect_equal(result$content, "ok")
     expect_true(result$usage$cost > 0)
 })
+
+# The ChatGPT Codex backend rejects output-token caps (both max_tokens and
+# max_output_tokens 400 as unsupported), so the body builder drops them. A
+# caller's generic max_tokens must not reach /codex/responses.
+mk_user <- function() list(list(role = "user", content = "hi"))
+
+# Direct body builder: max_tokens dropped, not forwarded or remapped.
+b_map <- llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
+                                      max_tokens = 123L)
+expect_null(b_map$max_tokens)
+expect_null(b_map$max_output_tokens)
+
+# An explicitly-passed max_output_tokens is dropped too (also unsupported).
+b_keep <- llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
+                                       max_output_tokens = 456L)
+expect_null(b_keep$max_output_tokens)
+
+# Other extra params are still forwarded (drop is scoped to the token caps).
+b_other <- llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
+                                        max_tokens = 5L, temperature = 0.5)
+expect_null(b_other$max_tokens)
+expect_equal(b_other$temperature, 0.5)
+
+# Captured request body through chat(): no token cap reaches /codex/responses.
+capture_sse <- function(target) {
+    function(url, body, headers) {
+        target$body <- body
+        list(output = list(list(type = "message", content = list(
+            list(type = "output_text", text = "ok")))),
+            usage = list(input_tokens = 1L, output_tokens = 1L,
+                         input_tokens_details = list(cached_tokens = 0L)))
+    }
+}
+local({
+    cap <- new.env()
+    with_stubbed(".openai_codex_post_sse", capture_sse(cap), {
+        llm.api::chat("hi", provider = "openai_codex", model = "gpt-5.5",
+                      credentials = creds, max_tokens = 77L)
+    })
+    expect_null(cap$body$max_tokens)
+    expect_null(cap$body$max_output_tokens)
+})
+
+# Captured request body through agent(): same (both paths share the body
+# builder via .openai_codex_request()).
+local({
+    cap <- new.env()
+    with_stubbed(".openai_codex_post_sse", capture_sse(cap), {
+        llm.api::agent("go", provider = "openai_codex", model = "gpt-5.5",
+                       credentials = creds, verbose = FALSE, max_tokens = 88L)
+    })
+    expect_null(cap$body$max_tokens)
+    expect_null(cap$body$max_output_tokens)
+})

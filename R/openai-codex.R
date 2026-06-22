@@ -102,6 +102,14 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
 
 .openai_codex_body <- function(messages, tools, system, model, ...) {
     extra <- list(...)
+    # The ChatGPT Codex backend (/codex/responses) rejects output-token caps:
+    # both `max_tokens` (the public, provider-neutral arg that chat()/agent()
+    # forward) and the Responses API's `max_output_tokens` come back as
+    # "Unsupported parameter" 400s. Drop them so a caller's generic max_tokens
+    # doesn't break Codex requests. (Codex is subscription-backed, so there is
+    # no per-token cost to cap anyway.)
+    extra$max_tokens <- NULL
+    extra$max_output_tokens <- NULL
     if (is.null(system)) {
         extracted <- .openai_codex_extract_system(messages)
         system <- extracted$system %||% "You are a helpful assistant."
