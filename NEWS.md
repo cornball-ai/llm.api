@@ -1,3 +1,22 @@
+# llm.api 0.1.5.1
+
+* Provider-native web search: a `web_search` argument on `chat()` and `agent()`
+  (FALSE | TRUE | a list of options). When on, the model runs server-side web
+  search and the result carries `citations` and `searches`. Wired for all four
+  hosted providers:
+  - `openai_codex` and `openai` via the OpenAI Responses `web_search` tool. For
+    `openai`, the request is routed through the Responses endpoint so search
+    works on the default model (the chat-completions path needs a dedicated
+    `-search-preview` model).
+  - `anthropic` via the Messages `web_search_20250305` tool.
+  - `moonshot` via the `$web_search` builtin. Moonshot round-trips the search
+    through the tool-call protocol; `llm.api` drives that echo loop internally
+    so it stays a single `chat()` / `agent()` call. Moonshot doesn't expose the
+    query (so `searches` records that a search ran, with `query = NA`) and
+    inlines citations as markdown links in the answer (so `citations` is empty).
+
+  Search is server-side, so it is not gated by `tool_handler`.
+
 # llm.api 0.1.5
 
 * First release of the `openai_codex` provider for ChatGPT-subscription-backed

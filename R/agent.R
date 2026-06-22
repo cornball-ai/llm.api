@@ -29,6 +29,17 @@
 #'   thinking budget; must be at least 1024 and less than
 #'   \code{max_tokens}. Anthropic-only; ignored with a warning for
 #'   other providers.
+#' @param web_search Enable provider-native (server-side) web search:
+#'   \code{FALSE} (default), \code{TRUE}, or a list of options
+#'   (\code{allowed_domains}, \code{user_location}). Server-side, so it is
+#'   not gated by \code{tool_handler}; the result accumulates
+#'   \code{citations} and \code{searches} across turns. Wired for
+#'   \code{"openai_codex"} and \code{"openai"} (OpenAI Responses
+#'   \code{web_search} tool; for \code{"openai"} the run is routed through
+#'   the Responses endpoint), \code{"anthropic"}, and \code{"moonshot"}
+#'   (the \code{$web_search} builtin, whose calls are handled internally
+#'   rather than via \code{tool_handler}); ignored with a warning
+#'   otherwise.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
@@ -64,7 +75,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
-                  thinking_budget_tokens = NULL, ...) {
+                  thinking_budget_tokens = NULL, web_search = FALSE, ...) {
     provider <- match.arg(provider)
     cache <- match.arg(cache)
 
@@ -87,6 +98,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             thinking_budget_tokens <- NULL
         }
     }
+    if (!isFALSE(web_search) && !provider %in% .web_search_providers()) {
+        warning("`web_search` is not yet supported for provider \"", provider,
+                "\"; ignoring.", call. = FALSE)
+        web_search <- FALSE
+    }
 
     if (is.null(tool_handler) && length(tools) > 0) {
         stop("tool_handler required when tools are provided", call. = FALSE)
@@ -101,8 +117,30 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                         openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
     }
 
+    # Server-side web search on the standard openai provider runs over the
+    # Responses endpoint (the chat-completions path can't search the default
+    # models). The whole run then uses the Responses wire shape -- flat tools,
+    # function_call_output results -- which matches the openai_codex format, so
+    # `wire` drives tool conversion / dispatch / result append while `provider`
+    # stays "openai" for cost lookup and the returned object.
+    use_responses <- identical(provider, "openai") && !isFALSE(web_search)
+    if (use_responses) {
+        wire <- "openai_codex"
+    } else {
+        wire <- provider
+    }
+
     # Convert tools to provider format
-    provider_tools <- .convert_tools(tools, provider)
+    provider_tools <- .convert_tools(tools, wire)
+
+    # Moonshot web search is a `$web_search` builtin tool the model calls and we
+    # echo back (see R/moonshot.R); add it alongside any user tools. The agent
+    # loop intercepts those calls instead of routing them to tool_handler.
+    moonshot_search <- identical(provider, "moonshot") && !isFALSE(web_search)
+    if (moonshot_search) {
+        provider_tools <- c(provider_tools,
+                            list(.moonshot_web_search_tool(web_search)))
+    }
 
     # Build initial messages (prepend history if provided)
     if (!is.null(history)) {
@@ -125,22 +163,29 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     total_cache_write_1h <- 0L
     total_cost <- 0
     cost_na <- FALSE
+    # Provider-native web search activity, accumulated across turns.
+    total_citations <- list()
+    total_searches <- list()
 
     while (turn < max_turns) {
         turn <- turn + 1L
 
         # Make API request with tools
-        response <- switch(provider,
-                           anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
+        response <- if (use_responses) {
+            .agent_openai_responses(messages, provider_tools, system, model,
+                                    config, web_search = web_search, ...)
+        } else switch(provider,
+                      anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
-                thinking_budget_tokens = thinking_budget_tokens, ...),
-                           openai = .agent_openai(messages, provider_tools, system, model,
+                thinking_budget_tokens = thinking_budget_tokens,
+                web_search = web_search, ...),
+                      openai = .agent_openai(messages, provider_tools, system, model,
                 config, ...),
-                           moonshot = .agent_openai(messages, provider_tools, system,
+                      moonshot = .agent_openai(messages, provider_tools, system,
                 model, config, ...),
-                           openai_codex = .agent_openai_codex(messages, provider_tools,
-                system, model, config, ...),
-                           ollama = .agent_ollama(messages, provider_tools, system, model,
+                      openai_codex = .agent_openai_codex(messages, provider_tools,
+                system, model, config, web_search = web_search, ...),
+                      ollama = .agent_ollama(messages, provider_tools, system, model,
                 config, ...)
         )
 
@@ -175,6 +220,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 total_cost <- total_cost + turn_cost
             }
         }
+        total_citations <- c(total_citations, response$citations %||% list())
+        total_searches <- c(total_searches, response$searches %||% list())
 
         # Check if done (no tool calls)
         if (length(response$tool_calls) == 0) {
@@ -197,7 +244,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                             ephemeral_5m_input_tokens = total_cache_write_5m,
                             ephemeral_1h_input_tokens = total_cache_write_1h),
                                      cost = if (cost_na) NA_real_ else total_cost
-                    )
+                    ),
+                        citations = total_citations,
+                        searches = total_searches
                 ))
         }
 
@@ -219,11 +268,21 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 }
             }
 
-            # Call tool handler
-            result <- tryCatch(
-                               tool_handler(tc$name, tc$arguments),
-                               error = function(e) paste("Error:", e$message)
-            )
+            # Moonshot's $web_search builtin is handled server-side: echo the
+            # call's arguments straight back (the search_id inside is what the
+            # backend keys on) and record the search, rather than dispatching to
+            # the caller's tool_handler.
+            if (moonshot_search && .is_moonshot_web_search(tc)) {
+                result <- .moonshot_web_search_echo(tc$arguments)
+                total_searches <- c(total_searches,
+                                    list(list(query = NA_character_, status = "completed")))
+            } else {
+                # Call tool handler
+                result <- tryCatch(
+                                   tool_handler(tc$name, tc$arguments),
+                                   error = function(e) paste("Error:", e$message)
+                )
+            }
 
             if (verbose) {
                 display <- if (nchar(result) > 500) {
@@ -237,7 +296,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             messages <- .append_tool_result(
                 messages,
                 list(id = tc$id, name = tc$name, result = result),
-                provider
+                wire
             )
             .fire_history_callback(history_callback, messages)
         }
@@ -260,7 +319,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 ephemeral_5m_input_tokens = total_cache_write_5m,
                 ephemeral_1h_input_tokens = total_cache_write_1h),
                       cost = if (cost_na) NA_real_ else total_cost
-        )
+        ),
+         citations = total_citations,
+         searches = total_searches
     )
 }
 
@@ -325,6 +386,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     }
 
     extra <- list(...)
+    ws_tool <- .anthropic_web_search_tool(extra$web_search)
+    extra$web_search <- NULL
+    if (!is.null(ws_tool)) {
+        body$tools <- c(body$tools, list(ws_tool))
+    }
     for (name in names(extra)) {
         body[[name]] <- extra[[name]]
     }
@@ -351,11 +417,15 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         }
     }
 
+    search_info <- .anthropic_search_blocks(resp$content)
+
     list(
          text = paste(text_parts, collapse = "\n"),
          tool_calls = tool_calls,
          assistant_message = list(role = "assistant", content = resp$content),
-         usage = resp$usage # input_tokens, output_tokens
+         usage = resp$usage, # input_tokens, output_tokens
+         citations = search_info$citations,
+         searches = search_info$searches
     )
 }
 

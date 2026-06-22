@@ -105,6 +105,35 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     chat(prompt, model = model, provider = "openai_codex", ...)
 }
 
+# Convert the provider-neutral web_search toggle (FALSE | TRUE | a list of
+# options) into the Responses API web_search tool, or NULL when off. The Codex
+# backend takes {type:"web_search"} (NOT the deprecated web_search_preview),
+# with optional domain filters and user_location. Options the OpenAI Responses
+# web_search tool doesn't have (max_uses, blocked_domains) are warned once.
+.openai_codex_web_search_tool <- function(ws) {
+    if (is.null(ws) || isFALSE(ws)) {
+        return(NULL)
+    }
+    tool <- list(type = "web_search")
+    if (is.list(ws)) {
+        if (!is.null(ws$allowed_domains)) {
+            tool$filters <- list(allowed_domains = as.list(ws$allowed_domains))
+        }
+        if (!is.null(ws$user_location)) {
+            tool$user_location <- ws$user_location
+        }
+        ignored <- intersect(c("max_uses", "blocked_domains"), names(ws))
+        if (length(ignored) && is.null(.codex_state$warned_web_search_opts)) {
+            .codex_state$warned_web_search_opts <- TRUE
+            warning("Codex web search ignores ", paste(ignored,
+                    collapse = ", "),
+                    " (the OpenAI Responses web_search tool has no such option). ",
+                    "(Shown once per session.)", call. = FALSE)
+        }
+    }
+    tool
+}
+
 .openai_codex_body <- function(messages, tools, system, model, ...) {
     extra <- list(...)
     # The ChatGPT Codex backend (/codex/responses) rejects output-token caps:
@@ -135,6 +164,9 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
         messages <- extracted$messages
     }
 
+    ws_tool <- .openai_codex_web_search_tool(extra$web_search)
+    extra$web_search <- NULL
+
     reasoning <- NULL
     if (!is.null(extra$reasoning_effort)) {
         reasoning <- list(effort = extra$reasoning_effort, summary = "auto")
@@ -149,8 +181,9 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
                  include = list("reasoning.encrypted_content"), store = FALSE)
     extra$text_verbosity <- NULL
 
-    if (length(tools) > 0L) {
-        body$tools <- tools
+    all_tools <- c(tools, if (!is.null(ws_tool)) list(ws_tool))
+    if (length(all_tools) > 0L) {
+        body$tools <- all_tools
         body$tool_choice <- "auto"
         body$parallel_tool_calls <- TRUE
     }
@@ -310,11 +343,20 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
 .openai_codex_parse_response <- function(resp) {
     text_parts <- character()
     tool_calls <- list()
+    citations <- list()
+    searches <- list()
     for (output in resp$output %||% list()) {
         if (identical(output$type, "message")) {
             for (content in output$content %||% list()) {
                 if (!is.null(content$text)) {
                     text_parts <- c(text_parts, content$text)
+                }
+                # url_citation annotations from server-side web search.
+                for (ann in content$annotations %||% list()) {
+                    if (identical(ann$type, "url_citation")) {
+                        citations[[length(citations) + 1L]] <- list(
+                            url = ann$url, title = ann$title)
+                    }
                 }
             }
         } else if (identical(output$type, "function_call")) {
@@ -328,12 +370,19 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
                 name = output$name,
                 arguments = args
             )
+        } else if (identical(output$type, "web_search_call")) {
+            # Server-side search: record the query for display, not a tool call.
+            searches[[length(searches) + 1L]] <- list(
+                query = output$action$query %||% output$action$queries[[1L]],
+                status = output$status)
         }
     }
 
     list(
          text = paste(text_parts, collapse = "\n"),
          tool_calls = tool_calls,
+         citations = citations,
+         searches = searches,
          assistant_message = list(type = ".openai_codex_output",
                                   output = resp$output %||% list()),
          usage = .openai_codex_usage(resp$usage)
@@ -379,7 +428,8 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
         cat(parsed$text, "\n", sep = "")
     }
     list(content = parsed$text, thinking = NULL, finish_reason = NULL,
-         usage = parsed$usage)
+         usage = parsed$usage, citations = parsed$citations,
+         searches = parsed$searches)
 }
 
 .agent_openai_codex <- function(messages, tools, system, model, config, ...) {
