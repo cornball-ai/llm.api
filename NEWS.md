@@ -1,4 +1,4 @@
-# llm.api 0.1.5.1
+# llm.api 0.1.6
 
 * Provider-native web search: a `web_search` argument on `chat()` and `agent()`
   (FALSE | TRUE | a list of options). When on, the model runs server-side web
