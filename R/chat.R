@@ -47,7 +47,55 @@
 # native mechanism is added (openai_codex/openai Responses tool, anthropic
 # web_search_<date>, moonshot $web_search).
 .web_search_providers <- function() {
-    c("openai_codex")
+    c("openai_codex", "anthropic")
+}
+
+# Anthropic server-side web search tool from the provider-neutral toggle, or
+# NULL when off. Uses the basic web_search_20250305 variant: it works across all
+# models (no model->version mapping) and returns clean per-text-block url
+# citations, unlike the dynamic-filtering 20260209 variant (which also pulls in
+# code execution). Supports the full option set.
+.anthropic_web_search_tool <- function(ws) {
+    if (is.null(ws) || isFALSE(ws)) {
+        return(NULL)
+    }
+    tool <- list(type = "web_search_20250305", name = "web_search")
+    if (is.list(ws)) {
+        if (!is.null(ws$max_uses)) {
+            tool$max_uses <- as.integer(ws$max_uses)
+        }
+        if (!is.null(ws$allowed_domains)) {
+            tool$allowed_domains <- as.list(ws$allowed_domains)
+        }
+        if (!is.null(ws$blocked_domains)) {
+            tool$blocked_domains <- as.list(ws$blocked_domains)
+        }
+        if (!is.null(ws$user_location)) {
+            tool$user_location <- ws$user_location
+        }
+    }
+    tool
+}
+
+# Extract web-search citations and search queries from a list of Anthropic
+# content blocks (parsed with simplifyVector = FALSE). Citations live on text
+# blocks; the search query lives on the server_tool_use block.
+.anthropic_search_blocks <- function(content) {
+    citations <- list()
+    searches <- list()
+    for (b in content %||% list()) {
+        if (identical(b$type, "text")) {
+            for (cit in b$citations %||% list()) {
+                citations[[length(citations) + 1L]] <- list(url = cit$url,
+                    title = cit$title)
+            }
+        } else if (identical(b$type, "server_tool_use") &&
+            identical(b$name, "web_search")) {
+            searches[[length(searches) + 1L]] <- list(
+                query = b$input$query, status = "completed")
+        }
+    }
+    list(citations = citations, searches = searches)
 }
 
 #' Chat with an LLM
@@ -346,6 +394,11 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         )
     }
 
+    ws_tool <- .anthropic_web_search_tool(body$web_search)
+    if (!is.null(ws_tool)) {
+        anthropic_body$tools <- list(ws_tool)
+    }
+
     headers <- c(
                  "Content-Type" = "application/json",
                  "x-api-key" = config$api_key,
@@ -401,11 +454,23 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 
     .warn_if_truncated(content, thinking, finish_reason)
 
+    # Web-search citations/queries need the block-level structure, so re-parse
+    # the content as a list (the data.frame parse above flattens nested arrays).
+    search_info <- if (isFALSE(body$web_search %||% FALSE)) {
+        list(citations = list(), searches = list())
+    } else {
+        blocks <- jsonlite::fromJSON(rawToChar(resp$content),
+                                     simplifyVector = FALSE)$content
+        .anthropic_search_blocks(blocks)
+    }
+
     list(
          content = content,
          thinking = thinking,
          finish_reason = finish_reason,
-         usage = data$usage
+         usage = data$usage,
+         citations = search_info$citations,
+         searches = search_info$searches
     )
 }
 

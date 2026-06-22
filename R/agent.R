@@ -147,7 +147,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         response <- switch(provider,
                            anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
-                thinking_budget_tokens = thinking_budget_tokens, ...),
+                thinking_budget_tokens = thinking_budget_tokens,
+                web_search = web_search, ...),
                            openai = .agent_openai(messages, provider_tools, system, model,
                 config, ...),
                            moonshot = .agent_openai(messages, provider_tools, system,
@@ -345,6 +346,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     }
 
     extra <- list(...)
+    ws_tool <- .anthropic_web_search_tool(extra$web_search)
+    extra$web_search <- NULL
+    if (!is.null(ws_tool)) {
+        body$tools <- c(body$tools, list(ws_tool))
+    }
     for (name in names(extra)) {
         body[[name]] <- extra[[name]]
     }
@@ -371,11 +377,15 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         }
     }
 
+    search_info <- .anthropic_search_blocks(resp$content)
+
     list(
          text = paste(text_parts, collapse = "\n"),
          tool_calls = tool_calls,
          assistant_message = list(role = "assistant", content = resp$content),
-         usage = resp$usage # input_tokens, output_tokens
+         usage = resp$usage, # input_tokens, output_tokens
+         citations = search_info$citations,
+         searches = search_info$searches
     )
 }
 

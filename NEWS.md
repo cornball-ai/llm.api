@@ -2,9 +2,10 @@
 
 * Provider-native web search: a `web_search` argument on `chat()` and `agent()`
   (FALSE | TRUE | a list of options). When on, the model runs server-side web
-  search and the result carries `citations` and `searches`. First wired for the
-  `openai_codex` provider (OpenAI Responses `web_search` tool); other providers
-  follow.
+  search and the result carries `citations` and `searches`. Wired for
+  `openai_codex` (OpenAI Responses `web_search` tool) and `anthropic` (Messages
+  `web_search_20250305`); `openai` and `moonshot` follow. Server-side, so it is
+  not gated by `tool_handler`.
 
 # llm.api 0.1.5
 
