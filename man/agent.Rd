@@ -6,7 +6,8 @@
 agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
       provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
       max_turns = 20L, verbose = TRUE, history = NULL, history_callback = NULL,
-      cache = c("none", "5m", "1h"), thinking_budget_tokens = NULL, ...)
+      cache = c("none", "5m", "1h"), thinking_budget_tokens = NULL,
+      web_search = FALSE, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message.}
@@ -44,6 +45,16 @@ for other providers.}
 thinking budget; must be at least 1024 and less than
 \code{max_tokens}. Anthropic-only; ignored with a warning for
 other providers.}
+
+\item{web_search}{Enable provider-native (server-side) web search:
+\code{FALSE} (default), \code{TRUE}, or a list of options
+(\code{allowed_domains}, \code{user_location}). Server-side, so it is
+not gated by \code{tool_handler}; the result accumulates
+\code{citations} and \code{searches} across turns. Wired for
+\code{"openai_codex"}, \code{"openai"} (OpenAI Responses
+\code{web_search} tool; for \code{"openai"} the run is routed through
+the Responses endpoint), and \code{"anthropic"}; ignored with a
+warning otherwise.}
 
 \item{...}{Additional parameters passed to the API.}
 }

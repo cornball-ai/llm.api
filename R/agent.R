@@ -33,8 +33,11 @@
 #'   \code{FALSE} (default), \code{TRUE}, or a list of options
 #'   (\code{allowed_domains}, \code{user_location}). Server-side, so it is
 #'   not gated by \code{tool_handler}; the result accumulates
-#'   \code{citations} and \code{searches} across turns. Currently wired for
-#'   \code{"openai_codex"}; ignored with a warning otherwise.
+#'   \code{citations} and \code{searches} across turns. Wired for
+#'   \code{"openai_codex"}, \code{"openai"} (OpenAI Responses
+#'   \code{web_search} tool; for \code{"openai"} the run is routed through
+#'   the Responses endpoint), and \code{"anthropic"}; ignored with a
+#'   warning otherwise.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
@@ -112,8 +115,21 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                         openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
     }
 
+    # Server-side web search on the standard openai provider runs over the
+    # Responses endpoint (the chat-completions path can't search the default
+    # models). The whole run then uses the Responses wire shape -- flat tools,
+    # function_call_output results -- which matches the openai_codex format, so
+    # `wire` drives tool conversion / dispatch / result append while `provider`
+    # stays "openai" for cost lookup and the returned object.
+    use_responses <- identical(provider, "openai") && !isFALSE(web_search)
+    if (use_responses) {
+        wire <- "openai_codex"
+    } else {
+        wire <- provider
+    }
+
     # Convert tools to provider format
-    provider_tools <- .convert_tools(tools, provider)
+    provider_tools <- .convert_tools(tools, wire)
 
     # Build initial messages (prepend history if provided)
     if (!is.null(history)) {
@@ -144,18 +160,21 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         turn <- turn + 1L
 
         # Make API request with tools
-        response <- switch(provider,
-                           anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
+        response <- if (use_responses) {
+            .agent_openai_responses(messages, provider_tools, system, model,
+                                    config, web_search = web_search, ...)
+        } else switch(provider,
+                      anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens,
                 web_search = web_search, ...),
-                           openai = .agent_openai(messages, provider_tools, system, model,
+                      openai = .agent_openai(messages, provider_tools, system, model,
                 config, ...),
-                           moonshot = .agent_openai(messages, provider_tools, system,
+                      moonshot = .agent_openai(messages, provider_tools, system,
                 model, config, ...),
-                           openai_codex = .agent_openai_codex(messages, provider_tools,
+                      openai_codex = .agent_openai_codex(messages, provider_tools,
                 system, model, config, web_search = web_search, ...),
-                           ollama = .agent_ollama(messages, provider_tools, system, model,
+                      ollama = .agent_ollama(messages, provider_tools, system, model,
                 config, ...)
         )
 
@@ -256,7 +275,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             messages <- .append_tool_result(
                 messages,
                 list(id = tc$id, name = tc$name, result = result),
-                provider
+                wire
             )
             .fire_history_callback(history_callback, messages)
         }

@@ -47,7 +47,7 @@
 # native mechanism is added (openai_codex/openai Responses tool, anthropic
 # web_search_<date>, moonshot $web_search).
 .web_search_providers <- function() {
-    c("openai_codex", "anthropic")
+    c("openai_codex", "openai", "anthropic")
 }
 
 # Anthropic server-side web search tool from the provider-neutral toggle, or
@@ -123,8 +123,12 @@
 #'   \code{FALSE} (default), \code{TRUE}, or a list of options
 #'   (\code{allowed_domains}, \code{user_location}). The model searches
 #'   on its own when useful; the result carries \code{citations} and
-#'   \code{searches}. Currently wired for \code{"openai_codex"}; ignored
-#'   with a warning for providers not yet supported.
+#'   \code{searches}. Wired for \code{"openai_codex"}, \code{"openai"}
+#'   (both via the OpenAI Responses \code{web_search} tool), and
+#'   \code{"anthropic"} (Messages \code{web_search}); ignored with a
+#'   warning for providers not yet supported. For \code{"openai"}, the
+#'   request is routed through the Responses endpoint so search works on
+#'   the default model.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return A list with:
@@ -252,6 +256,10 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                                   thinking_budget_tokens = thinking_budget_tokens)
     } else if (provider == "openai_codex") {
         result <- .chat_openai_codex(body, config, stream)
+    } else if (provider == "openai" && !isFALSE(web_search)) {
+        # Server-side web search needs the Responses endpoint; the
+        # chat-completions path can't run it on the default models.
+        result <- .chat_openai_responses(body, config, stream)
     } else {
         result <- .chat_openai_compatible(body, config, stream)
     }
