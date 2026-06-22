@@ -162,11 +162,24 @@ local({
 # caller's generic max_tokens must not reach /codex/responses.
 mk_user <- function() list(list(role = "user", content = "hi"))
 
-# Direct body builder: max_tokens dropped, not forwarded or remapped.
+# Supplying a token cap warns once per session, then stays quiet (not per turn).
+# (Grab the env into a local and mutate it; assigning through `:::` would try to
+# rebind the locked namespace binding.)
+codex_state <- ns$.codex_state
+codex_state$warned_token_cap <- NULL
+expect_warning(
+    llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
+                                 max_tokens = 123L),
+    "not supported by the Codex backend")
+
+# Direct body builder: max_tokens dropped, not forwarded or remapped (and now
+# silent, since the once-per-session warning already fired above).
 b_map <- llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
                                       max_tokens = 123L)
 expect_null(b_map$max_tokens)
 expect_null(b_map$max_output_tokens)
+expect_silent(llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
+                                           max_tokens = 99L))
 
 # An explicitly-passed max_output_tokens is dropped too (also unsupported).
 b_keep <- llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",

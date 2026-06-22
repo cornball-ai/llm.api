@@ -7,6 +7,11 @@
 # tinyoauth. The OAuth client id and endpoints are defined by
 # tinyoauth::openai_codex_client().
 
+# Per-session flags (e.g. "have we warned about an ignored token cap yet").
+# A namespace-level env so the warning fires once per session, not once per
+# agent turn. Resets on package reload / a fresh session.
+.codex_state <- new.env(parent = emptyenv())
+
 #' OpenAI Codex subscription credentials
 #'
 #' Builds a zero-argument credentials function for the OpenAI Codex provider.
@@ -107,9 +112,23 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     # forward) and the Responses API's `max_output_tokens` come back as
     # "Unsupported parameter" 400s. Drop them so a caller's generic max_tokens
     # doesn't break Codex requests. (Codex is subscription-backed, so there is
-    # no per-token cost to cap anyway.)
-    extra$max_tokens <- NULL
-    extra$max_output_tokens <- NULL
+    # no per-token cost to cap anyway.) `max_tokens` is a documented public
+    # argument, so warn that it is being ignored -- once per session, not once
+    # per agent turn.
+    if (!is.null(extra$max_tokens) || !is.null(extra$max_output_tokens)) {
+        extra$max_tokens <- NULL
+        extra$max_output_tokens <- NULL
+        # Set the flag before warn(): an exiting warning handler (tryCatch,
+        # expect_warning) unwinds at warning(), so flag-after-warn would warn
+        # again on the next call.
+        first <- is.null(.codex_state$warned_token_cap)
+        .codex_state$warned_token_cap <- TRUE
+        if (first) {
+            warning("`max_tokens` is not supported by the Codex backend ",
+                    "(/codex/responses rejects output-token caps); ignoring ",
+                    "it. (Shown once per session.)", call. = FALSE)
+        }
+    }
     if (is.null(system)) {
         extracted <- .openai_codex_extract_system(messages)
         system <- extracted$system %||% "You are a helpful assistant."
