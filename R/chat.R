@@ -43,6 +43,13 @@
     list(list(type = "text", text = system_msg, cache_control = control))
 }
 
+# Providers with provider-native web search wired up. Grows as each provider's
+# native mechanism is added (openai_codex/openai Responses tool, anthropic
+# web_search_<date>, moonshot $web_search).
+.web_search_providers <- function() {
+    c("openai_codex")
+}
+
 #' Chat with an LLM
 #'
 #' Send a message to a Large Language Model and get a response.
@@ -64,6 +71,12 @@
 #'   thinking budget; must be at least 1024 and less than
 #'   \code{max_tokens}. Anthropic-only; ignored with a warning for
 #'   other providers.
+#' @param web_search Enable provider-native (server-side) web search:
+#'   \code{FALSE} (default), \code{TRUE}, or a list of options
+#'   (\code{allowed_domains}, \code{user_location}). The model searches
+#'   on its own when useful; the result carries \code{citations} and
+#'   \code{searches}. Currently wired for \code{"openai_codex"}; ignored
+#'   with a warning for providers not yet supported.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return A list with:
@@ -102,7 +115,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  provider = c("auto", "openai", "anthropic", "moonshot", "openai_codex",
                               "ollama"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
-                 thinking_budget_tokens = NULL, ...) {
+                 thinking_budget_tokens = NULL, web_search = FALSE, ...) {
     provider <- match.arg(provider)
     cache <- match.arg(cache)
 
@@ -132,6 +145,13 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
                 "for provider \"", provider, "\".", call. = FALSE)
         thinking_budget_tokens <- NULL
+    }
+    # Provider-native web search. Currently wired for openai_codex; other
+    # providers are added incrementally (each has its own native mechanism).
+    if (!isFALSE(web_search) && !provider %in% .web_search_providers()) {
+        warning("`web_search` is not yet supported for provider \"", provider,
+                "\"; ignoring.", call. = FALSE)
+        web_search <- FALSE
     }
 
     # Get provider config
@@ -164,6 +184,10 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     }
     if (!is.null(max_tokens)) {
         body$max_tokens <- max_tokens
+    }
+
+    if (!isFALSE(web_search)) {
+        body$web_search <- web_search
     }
 
     # Add extra params
@@ -199,6 +223,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
          finish_reason = result$finish_reason,
          model = model,
          usage = usage,
+         citations = result$citations,
+         searches = result$searches,
          history = new_history
     )
 }

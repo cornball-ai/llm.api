@@ -29,6 +29,12 @@
 #'   thinking budget; must be at least 1024 and less than
 #'   \code{max_tokens}. Anthropic-only; ignored with a warning for
 #'   other providers.
+#' @param web_search Enable provider-native (server-side) web search:
+#'   \code{FALSE} (default), \code{TRUE}, or a list of options
+#'   (\code{allowed_domains}, \code{user_location}). Server-side, so it is
+#'   not gated by \code{tool_handler}; the result accumulates
+#'   \code{citations} and \code{searches} across turns. Currently wired for
+#'   \code{"openai_codex"}; ignored with a warning otherwise.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
@@ -64,7 +70,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
-                  thinking_budget_tokens = NULL, ...) {
+                  thinking_budget_tokens = NULL, web_search = FALSE, ...) {
     provider <- match.arg(provider)
     cache <- match.arg(cache)
 
@@ -86,6 +92,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                     "for provider \"", provider, "\".", call. = FALSE)
             thinking_budget_tokens <- NULL
         }
+    }
+    if (!isFALSE(web_search) && !provider %in% .web_search_providers()) {
+        warning("`web_search` is not yet supported for provider \"", provider,
+                "\"; ignoring.", call. = FALSE)
+        web_search <- FALSE
     }
 
     if (is.null(tool_handler) && length(tools) > 0) {
@@ -125,6 +136,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     total_cache_write_1h <- 0L
     total_cost <- 0
     cost_na <- FALSE
+    # Provider-native web search activity, accumulated across turns.
+    total_citations <- list()
+    total_searches <- list()
 
     while (turn < max_turns) {
         turn <- turn + 1L
@@ -139,7 +153,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                            moonshot = .agent_openai(messages, provider_tools, system,
                 model, config, ...),
                            openai_codex = .agent_openai_codex(messages, provider_tools,
-                system, model, config, ...),
+                system, model, config, web_search = web_search, ...),
                            ollama = .agent_ollama(messages, provider_tools, system, model,
                 config, ...)
         )
@@ -175,6 +189,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 total_cost <- total_cost + turn_cost
             }
         }
+        total_citations <- c(total_citations, response$citations %||% list())
+        total_searches <- c(total_searches, response$searches %||% list())
 
         # Check if done (no tool calls)
         if (length(response$tool_calls) == 0) {
@@ -197,7 +213,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                             ephemeral_5m_input_tokens = total_cache_write_5m,
                             ephemeral_1h_input_tokens = total_cache_write_1h),
                                      cost = if (cost_na) NA_real_ else total_cost
-                    )
+                    ),
+                        citations = total_citations,
+                        searches = total_searches
                 ))
         }
 
@@ -260,7 +278,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 ephemeral_5m_input_tokens = total_cache_write_5m,
                 ephemeral_1h_input_tokens = total_cache_write_1h),
                       cost = if (cost_na) NA_real_ else total_cost
-        )
+        ),
+         citations = total_citations,
+         searches = total_searches
     )
 }
 

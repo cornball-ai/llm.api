@@ -223,3 +223,59 @@ local({
     expect_null(cap$body$max_tokens)
     expect_null(cap$body$max_output_tokens)
 })
+
+# --- provider-native web search (openai_codex) -------------------------------
+`%||%` <- function(x, y) if (is.null(x)) y else x
+tool_types <- function(tools) {
+    if (length(tools) == 0L) character(0)
+    else vapply(tools, function(t) t$type %||% "?", character(1))
+}
+
+# tool builder: off -> NULL; on -> {type:web_search}; options map to filters
+expect_null(ns$.openai_codex_web_search_tool(FALSE))
+expect_null(ns$.openai_codex_web_search_tool(NULL))
+expect_equal(ns$.openai_codex_web_search_tool(TRUE)$type, "web_search")
+wt <- ns$.openai_codex_web_search_tool(list(allowed_domains = c("r-project.org")))
+expect_equal(wt$filters$allowed_domains[[1]], "r-project.org")
+# unsupported options warn once per session
+codex_state$warned_web_search_opts <- NULL
+expect_warning(ns$.openai_codex_web_search_tool(list(max_uses = 3)), "ignores")
+
+# body injects the web_search tool and consumes the flag (not forwarded raw)
+b <- ns$.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5", web_search = TRUE)
+expect_true("web_search" %in% tool_types(b$tools))
+expect_null(b$web_search)
+boff <- ns$.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5")
+expect_false("web_search" %in% tool_types(boff$tools))
+
+# parser: web_search_call -> searches (not a tool call); annotations -> citations
+resp <- list(output = list(
+    list(type = "web_search_call", status = "completed",
+         action = list(type = "search", query = "R version",
+                       queries = list("R version"))),
+    list(type = "message", content = list(list(type = "output_text",
+         text = "R 4.6.0",
+         annotations = list(list(type = "url_citation",
+                                 url = "https://www.r-project.org", title = "R")))))))
+parsed <- ns$.openai_codex_parse_response(resp)
+expect_equal(parsed$text, "R 4.6.0")
+expect_equal(length(parsed$tool_calls), 0L)
+expect_equal(length(parsed$searches), 1L)
+expect_equal(parsed$searches[[1]]$query, "R version")
+expect_equal(length(parsed$citations), 1L)
+expect_equal(parsed$citations[[1]]$url, "https://www.r-project.org")
+
+# captured body through chat(): the web_search tool reaches /codex/responses
+local({
+    cap <- new.env()
+    with_stubbed(".openai_codex_post_sse", capture_sse(cap), {
+        llm.api::chat("hi", provider = "openai_codex", model = "gpt-5.5",
+                      credentials = creds, web_search = TRUE)
+    })
+    expect_true("web_search" %in% tool_types(cap$body$tools))
+})
+
+# guard: non-codex provider warns and ignores web_search
+expect_warning(
+    llm.api::chat("hi", provider = "ollama", model = "x", web_search = TRUE),
+    "not yet supported")
