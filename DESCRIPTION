@@ -1,7 +1,7 @@
 Package: llm.api
 Title: Minimal LLM Chat Interface
 Version: 0.1.6
-Date: 2026-06-22
+Date: 2026-06-24
 Authors@R: c(
     person("Troy", "Hernandez", role = c("aut", "cre"),
            email = "troy@cornball.ai",
@@ -25,6 +25,6 @@ Encoding: UTF-8
 Imports:
     curl,
     jsonlite,
-    tinyoauth (>= 0.1.0)
+    tinyoauth (>= 0.1.1)
 Suggests:
     tinytest

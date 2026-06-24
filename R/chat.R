@@ -108,7 +108,7 @@
 #' @param history List or NULL. Previous conversation turns.
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
 #' @param max_tokens Integer or NULL. Maximum tokens in response.
-#' @param provider Character. Provider: "auto", "openai", "anthropic",
+#' @param provider Character. Provider: "auto", "openai", "anthropic", "anthropic_claude",
 #'   "moonshot", "openai_codex", or "ollama".
 #' @param stream Logical. Stream the response (prints as it arrives).
 #' @param cache Character. Anthropic prompt caching for the system
@@ -167,8 +167,8 @@
 #' }
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  temperature = NULL, max_tokens = NULL,
-                 provider = c("auto", "openai", "anthropic", "moonshot", "openai_codex",
-                              "ollama"),
+                 provider = c("auto", "openai", "anthropic", "anthropic_claude",
+                              "moonshot", "openai_codex", "ollama"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, web_search = FALSE, ...) {
     provider <- match.arg(provider)
@@ -191,12 +191,12 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     # Anthropic-only feature opt-ins emit a one-time warning when a
     # non-default value is passed against another provider so the
     # caller knows the request will be silently degraded.
-    if (!identical(cache, "none") && !identical(provider, "anthropic")) {
+    if (!identical(cache, "none") && !.is_anthropic(provider)) {
         warning("`cache` is Anthropic-only; ignoring for provider \"",
                 provider, "\".", call. = FALSE)
         cache <- "none"
     }
-    if (!is.null(thinking_budget_tokens) && !identical(provider, "anthropic")) {
+    if (!is.null(thinking_budget_tokens) && !.is_anthropic(provider)) {
         warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
                 "for provider \"", provider, "\".", call. = FALSE)
         thinking_budget_tokens <- NULL
@@ -253,7 +253,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     }
 
     # Make request
-    if (provider == "anthropic") {
+    if (.is_anthropic(provider)) {
         result <- .chat_anthropic(body, config, stream,
                                   cache = cache,
                                   thinking_budget_tokens = thinking_budget_tokens)
@@ -414,11 +414,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         anthropic_body$tools <- list(ws_tool)
     }
 
-    headers <- c(
-                 "Content-Type" = "application/json",
-                 "x-api-key" = config$api_key,
-                 "anthropic-version" = "2023-06-01"
-    )
+    headers <- .anthropic_headers(config)
 
     h <- curl::new_handle()
     curl::handle_setopt(h,

@@ -8,7 +8,7 @@ usage_cost(model, provider, usage)
 \arguments{
 \item{model}{Character. Model id as sent to the provider.}
 
-\item{provider}{Character. "anthropic", "openai", "moonshot",
+\item{provider}{Character. "anthropic", "anthropic_claude", "openai", "moonshot",
 "openai_codex", or "ollama".}
 
 \item{usage}{A usage list as found in `chat()$usage` or
