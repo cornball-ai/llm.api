@@ -1,3 +1,16 @@
+# llm.api 0.1.6.1
+
+## New features
+
+* `agent()` now passes a read-only per-call **context** snapshot (by name) to a
+  `tool_handler` that declares a `context` formal: `assistant_text` (the model's
+  text for the turn), `agent_turn`, `call_index`, `call_count`, and `provider`.
+  `call_index`/`call_count` count over calls actually dispatched to the handler
+  (excluding internally-consumed ones like Moonshot web search). Two-argument
+  handlers are called exactly as before, so this is fully backward compatible
+  and needs no provider parser changes. Lets a caller surface the model's own
+  rationale at tool-approval time or detect tool-call streaks with no narration.
+
 # llm.api 0.1.6
 
 * New `anthropic_claude` provider: drive Claude on a Claude subscription via

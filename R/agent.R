@@ -7,7 +7,11 @@
 #'
 #' @param prompt Character. The user message.
 #' @param tools List. Tool definitions (from mcp_tools_for_claude or manual).
-#' @param tool_handler Function. Called with (name, args), returns result string.
+#' @param tool_handler Function. Called with `(name, args)` and returns a
+#'   result string. If it declares a formal named `context`, it also
+#'   receives (by name) a read-only per-call snapshot with `assistant_text` (the model's
+#'   text for this turn), `agent_turn`, `call_index`, `call_count`, and
+#'   `provider`; two-argument handlers are called unchanged.
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
 #' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
@@ -170,6 +174,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     total_citations <- list()
     total_searches <- list()
 
+    # Context-aware handlers: when the caller's tool_handler declares a
+    # `context` formal, pass it (by name) a read-only per-call snapshot
+    # (model text, turn/call indices, provider). 2-arg handlers unchanged.
+    handler_wants_context <- is.function(tool_handler) &&
+        "context" %in% names(formals(tool_handler))
+
     while (turn < max_turns) {
         turn <- turn + 1L
 
@@ -263,7 +273,19 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         # This means an interrupt mid-batch leaves the completed tools'
         # results in the snapshot the callback received, so the caller
         # can preserve them instead of losing the whole batch.
-        for (tc in response$tool_calls) {
+        #
+        # call_index / call_count in the handler context count over calls
+        # actually dispatched to tool_handler, excluding ones consumed
+        # internally (Moonshot's server-side $web_search echo), so a
+        # context-aware handler can reliably detect the last call in a batch.
+        is_dispatched <- vapply(response$tool_calls, function(tc) {
+            !(moonshot_search && .is_moonshot_web_search(tc))
+        }, logical(1))
+        dispatch_count <- sum(is_dispatched)
+        dispatch_index <- 0L
+
+        for (i in seq_along(response$tool_calls)) {
+            tc <- response$tool_calls[[i]]
             if (verbose) {
                 cat(sprintf("\n[Tool: %s]\n", tc$name))
                 if (length(tc$arguments) > 0) {
@@ -281,11 +303,25 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 total_searches <- c(total_searches,
                                     list(list(query = NA_character_, status = "completed")))
             } else {
-                # Call tool handler
-                result <- tryCatch(
-                                   tool_handler(tc$name, tc$arguments),
-                                   error = function(e) paste("Error:", e$message)
-                )
+                dispatch_index <- dispatch_index + 1L
+                if (handler_wants_context) {
+                    # Read-only per-call snapshot. Passed by name so a handler
+                    # that declares `context` after `...` still receives it.
+                    ctx <- list(assistant_text = response$text %||% "",
+                                agent_turn = turn,
+                                call_index = dispatch_index,
+                                call_count = dispatch_count,
+                                provider = provider)
+                    result <- tryCatch(
+                                       tool_handler(tc$name, tc$arguments, context = ctx),
+                                       error = function(e) paste("Error:", e$message)
+                    )
+                } else {
+                    result <- tryCatch(
+                                       tool_handler(tc$name, tc$arguments),
+                                       error = function(e) paste("Error:", e$message)
+                    )
+                }
             }
 
             if (verbose) {
