@@ -12,37 +12,39 @@
 
 ## Release summary
 
-Patch update to 0.1.4 (last CRAN release: 0.1.3), consolidating five
-post-release development cycles (0.1.3.1 -> 0.1.3.5). All changes are
-backwards-compatible: new exported functions and new optional
-parameters that default to existing behaviour.
+Update to 0.1.7 (last CRAN release: 0.1.4), consolidating three
+post-release development cycles (0.1.5, 0.1.6, 0.1.6.1), none of which
+were submitted to CRAN. All changes are backwards-compatible: new
+exported functions and new optional parameters that default to existing
+behaviour.
 
-* Cache-aware cost estimates. The bundled per-token price snapshot
-  (from BerriAI/litellm's `model_prices_and_context_window.json`,
-  shipped in `R/sysdata.rda`; no internet access at install or check
-  time) now also carries per-model cached-input rates. New exported
-  `usage_cost()` prices a usage object including prompt caching, and
-  `chat()` / `agent()` carry the estimate as `usage$cost`.
-* New exported `prices_snapshot_stale()` reports whether the bundled
-  snapshot is older than a threshold, for staleness alerts.
-* `chat()` / `agent()` gain `cache` (Anthropic prompt caching) and
-  `thinking_budget_tokens` (Anthropic extended thinking) parameters,
-  both Anthropic-only and no-ops elsewhere. OpenAI requests map
-  `max_tokens` to `max_completion_tokens`.
-* `agent()` gains a `history_callback` for snapshotting intermediate
-  state, and aggregates cache token usage into its returned `$usage`.
-* Default models per provider refreshed to current, snapshot-priceable
-  ids.
-
-The snapshot regeneration script is in `data-raw/prices.R` and is
-excluded from the built tarball via `.Rbuildignore`.
+* New `openai_codex` provider for ChatGPT-subscription-backed Codex
+  (OpenAI Responses API): `chat_openai_codex()`, `agent(provider =
+  "openai_codex")`, `openai_codex_credentials()`, and
+  `openai_codex_login()`. Device login, token refresh, and on-disk
+  caching are handled by `tinyoauth` (>= 0.1.1).
+* New `anthropic_claude` provider: drive Claude on a Claude subscription
+  via OAuth (no API key), mirroring the `openai_codex` provider. Adds
+  `chat_claude_oauth()`, `claude_oauth_login()`, and
+  `anthropic_claude_credentials()`. Login, token caching, and refresh
+  run through tinyoauth's Claude route; the request path is shared with
+  the API-key `anthropic` provider.
+* Provider-native web search: a `web_search` argument on `chat()` and
+  `agent()`, wired for all four hosted providers (OpenAI, Anthropic,
+  Moonshot, and Codex). When on, the result carries `citations` and
+  `searches`.
+* `agent()` passes a read-only per-call `context` snapshot (by name) to
+  a `tool_handler` that declares a `context` formal. Two-argument
+  handlers are called exactly as before, so this is fully backwards
+  compatible.
 
 ## Notes
 
 This package is a minimal-dependency client for several LLM (Large
 Language Model) HTTP APIs (OpenAI, Anthropic, Moonshot, Ollama) plus
 an agent loop with tool use and a Model Context Protocol client. The
-only required dependencies remain `curl` and `jsonlite`.
+only required dependencies remain `curl`, `jsonlite`, and `tinyoauth`
+(now on CRAN).
 
 API design is derived from the `ellmer` package; the `ellmer` team is
 credited as a copyright holder in `Authors@R`. Examples that hit live
@@ -51,6 +53,6 @@ APIs are wrapped in `\dontrun{}` to avoid network calls during checks.
 ## Downstream dependencies
 
 CRAN reverse dependency: `corteza`. No other CRAN reverse
-dependencies. The 0.1.4 changes are additive (new exports and optional
-parameters), so `corteza` is unaffected; a reverse-dependency check
-against the current CRAN `corteza` is run before submission.
+dependencies. The 0.1.7 changes are additive (new providers, new
+exports, optional parameters), so the current CRAN `corteza` is
+unaffected; a reverse-dependency check is run before submission.

@@ -1,3 +1,18 @@
+# llm.api 0.1.7
+
+CRAN release consolidating the 0.1.5–0.1.6.1 development cycle (none of
+which were on CRAN). Highlights since the on-CRAN 0.1.4:
+
+* `openai_codex` provider for ChatGPT-subscription-backed Codex, with
+  device login / token refresh / caching via tinyoauth (0.1.5).
+* `anthropic_claude` provider: drive 'Claude' on a 'Claude' subscription
+  via OAuth, no API key. Plus provider-native web search across all four
+  hosted providers (0.1.6).
+* A read-only per-call context snapshot passed to context-aware
+  `tool_handler`s, fully backwards compatible (0.1.6.1).
+
+The per-cycle detail follows.
+
 # llm.api 0.1.6.1
 
 ## New features
