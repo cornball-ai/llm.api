@@ -1,5 +1,5 @@
-# agent() passes an immutable per-call context to a tool_handler that
-# declares a `context` formal; two-argument handlers are unaffected.
+# agent() passes a read-only per-call context snapshot to a tool_handler
+# that declares a `context` formal; two-argument handlers are unaffected.
 # Offline: stubs llm.api:::.post_json, restoring it via finally.
 
 ns <- asNamespace("llm.api")
