@@ -54,7 +54,8 @@ not gated by \code{tool_handler}; the result accumulates
 \code{citations} and \code{searches} across turns. Wired for
 \code{"openai_codex"} and \code{"openai"} (OpenAI Responses
 \code{web_search} tool; for \code{"openai"} the run is routed through
-the Responses endpoint), \code{"anthropic"}, and \code{"moonshot"}
+the Responses endpoint), \code{"anthropic"},
+\code{"anthropic_claude"}, and \code{"moonshot"}
 (the \code{$web_search} builtin, whose calls are handled internally
 rather than via \code{tool_handler}); ignored with a warning
 otherwise.}
