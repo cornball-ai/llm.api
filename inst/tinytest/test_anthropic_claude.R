@@ -52,3 +52,19 @@ Sys.unsetenv("ANTHROPIC_CLAUDE_ACCESS_TOKEN")
 u <- list(input_tokens = 1000L, output_tokens = 500L)
 expect_equal(usage_cost("claude-sonnet-4-6", "anthropic_claude", u),
              usage_cost("claude-sonnet-4-6", "anthropic", u))
+
+# --- regression: every provider stays discoverable via formals() ---
+# Downstream packages (e.g. corteza) enumerate providers with
+# eval(formals(llm.api::agent)$provider). A scalar default silently drops
+# every provider but the first, so the literal choice vector must stay.
+all_providers <- c("anthropic", "anthropic_claude", "openai", "moonshot",
+                   "openai_codex", "ollama")
+expect_true(all(all_providers %in% eval(formals(agent)$provider)))
+expect_true(all(all_providers %in% eval(formals(create_agent)$provider)))
+expect_true("anthropic_claude" %in% eval(formals(chat)$provider))
+expect_true("anthropic_claude" %in% eval(formals(chat_session)$provider))
+
+# --- regression: anthropic_claude is web-search enabled ---
+# It shares the Anthropic Messages path, so chat()/agent() must not warn
+# and reset web_search = FALSE for it before the request is built.
+expect_true("anthropic_claude" %in% ns$.web_search_providers())

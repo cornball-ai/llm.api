@@ -71,12 +71,13 @@
 #' )
 #' }
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
-                  model = NULL, provider = "anthropic",
+                  model = NULL,
+                  provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
+                               "openai_codex", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, web_search = FALSE, ...) {
-    provider <- match.arg(provider, c("anthropic", "anthropic_claude", "openai",
-                                      "moonshot", "openai_codex", "ollama"))
+    provider <- match.arg(provider)
     cache <- match.arg(cache)
 
     # Anthropic-only feature opt-ins emit a one-time warning when a
@@ -683,9 +684,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' result <- chat_fn("List files in current directory")
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
-                         provider = "anthropic", verbose = TRUE) {
-    provider <- match.arg(provider, c("anthropic", "anthropic_claude", "openai",
-                                      "moonshot", "openai_codex", "ollama"))
+                         provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
+                                      "openai_codex", "ollama"),
+                         verbose = TRUE) {
+    provider <- match.arg(provider)
 
     # Connect to all servers
     connections <- list()

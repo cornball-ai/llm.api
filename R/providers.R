@@ -115,7 +115,7 @@
 #' duplicating the lookup table.
 #'
 #' @param provider Character. One of `"openai"`, `"anthropic"`,
-#'   `"moonshot"`, `"openai_codex"`, `"ollama"`.
+#'   `"anthropic_claude"`, `"moonshot"`, `"openai_codex"`, `"ollama"`.
 #' @return Character. The default model id for that provider.
 #' @export
 #' @examples

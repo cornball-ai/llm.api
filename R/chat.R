@@ -47,7 +47,7 @@
 # native mechanism is added (openai_codex/openai Responses tool, anthropic
 # web_search_<date>, moonshot $web_search).
 .web_search_providers <- function() {
-    c("openai_codex", "openai", "anthropic", "moonshot")
+    c("openai_codex", "openai", "anthropic", "anthropic_claude", "moonshot")
 }
 
 # Anthropic server-side web search tool from the provider-neutral toggle, or
@@ -166,11 +166,12 @@
 #' chat("Tell me more", history = result$history)
 #' }
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
-                 temperature = NULL, max_tokens = NULL, provider = "auto",
+                 temperature = NULL, max_tokens = NULL,
+                 provider = c("auto", "openai", "anthropic", "anthropic_claude",
+                              "moonshot", "openai_codex", "ollama"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, web_search = FALSE, ...) {
-    provider <- match.arg(provider, c("auto", "openai", "anthropic", "anthropic_claude",
-                                      "moonshot", "openai_codex", "ollama"))
+    provider <- match.arg(provider)
     cache <- match.arg(cache)
 
     # Validate the thinking-budget range up front. This is provider-

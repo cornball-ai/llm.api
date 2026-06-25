@@ -3,7 +3,7 @@
 \alias{anthropic_claude_credentials}
 \title{Anthropic Claude subscription (OAuth) credentials}
 \usage{
-anthropic_claude_credentials(access_token = NULL)
+anthropic_claude_credentials(access_token = Sys.getenv("ANTHROPIC_CLAUDE_ACCESS_TOKEN", ""))
 }
 \arguments{
 \item{access_token}{Optional access token. If omitted, read from
