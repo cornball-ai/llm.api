@@ -7,7 +7,11 @@
 #'
 #' @param prompt Character. The user message.
 #' @param tools List. Tool definitions (from mcp_tools_for_claude or manual).
-#' @param tool_handler Function. Called with (name, args), returns result string.
+#' @param tool_handler Function. Called with `(name, args)` and returns a
+#'   result string. If it declares a third formal named `context`, it also
+#'   receives an immutable per-call list with `assistant_text` (the model's
+#'   text for this turn), `agent_turn`, `call_index`, `call_count`, and
+#'   `provider`; two-argument handlers are called unchanged.
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
 #' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
@@ -170,6 +174,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     total_citations <- list()
     total_searches <- list()
 
+    # Context-aware handlers: when the caller's tool_handler declares a
+    # `context` formal, pass it an immutable per-call list (model text,
+    # turn/call indices, provider). Two-argument handlers are unchanged.
+    handler_wants_context <- is.function(tool_handler) &&
+        "context" %in% names(formals(tool_handler))
+
     while (turn < max_turns) {
         turn <- turn + 1L
 
@@ -263,7 +273,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         # This means an interrupt mid-batch leaves the completed tools'
         # results in the snapshot the callback received, so the caller
         # can preserve them instead of losing the whole batch.
-        for (tc in response$tool_calls) {
+        for (i in seq_along(response$tool_calls)) {
+            tc <- response$tool_calls[[i]]
             if (verbose) {
                 cat(sprintf("\n[Tool: %s]\n", tc$name))
                 if (length(tc$arguments) > 0) {
@@ -280,6 +291,17 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 result <- .moonshot_web_search_echo(tc$arguments)
                 total_searches <- c(total_searches,
                                     list(list(query = NA_character_, status = "completed")))
+            } else if (handler_wants_context) {
+                # Immutable per-call context for context-aware handlers.
+                ctx <- list(assistant_text = response$text %||% "",
+                            agent_turn = turn,
+                            call_index = i,
+                            call_count = length(response$tool_calls),
+                            provider = provider)
+                result <- tryCatch(
+                                   tool_handler(tc$name, tc$arguments, ctx),
+                                   error = function(e) paste("Error:", e$message)
+                )
             } else {
                 # Call tool handler
                 result <- tryCatch(

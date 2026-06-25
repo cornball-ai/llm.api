@@ -15,7 +15,11 @@ agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
 
 \item{tools}{List. Tool definitions (from mcp_tools_for_claude or manual).}
 
-\item{tool_handler}{Function. Called with (name, args), returns result string.}
+\item{tool_handler}{Function. Called with `(name, args)` and returns a
+result string. If it declares a third formal named `context`, it also
+receives an immutable per-call list with `assistant_text` (the model's
+text for this turn), `agent_turn`, `call_index`, `call_count`, and
+`provider`; two-argument handlers are called unchanged.}
 
 \item{system}{Character. System prompt.}
 
