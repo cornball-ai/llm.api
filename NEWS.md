@@ -1,3 +1,15 @@
+# llm.api 0.1.6.1
+
+## New features
+
+* `agent()` now passes an immutable per-call **context** to a `tool_handler`
+  that declares a third `context` formal: `assistant_text` (the model's text
+  for the turn), `agent_turn`, `call_index`, `call_count`, and `provider`.
+  Two-argument handlers are called exactly as before, so this is fully backward
+  compatible and needs no provider parser changes. Lets a caller surface the
+  model's own rationale at tool-approval time or detect tool-call streaks with
+  no narration.
+
 # llm.api 0.1.6
 
 * New `anthropic_claude` provider: drive Claude on a Claude subscription via
