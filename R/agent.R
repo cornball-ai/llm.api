@@ -10,7 +10,7 @@
 #' @param tool_handler Function. Called with (name, args), returns result string.
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
-#' @param provider Character. Provider: "anthropic", "openai", "moonshot",
+#' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
@@ -36,7 +36,8 @@
 #'   \code{citations} and \code{searches} across turns. Wired for
 #'   \code{"openai_codex"} and \code{"openai"} (OpenAI Responses
 #'   \code{web_search} tool; for \code{"openai"} the run is routed through
-#'   the Responses endpoint), \code{"anthropic"}, and \code{"moonshot"}
+#'   the Responses endpoint), \code{"anthropic"},
+#'   \code{"anthropic_claude"}, and \code{"moonshot"}
 #'   (the \code{$web_search} builtin, whose calls are handled internally
 #'   rather than via \code{tool_handler}); ignored with a warning
 #'   otherwise.
@@ -72,7 +73,8 @@
 #' }
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
-                  provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
+                  provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
+                               "openai_codex", "ollama"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, web_search = FALSE, ...) {
@@ -82,7 +84,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # Anthropic-only feature opt-ins emit a one-time warning when a
     # non-default value is passed against another provider so the
     # caller knows the request will be silently degraded.
-    if (!identical(cache, "none") && !identical(provider, "anthropic")) {
+    if (!identical(cache, "none") && !.is_anthropic(provider)) {
         warning("`cache` is Anthropic-only; ignoring for provider \"",
                 provider, "\".", call. = FALSE)
         cache <- "none"
@@ -92,7 +94,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         extra_validate <- list(...)
         .validate_thinking_budget(thinking_budget_tokens,
                                   max_tokens = extra_validate$max_tokens)
-        if (!identical(provider, "anthropic")) {
+        if (!.is_anthropic(provider)) {
             warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
                     "for provider \"", provider, "\".", call. = FALSE)
             thinking_budget_tokens <- NULL
@@ -112,7 +114,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     # Default models with tool support
     if (is.null(model)) {
-        model <- switch(provider, anthropic = "claude-sonnet-4-6",
+        model <- switch(provider, anthropic =,
+                        anthropic_claude = "claude-sonnet-4-6",
                         openai = "gpt-5.4-mini", moonshot = "kimi-k2.5",
                         openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
     }
@@ -175,7 +178,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             .agent_openai_responses(messages, provider_tools, system, model,
                                     config, web_search = web_search, ...)
         } else switch(provider,
-                      anthropic = .agent_anthropic(messages, provider_tools, system, model, config,
+                      anthropic = ,
+                      anthropic_claude = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens,
                 web_search = web_search, ...),
@@ -332,7 +336,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     }
 
     switch(provider,
-           anthropic = tools, # Already in Claude format
+           anthropic =,
+           anthropic_claude = tools, # Already in Claude format
 
            openai =,
            moonshot = lapply(tools, function(t) {
@@ -395,9 +400,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         body[[name]] <- extra[[name]]
     }
 
-    headers <- c("Content-Type" = "application/json",
-                 "x-api-key" = config$api_key,
-                 "anthropic-version" = "2023-06-01")
+    headers <- .anthropic_headers(config)
 
     resp <- .post_json(url, body, headers)
 
@@ -657,7 +660,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #'   - `list(command = "r", args = "server.R", port = 7850)` to start and connect
 #' @param system Character. Default system prompt.
 #' @param model Character. Default model.
-#' @param provider Character. Provider: "anthropic", "openai", "moonshot",
+#' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
 #'   "openai_codex", or "ollama".
 #' @param verbose Logical. Print tool calls.
 #'
@@ -682,7 +685,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' result <- chat_fn("List files in current directory")
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
-                         provider = c("anthropic", "openai", "moonshot", "openai_codex", "ollama"),
+                         provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
+                                      "openai_codex", "ollama"),
                          verbose = TRUE) {
     provider <- match.arg(provider)
 

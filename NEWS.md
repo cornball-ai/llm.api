@@ -1,4 +1,13 @@
-# llm.api 0.1.5.1
+# llm.api 0.1.6
+
+* New `anthropic_claude` provider: drive Claude on a Claude subscription via
+  OAuth (no API key), mirroring the `openai_codex` provider. Adds
+  `chat_claude_oauth()`, `claude_oauth_login()`, and
+  `anthropic_claude_credentials()`, plus `provider = "anthropic_claude"` for
+  `chat()`, `agent()`, and `chat_session()`. Login, token caching, and refresh
+  run through tinyoauth's Claude route (new in tinyoauth 0.1.1); the Messages
+  API request path, prompt caching, thinking, tool use, usage parsing, and cost
+  are shared with the API-key `anthropic` provider.
 
 * Provider-native web search: a `web_search` argument on `chat()` and `agent()`
   (FALSE | TRUE | a list of options). When on, the model runs server-side web

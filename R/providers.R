@@ -75,6 +75,13 @@
                             api_key = .get_key("anthropic"),
                             default_model = "claude-sonnet-4-6"
         ),
+           anthropic_claude = list(
+                                   provider = "anthropic_claude",
+                                   base_url = base %||% "https://api.anthropic.com",
+                                   chat_path = "/v1/messages",
+                                   credentials = anthropic_claude_credentials(),
+                                   default_model = "claude-sonnet-4-6"
+        ),
            moonshot = list(
                            provider = "moonshot",
                            base_url = base %||% "https://api.moonshot.ai",
@@ -108,7 +115,7 @@
 #' duplicating the lookup table.
 #'
 #' @param provider Character. One of `"openai"`, `"anthropic"`,
-#'   `"moonshot"`, `"openai_codex"`, `"ollama"`.
+#'   `"anthropic_claude"`, `"moonshot"`, `"openai_codex"`, `"ollama"`.
 #' @return Character. The default model id for that provider.
 #' @export
 #' @examples
