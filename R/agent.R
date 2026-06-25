@@ -8,8 +8,8 @@
 #' @param prompt Character. The user message.
 #' @param tools List. Tool definitions (from mcp_tools_for_claude or manual).
 #' @param tool_handler Function. Called with `(name, args)` and returns a
-#'   result string. If it declares a third formal named `context`, it also
-#'   receives an immutable per-call list with `assistant_text` (the model's
+#'   result string. If it declares a formal named `context`, it also
+#'   receives (by name) a read-only per-call snapshot with `assistant_text` (the model's
 #'   text for this turn), `agent_turn`, `call_index`, `call_count`, and
 #'   `provider`; two-argument handlers are called unchanged.
 #' @param system Character. System prompt.
@@ -175,8 +175,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     total_searches <- list()
 
     # Context-aware handlers: when the caller's tool_handler declares a
-    # `context` formal, pass it an immutable per-call list (model text,
-    # turn/call indices, provider). Two-argument handlers are unchanged.
+    # `context` formal, pass it (by name) a read-only per-call snapshot
+    # (model text, turn/call indices, provider). 2-arg handlers unchanged.
     handler_wants_context <- is.function(tool_handler) &&
         "context" %in% names(formals(tool_handler))
 
@@ -273,6 +273,17 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         # This means an interrupt mid-batch leaves the completed tools'
         # results in the snapshot the callback received, so the caller
         # can preserve them instead of losing the whole batch.
+        #
+        # call_index / call_count in the handler context count over calls
+        # actually dispatched to tool_handler, excluding ones consumed
+        # internally (Moonshot's server-side $web_search echo), so a
+        # context-aware handler can reliably detect the last call in a batch.
+        is_dispatched <- vapply(response$tool_calls, function(tc) {
+            !(moonshot_search && .is_moonshot_web_search(tc))
+        }, logical(1))
+        dispatch_count <- sum(is_dispatched)
+        dispatch_index <- 0L
+
         for (i in seq_along(response$tool_calls)) {
             tc <- response$tool_calls[[i]]
             if (verbose) {
@@ -291,23 +302,26 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 result <- .moonshot_web_search_echo(tc$arguments)
                 total_searches <- c(total_searches,
                                     list(list(query = NA_character_, status = "completed")))
-            } else if (handler_wants_context) {
-                # Immutable per-call context for context-aware handlers.
-                ctx <- list(assistant_text = response$text %||% "",
-                            agent_turn = turn,
-                            call_index = i,
-                            call_count = length(response$tool_calls),
-                            provider = provider)
-                result <- tryCatch(
-                                   tool_handler(tc$name, tc$arguments, ctx),
-                                   error = function(e) paste("Error:", e$message)
-                )
             } else {
-                # Call tool handler
-                result <- tryCatch(
-                                   tool_handler(tc$name, tc$arguments),
-                                   error = function(e) paste("Error:", e$message)
-                )
+                dispatch_index <- dispatch_index + 1L
+                if (handler_wants_context) {
+                    # Read-only per-call snapshot. Passed by name so a handler
+                    # that declares `context` after `...` still receives it.
+                    ctx <- list(assistant_text = response$text %||% "",
+                                agent_turn = turn,
+                                call_index = dispatch_index,
+                                call_count = dispatch_count,
+                                provider = provider)
+                    result <- tryCatch(
+                                       tool_handler(tc$name, tc$arguments, context = ctx),
+                                       error = function(e) paste("Error:", e$message)
+                    )
+                } else {
+                    result <- tryCatch(
+                                       tool_handler(tc$name, tc$arguments),
+                                       error = function(e) paste("Error:", e$message)
+                    )
+                }
             }
 
             if (verbose) {

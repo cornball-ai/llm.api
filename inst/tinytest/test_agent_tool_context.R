@@ -63,3 +63,66 @@ res2 <- with_stubbed_post_json(stub, llm.api::agent(
                                                     model = "claude-test", provider = "anthropic",
                                                     verbose = FALSE))
 expect_equal(res2$content, "done")
+
+# --- context arrives by name, even declared after `...` ---
+# Positional passing would land context inside `...` and leave it NULL.
+call_count <- 0L
+dots_seen <- list()
+dots_handler <- function(name, args, ..., context = NULL) {
+    dots_seen[[length(dots_seen) + 1L]] <<- context
+    sprintf("res-%s", args$x)
+}
+res3 <- with_stubbed_post_json(stub, llm.api::agent(
+                                                    prompt = "go", tools = echo_tools,
+                                                    tool_handler = dots_handler,
+                                                    model = "claude-test", provider = "anthropic",
+                                                    verbose = FALSE))
+expect_equal(res3$content, "done")
+expect_equal(length(dots_seen), 2L)
+expect_false(is.null(dots_seen[[1L]]))
+expect_equal(dots_seen[[1L]]$assistant_text, "running two tools")
+expect_equal(dots_seen[[1L]]$call_count, 2L)
+
+# --- call_index/call_count exclude internally-consumed calls ---
+# A Moonshot batch with a server-side $web_search call plus two echo
+# calls: only the echoes reach the handler, indexed 1..2 of 2 (not 3).
+moon_count <- 0L
+moon_stub <- function(url, body, headers) {
+    moon_count <<- moon_count + 1L
+    if (moon_count == 1L) {
+        list(choices = list(list(message = list(
+                                               role = "assistant", content = "search then two tools",
+                                               tool_calls = list(
+                                                                 list(id = "ws_1", type = "function", `function` = list(
+                                                                                    name = "$web_search", arguments = "{\"search_id\":\"s1\"}")),
+                                                                 list(id = "call_1", type = "function", `function` = list(
+                                                                                    name = "echo", arguments = "{\"x\":1}")),
+                                                                 list(id = "call_2", type = "function", `function` = list(
+                                                                                    name = "echo", arguments = "{\"x\":2}"))),
+                                               finish_reason = "tool_calls")),
+                            usage = list(prompt_tokens = 10L, completion_tokens = 5L)))
+    } else {
+        list(choices = list(list(message = list(role = "assistant", content = "done"),
+                                 finish_reason = "stop")),
+             usage = list(prompt_tokens = 1L, completion_tokens = 1L))
+    }
+}
+moon_seen <- list()
+moon_handler <- function(name, args, context = NULL) {
+    moon_seen[[length(moon_seen) + 1L]] <<- context
+    sprintf("m-%s", args$x)
+}
+moon_res <- with_stubbed_post_json(moon_stub, llm.api::agent(
+                                                            prompt = "go",
+                                                            tools = list(list(type = "function",
+                                                                              `function` = list(name = "echo", description = "d"))),
+                                                            tool_handler = moon_handler,
+                                                            model = "kimi-test", provider = "moonshot",
+                                                            web_search = TRUE, verbose = FALSE))
+expect_equal(moon_res$content, "done")
+expect_equal(length(moon_seen), 2L)
+expect_equal(moon_seen[[1L]]$call_index, 1L)
+expect_equal(moon_seen[[1L]]$call_count, 2L)
+expect_equal(moon_seen[[2L]]$call_index, 2L)
+expect_equal(moon_seen[[2L]]$call_count, 2L)
+expect_equal(moon_seen[[1L]]$provider, "moonshot")
