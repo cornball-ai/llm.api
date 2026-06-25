@@ -4,10 +4,9 @@
 \title{Chat with tool use (agentic mode)}
 \usage{
 agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
-      provider = c("anthropic", "anthropic_claude", "openai", "moonshot", "openai_codex", "ollama"),
-      max_turns = 20L, verbose = TRUE, history = NULL, history_callback = NULL,
-      cache = c("none", "5m", "1h"), thinking_budget_tokens = NULL,
-      web_search = FALSE, ...)
+      provider = "anthropic", max_turns = 20L, verbose = TRUE, history = NULL,
+      history_callback = NULL, cache = c("none", "5m", "1h"),
+      thinking_budget_tokens = NULL, web_search = FALSE, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message.}

@@ -166,12 +166,11 @@
 #' chat("Tell me more", history = result$history)
 #' }
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
-                 temperature = NULL, max_tokens = NULL,
-                 provider = c("auto", "openai", "anthropic", "anthropic_claude",
-                              "moonshot", "openai_codex", "ollama"),
+                 temperature = NULL, max_tokens = NULL, provider = "auto",
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, web_search = FALSE, ...) {
-    provider <- match.arg(provider)
+    provider <- match.arg(provider, c("auto", "openai", "anthropic", "anthropic_claude",
+                                      "moonshot", "openai_codex", "ollama"))
     cache <- match.arg(cache)
 
     # Validate the thinking-budget range up front. This is provider-

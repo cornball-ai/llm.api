@@ -48,8 +48,10 @@
 #'   \code{ANTHROPIC_CLAUDE_ACCESS_TOKEN}, then from the tinyoauth cache.
 #' @return A zero-argument credentials function returning request headers.
 #' @export
-anthropic_claude_credentials <- function(access_token = Sys.getenv("ANTHROPIC_CLAUDE_ACCESS_TOKEN",
-        "")) {
+anthropic_claude_credentials <- function(access_token = NULL) {
+    if (is.null(access_token)) {
+        access_token <- Sys.getenv("ANTHROPIC_CLAUDE_ACCESS_TOKEN", "")
+    }
     if (identical(access_token, "")) {
         access_token <- NULL
     }

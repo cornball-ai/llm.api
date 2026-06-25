@@ -4,8 +4,7 @@
 \title{Create an agent with MCP servers}
 \usage{
 create_agent(servers = list(), system = NULL, model = NULL,
-             provider = c("anthropic", "anthropic_claude", "openai", "moonshot", "openai_codex", "ollama"),
-             verbose = TRUE)
+             provider = "anthropic", verbose = TRUE)
 }
 \arguments{
 \item{servers}{Named list of server configs. Each can be:

@@ -4,10 +4,9 @@
 \title{Chat with an LLM}
 \usage{
 chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
-     max_tokens = NULL,
-     provider = c("auto", "openai", "anthropic", "anthropic_claude", "moonshot", "openai_codex", "ollama"),
-     stream = FALSE, cache = c("none", "5m", "1h"),
-     thinking_budget_tokens = NULL, web_search = FALSE, ...)
+     max_tokens = NULL, provider = "auto", stream = FALSE,
+     cache = c("none", "5m", "1h"), thinking_budget_tokens = NULL,
+     web_search = FALSE, ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}
