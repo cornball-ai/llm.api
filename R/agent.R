@@ -133,6 +133,14 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     use_responses <- identical(provider, "openai") && !isFALSE(web_search)
     if (use_responses) {
         wire <- "openai_codex"
+    } else if (identical(provider, "anthropic_claude")) {
+        # Subscription OAuth shares the Messages API wire shape with the
+        # API-key anthropic provider (only the auth header differs), so the
+        # anthropic wire drives tool conversion, dispatch, and tool-result
+        # appending. Without this, .append_tool_result() / .convert_tools()
+        # don't match the literal "anthropic_claude" and the messages array
+        # gets corrupted on the turn after a tool call (a 400 from the API).
+        wire <- "anthropic"
     } else {
         wire <- provider
     }
