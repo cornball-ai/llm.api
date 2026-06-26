@@ -17,7 +17,7 @@ Description: A minimal-dependency client for Large Language Model chat APIs.
     Includes an agent loop with tool use and a 'Model Context
     Protocol' client <https://modelcontextprotocol.io/>. API design is
     derived from the 'ellmer' package, reimplemented with only base R,
-    'curl', and 'jsonlite'.
+    'curl', 'jsonlite', and 'tinyoauth'.
 License: MIT + file LICENSE
 URL: https://github.com/cornball-ai/llm.api
 BugReports: https://github.com/cornball-ai/llm.api/issues

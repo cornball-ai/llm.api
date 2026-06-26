@@ -1,14 +1,15 @@
 ## Test environments
 
 * Local: Ubuntu 24.04, R 4.6.0
-* Local: Windows 10 x64, R 4.6.0 (release)
-* Local: Windows 10 x64, R-devel (R 4.7.0 ucrt)
+* win-builder: R-devel (R 4.7.0 ucrt)
 
 ## R CMD check results
 
 0 errors | 0 warnings | 0 notes
 
-`R CMD check --as-cran` is clean across all three environments above.
+`R CMD check --as-cran` is clean on Ubuntu 24.04 / R 4.6.0. The
+win-builder R-devel result is confirmed from the emailed report before
+submission.
 
 ## Release summary
 
@@ -52,7 +53,8 @@ APIs are wrapped in `\dontrun{}` to avoid network calls during checks.
 
 ## Downstream dependencies
 
-CRAN reverse dependency: `corteza`. No other CRAN reverse
-dependencies. The 0.1.7 changes are additive (new providers, new
-exports, optional parameters), so the current CRAN `corteza` is
-unaffected; a reverse-dependency check is run before submission.
+CRAN reverse dependencies: `corteza` (reverse import) and `pensar`
+(reverse suggest). The 0.1.7 changes are additive (new providers, new
+exports, optional parameters), so the current CRAN `corteza` and
+`pensar` are unaffected; a reverse-dependency check is run before
+submission.
