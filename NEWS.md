@@ -1,3 +1,11 @@
+# llm.api 0.1.8
+
+* Fix: `anthropic_claude` agent runs with tool use no longer error. The agent
+  loop now drives the shared Anthropic Messages wire (tool conversion,
+  dispatch, and tool-result appending) for the subscription-OAuth provider, so
+  the turn after a tool call sends a valid `messages` array instead of 400ing.
+  `chat()` was unaffected. Fast-follow on the 0.1.7 cycle.
+
 # llm.api 0.1.7
 
 CRAN release consolidating the 0.1.5–0.1.6.1 development cycle (none of

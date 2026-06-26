@@ -126,3 +126,40 @@ expect_equal(moon_seen[[1L]]$call_count, 2L)
 expect_equal(moon_seen[[2L]]$call_index, 2L)
 expect_equal(moon_seen[[2L]]$call_count, 2L)
 expect_equal(moon_seen[[1L]]$provider, "moonshot")
+
+# --- regression: anthropic_claude (subscription OAuth) drives the anthropic
+# wire, so tool results are appended and the messages array stays valid on the
+# turn after a tool call. Pre-fix, .append_tool_result() didn't match the
+# literal "anthropic_claude", returned NULL, and corrupted messages (a 400). ---
+local({
+    old <- Sys.getenv("ANTHROPIC_CLAUDE_ACCESS_TOKEN", unset = NA)
+    Sys.setenv(ANTHROPIC_CLAUDE_ACCESS_TOKEN = "test-token")
+    on.exit(if (is.na(old)) Sys.unsetenv("ANTHROPIC_CLAUDE_ACCESS_TOKEN")
+            else Sys.setenv(ANTHROPIC_CLAUDE_ACCESS_TOKEN = old), add = TRUE)
+
+    captured <- NULL
+    ac_stub <- function(url, body, headers) {
+        if (length(body$messages) <= 1L) {
+            list(content = list(list(type = "tool_use", id = "t1",
+                                     name = "echo", input = list(x = 1L))),
+                 usage = list(input_tokens = 5L, output_tokens = 2L))
+        } else {
+            captured <<- body$messages
+            list(content = list(list(type = "text", text = "ok")),
+                 usage = list(input_tokens = 1L, output_tokens = 1L))
+        }
+    }
+    ac_res <- with_stubbed_post_json(ac_stub, llm.api::agent(
+        prompt = "go", tools = echo_tools,
+        tool_handler = function(name, args) "echoed",
+        model = "claude-test", provider = "anthropic_claude",
+        verbose = FALSE))
+
+    expect_equal(ac_res$content, "ok")
+    # Post-tool-result request: messages is a valid array carrying the
+    # tool_result, not NULL.
+    expect_false(is.null(captured))
+    expect_true(length(captured) >= 3L)
+    expect_identical(captured[[length(captured)]]$content[[1]]$type,
+                     "tool_result")
+})
