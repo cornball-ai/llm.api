@@ -43,6 +43,40 @@
     list(list(type = "text", text = system_msg, cache_control = control))
 }
 
+# Anthropic authorizes a Claude subscription (OAuth) request only when the
+# first system block is the Claude Code identity; without it the Messages API
+# rejects the call (a 429 with no useful body). Send it verbatim.
+.anthropic_claude_code_identity <-
+    "You are Claude Code, Anthropic's official CLI for Claude."
+
+# Build the Anthropic `system` field. On the subscription-OAuth path the
+# Claude Code identity is prepended as the first block (even when the caller
+# supplies no system prompt), and the caller's system, if any, follows. The
+# API-key path is unchanged: a plain string, or a single cached block.
+.anthropic_system <- function(system_msg, cache, oauth = FALSE) {
+    has_user <- !is.null(system_msg) && nzchar(system_msg)
+    if (!isTRUE(oauth)) {
+        if (!has_user) {
+            return(NULL)
+        }
+        return(.anthropic_system_with_cache(system_msg, cache))
+    }
+    blocks <- list(list(type = "text",
+                        text = .anthropic_claude_code_identity))
+    if (has_user) {
+        blocks <- c(blocks, list(list(type = "text", text = system_msg)))
+    }
+    if (!identical(cache, "none")) {
+        control <- if (identical(cache, "1h")) {
+            list(type = "ephemeral", ttl = "1h")
+        } else {
+            list(type = "ephemeral")
+        }
+        blocks[[length(blocks)]]$cache_control <- control
+    }
+    blocks
+}
+
 # Providers with provider-native web search wired up. Grows as each provider's
 # native mechanism is added (openai_codex/openai Responses tool, anthropic
 # web_search_<date>, moonshot $web_search).
@@ -395,8 +429,10 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     anthropic_body <- list(model = body$model, messages = messages,
                            max_tokens = body$max_tokens %||% 4096)
 
-    if (!is.null(system_msg)) {
-        anthropic_body$system <- .anthropic_system_with_cache(system_msg, cache)
+    sys <- .anthropic_system(system_msg, cache,
+                             oauth = is.function(config$credentials))
+    if (!is.null(sys)) {
+        anthropic_body$system <- sys
     }
 
     if (!is.null(body$temperature)) {
@@ -427,12 +463,16 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     resp <- curl::curl_fetch_memory(url, handle = h)
 
     if (resp$status_code >= 400) {
-        err <- tryCatch(
-                        jsonlite::fromJSON(rawToChar(resp$content)),
-                        error = function(e) list(error = list(message = rawToChar(resp$content)))
-        )
-        stop("API error (", resp$status_code, "): ",
-             err$error$message %||% "Unknown error", call. = FALSE)
+        raw <- rawToChar(resp$content)
+        err <- tryCatch(jsonlite::fromJSON(raw), error = function(e) NULL)
+        detail <- err$error$message %||% err$message %||% trimws(raw)
+        if (!nzchar(detail)) {
+            detail <- "no error body"
+        }
+        etype <- err$error$type %||% err$type
+        stop("API error (", resp$status_code,
+             if (!is.null(etype) && nzchar(etype)) paste0(" ", etype) else "",
+             "): ", detail, call. = FALSE)
     }
 
     data <- jsonlite::fromJSON(rawToChar(resp$content))
