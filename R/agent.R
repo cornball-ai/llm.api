@@ -415,8 +415,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     body <- list(model = model, messages = messages, max_tokens = 4096)
 
-    if (!is.null(system)) {
-        body$system <- .anthropic_system_with_cache(system, cache)
+    sys <- .anthropic_system(system, cache,
+                             oauth = is.function(config$credentials))
+    if (!is.null(sys)) {
+        body$system <- sys
     }
     if (length(tools) > 0) {
         body$tools <- tools

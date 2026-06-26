@@ -68,3 +68,22 @@ expect_true("anthropic_claude" %in% eval(formals(chat_session)$provider))
 # It shares the Anthropic Messages path, so chat()/agent() must not warn
 # and reset web_search = FALSE for it before the request is built.
 expect_true("anthropic_claude" %in% ns$.web_search_providers())
+
+# --- regression: subscription OAuth needs the Claude Code identity ---
+# Anthropic rejects an OAuth request (429) unless the first system block is
+# the Claude Code identity. The API-key path must stay byte-identical.
+id <- "You are Claude Code, Anthropic's official CLI for Claude."
+# OAuth, no caller system -> identity is the only block.
+s1 <- ns$.anthropic_system(NULL, "none", oauth = TRUE)
+expect_equal(length(s1), 1L)
+expect_equal(s1[[1]]$text, id)
+# OAuth, with a caller system -> identity first, caller second.
+s2 <- ns$.anthropic_system("Be terse.", "none", oauth = TRUE)
+expect_equal(s2[[1]]$text, id)
+expect_equal(s2[[2]]$text, "Be terse.")
+# OAuth + cache -> cache_control rides the last block.
+s3 <- ns$.anthropic_system("x", "5m", oauth = TRUE)
+expect_equal(s3[[length(s3)]]$cache_control$type, "ephemeral")
+# API-key path unchanged: plain string with no cache, NULL with no system.
+expect_equal(ns$.anthropic_system("hello", "none", oauth = FALSE), "hello")
+expect_null(ns$.anthropic_system(NULL, "none", oauth = FALSE))
