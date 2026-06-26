@@ -8,15 +8,22 @@
 0 errors | 0 warnings | 0 notes
 
 `R CMD check --as-cran` is clean on Ubuntu 24.04 / R 4.6.0. The
-win-builder R-devel result is confirmed from the emailed report before
-submission.
+immediately-preceding 0.1.7 tarball passed win-builder R-devel and
+R-release; 0.1.8 adds only a one-line wire fix plus a test on top of it.
 
 ## Release summary
 
-Update to 0.1.7 (last CRAN release: 0.1.4), consolidating three
-post-release development cycles (0.1.5, 0.1.6, 0.1.6.1), none of which
-were submitted to CRAN. All changes are backwards-compatible: new
-exported functions and new optional parameters that default to existing
+Patch update to 0.1.8 (last CRAN release: 0.1.4). This supersedes a
+pending 0.1.7 submission (not yet published) with a one-line fix:
+`anthropic_claude` agent runs with tool use now send a valid `messages`
+array on the turn after a tool call (the agent loop drives the shared
+Anthropic Messages wire for the subscription-OAuth provider). `chat()`
+was unaffected.
+
+0.1.8 also carries the 0.1.5-0.1.7 consolidation (new `openai_codex` and
+`anthropic_claude` providers, provider-native web search, per-call tool
+context), none of which were on CRAN. All changes are backwards-compatible:
+new exported functions and new optional parameters that default to existing
 behaviour.
 
 * New `openai_codex` provider for ChatGPT-subscription-backed Codex
