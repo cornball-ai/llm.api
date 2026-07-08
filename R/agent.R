@@ -196,7 +196,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # `context` formal, pass it (by name) a read-only per-call snapshot
     # (model text, turn/call indices, provider). 2-arg handlers unchanged.
     handler_wants_context <- is.function(tool_handler) &&
-        "context" %in% names(formals(tool_handler))
+    "context" %in% names(formals(tool_handler))
 
     while (turn < max_turns) {
         turn <- turn + 1L
@@ -206,7 +206,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             .agent_openai_responses(messages, provider_tools, system, model,
                                     config, web_search = web_search, ...)
         } else switch(provider,
-                      anthropic = ,
+                      anthropic =,
                       anthropic_claude = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens,
@@ -749,8 +749,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
                          provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
-                                      "openai_codex", "ollama",
-                                      "openai_compatible"),
+                                      "openai_codex", "ollama", "openai_compatible"),
                          verbose = TRUE) {
     provider <- match.arg(provider)
 

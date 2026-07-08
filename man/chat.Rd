@@ -5,8 +5,7 @@
 \usage{
 chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
      max_tokens = NULL,
-     provider = c("auto", "openai", "anthropic", "anthropic_claude",
-                  "moonshot", "openai_codex", "ollama"),
+     provider = c("auto", "openai", "anthropic", "anthropic_claude", "moonshot", "openai_codex", "ollama", "openai_compatible"),
      stream = FALSE, cache = c("none", "5m", "1h"),
      thinking_budget_tokens = NULL, web_search = FALSE, ...)
 }
@@ -24,7 +23,10 @@ chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
 \item{max_tokens}{Integer or NULL. Maximum tokens in response.}
 
 \item{provider}{Character. Provider: "auto", "openai", "anthropic", "anthropic_claude",
-"moonshot", "openai_codex", or "ollama".}
+"moonshot", "openai_codex", "ollama", or "openai_compatible" (a
+generic OpenAI-compatible gateway such as OpenRouter, DeepSeek, or
+a corporate proxy; requires a base URL via \code{llm_base()} or
+\code{OPENAI_COMPATIBLE_BASE_URL}, and an explicit \code{model}).}
 
 \item{stream}{Logical. Stream the response (prints as it arrives).}
 

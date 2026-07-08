@@ -51,7 +51,7 @@ llm_key <- function(key) {
                            moonshot = c("MOONSHOT_API_KEY", "OPENAI_API_KEY"),
                            openai_codex = c("OPENAI_CODEX_ACCESS_TOKEN"),
                            openai_compatible = c("OPENAI_COMPATIBLE_API_KEY",
-                                                 "OPENAI_API_KEY"),
+                "OPENAI_API_KEY"),
                            c("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY",
                              "OPENAI_CODEX_ACCESS_TOKEN")
         )
