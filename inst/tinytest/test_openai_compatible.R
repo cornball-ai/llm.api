@@ -4,7 +4,7 @@
 # before any request is attempted.
 
 # --- Setup: neutralize ambient config so resolution is deterministic ---
-old_opts <- options(llm.api.api_base = NULL, llm.api.api_key = NULL)
+old_opts <- options(llm.api_base = NULL, llm.api_key = NULL, llm.api.api_base = NULL, llm.api.api_key = NULL)
 old_base_env <- Sys.getenv("OPENAI_COMPATIBLE_BASE_URL", NA)
 old_key_env <- Sys.getenv("OPENAI_COMPATIBLE_API_KEY", NA)
 old_openai_key <- Sys.getenv("OPENAI_API_KEY", NA)
@@ -31,7 +31,7 @@ expect_equal(cfg$base_url, "https://openrouter.ai/api/v1")
 llm_base("https://gateway.example.com/v1")
 cfg <- llm.api:::.get_provider_config("openai_compatible")
 expect_equal(cfg$base_url, "https://gateway.example.com/v1")
-options(llm.api.api_base = NULL)
+options(llm.api_base = NULL, llm.api.api_base = NULL)
 Sys.unsetenv("OPENAI_COMPATIBLE_BASE_URL")
 
 # --- key resolution: OPENAI_COMPATIBLE_API_KEY first, then OPENAI_API_KEY ---
@@ -61,7 +61,7 @@ expect_error(chat("hi", provider = "openai_compatible"),
              pattern = "no default model")
 expect_error(agent("hi", provider = "openai_compatible"),
              pattern = "no default model")
-options(llm.api.api_base = NULL)
+options(llm.api_base = NULL, llm.api.api_base = NULL)
 
 # provider_default_model() reports the absence of a default as NULL
 expect_null(provider_default_model("openai_compatible"))

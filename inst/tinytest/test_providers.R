@@ -1,7 +1,7 @@
 # Test provider detection and configuration
 
 # --- Setup: save and restore options ---
-old_opts <- options(llm.api.api_base = NULL, llm.api.api_key = NULL)
+old_opts <- options(llm.api_base = NULL, llm.api_key = NULL, llm.api.api_base = NULL, llm.api.api_key = NULL)
 on.exit(options(old_opts), add = TRUE)
 
 # --- .detect_provider() from model name ---
@@ -45,7 +45,7 @@ llm_base("https://api.moonshot.ai")
 expect_equal(llm.api:::.detect_provider(NULL), "moonshot")
 
 # Reset
-options(llm.api.api_base = NULL)
+options(llm.api_base = NULL, llm.api.api_base = NULL)
 
 # --- .get_provider_config() ---
 

@@ -12,7 +12,7 @@ llm_key(key)
 The previous value of the option, invisibly.
 }
 \description{
-Stores an API key in the \code{llm.api.api_key} option, which
+Stores an API key in the \code{llm.api_key} option, which
 \code{\link{chat}} prefers over environment variables.
 }
 \examples{

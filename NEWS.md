@@ -15,6 +15,13 @@
   when no key is configured (matching `chat()`), so keyless gateways
   don't receive a bare "Bearer " header.
 
+* The endpoint/key options are renamed to `llm.api_base` and
+  `llm.api_key`, matching the sibling API packages (`tts.api_base`,
+  `stt.api_base`, `xtx.api_base`). `llm_base()` / `llm_key()` are
+  unchanged. The pre-0.2.0 names (`llm.api.api_base` /
+  `llm.api.api_key`) are still read as a fallback, with a one-time
+  deprecation warning per session.
+
 # llm.api 0.1.8
 
 * Fix: `anthropic_claude` agent runs with tool use no longer error. The agent

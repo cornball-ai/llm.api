@@ -12,7 +12,7 @@ llm_base(url)
 The previous value of the option, invisibly.
 }
 \description{
-Stores a base URL in the \code{llm.api.api_base} option, which
+Stores a base URL in the \code{llm.api_base} option, which
 \code{\link{chat}} uses as the default endpoint.
 }
 \examples{
