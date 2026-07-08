@@ -1,3 +1,20 @@
+# llm.api 0.2.0
+
+* New `openai_compatible` provider: point `chat()`, `agent()`, and
+  `chat_session()` at any OpenAI-compatible gateway (OpenRouter,
+  DeepSeek, corporate proxies). The base URL comes from `llm_base()` or
+  `OPENAI_COMPATIBLE_BASE_URL` ("/chat/completions" is appended, so
+  include any /v1 prefix the gateway expects); the key from
+  `llm_key()`, `OPENAI_COMPATIBLE_API_KEY`, or `OPENAI_API_KEY`, and a
+  keyless gateway is fine (no Authorization header is sent). Model ids
+  pass through untouched and are required (no default). A missing base
+  URL or model fails fast with instructions instead of a curl error.
+  Requested in cornball-ai/corteza#149.
+
+* `agent()`'s OpenAI-wire request now omits the `Authorization` header
+  when no key is configured (matching `chat()`), so keyless gateways
+  don't receive a bare "Bearer " header.
+
 # llm.api 0.1.8
 
 * Fix: `anthropic_claude` agent runs with tool use no longer error. The agent

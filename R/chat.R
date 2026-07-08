@@ -143,7 +143,10 @@
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
 #' @param max_tokens Integer or NULL. Maximum tokens in response.
 #' @param provider Character. Provider: "auto", "openai", "anthropic", "anthropic_claude",
-#'   "moonshot", "openai_codex", or "ollama".
+#'   "moonshot", "openai_codex", "ollama", or "openai_compatible" (a
+#'   generic OpenAI-compatible gateway such as OpenRouter, DeepSeek, or
+#'   a corporate proxy; requires a base URL via \code{llm_base()} or
+#'   \code{OPENAI_COMPATIBLE_BASE_URL}, and an explicit \code{model}).
 #' @param stream Logical. Stream the response (prints as it arrives).
 #' @param cache Character. Anthropic prompt caching for the system
 #'   message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
@@ -203,7 +206,8 @@
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  temperature = NULL, max_tokens = NULL,
                  provider = c("auto", "openai", "anthropic", "anthropic_claude",
-                              "moonshot", "openai_codex", "ollama"),
+                              "moonshot", "openai_codex", "ollama",
+                              "openai_compatible"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, web_search = FALSE, ...) {
     provider <- match.arg(provider)
@@ -246,6 +250,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 
     # Get provider config
     config <- .get_provider_config(provider)
+    .check_openai_compatible(config, model)
 
     # Set default model if not specified
     if (is.null(model)) {
