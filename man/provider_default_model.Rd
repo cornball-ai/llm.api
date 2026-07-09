@@ -7,10 +7,13 @@ provider_default_model(provider)
 }
 \arguments{
 \item{provider}{Character. One of `"openai"`, `"anthropic"`,
-`"anthropic_claude"`, `"moonshot"`, `"openai_codex"`, `"ollama"`.}
+`"anthropic_claude"`, `"moonshot"`, `"openai_codex"`, `"ollama"`,
+`"openai_compatible"`.}
 }
 \value{
-Character. The default model id for that provider.
+Character. The default model id for that provider, or NULL
+  for `"openai_compatible"`, which has no default (the model id is
+  whatever the target gateway expects).
 }
 \description{
 Returns the model name `chat()` falls back to when the caller

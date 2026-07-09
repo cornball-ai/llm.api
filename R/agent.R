@@ -15,7 +15,10 @@
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
 #' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
-#'   "openai_codex", or "ollama".
+#'   "openai_codex", "ollama", or "openai_compatible" (a generic
+#'   OpenAI-compatible gateway; requires a base URL via
+#'   \code{llm_base()} or \code{OPENAI_COMPATIBLE_BASE_URL}, and an
+#'   explicit \code{model}).
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
 #' @param history List or NULL. Previous conversation history to continue from.
@@ -78,7 +81,7 @@
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
                   provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
-                               "openai_codex", "ollama"),
+                               "openai_codex", "ollama", "openai_compatible"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, web_search = FALSE, ...) {
@@ -115,6 +118,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     }
 
     config <- .get_provider_config(provider)
+    .check_openai_compatible(config, model)
 
     # Default models with tool support
     if (is.null(model)) {
@@ -141,6 +145,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         # don't match the literal "anthropic_claude" and the messages array
         # gets corrupted on the turn after a tool call (a 400 from the API).
         wire <- "anthropic"
+    } else if (identical(provider, "openai_compatible")) {
+        # Generic gateways speak the OpenAI chat-completions wire shape,
+        # so the openai wire drives tool conversion / dispatch / result
+        # appending while `provider` stays "openai_compatible" for cost
+        # lookup and the returned object.
+        wire <- "openai"
     } else {
         wire <- provider
     }
@@ -186,7 +196,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # `context` formal, pass it (by name) a read-only per-call snapshot
     # (model text, turn/call indices, provider). 2-arg handlers unchanged.
     handler_wants_context <- is.function(tool_handler) &&
-        "context" %in% names(formals(tool_handler))
+    "context" %in% names(formals(tool_handler))
 
     while (turn < max_turns) {
         turn <- turn + 1L
@@ -196,7 +206,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             .agent_openai_responses(messages, provider_tools, system, model,
                                     config, web_search = web_search, ...)
         } else switch(provider,
-                      anthropic = ,
+                      anthropic =,
                       anthropic_claude = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens,
@@ -205,6 +215,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 config, ...),
                       moonshot = .agent_openai(messages, provider_tools, system,
                 model, config, ...),
+                      openai_compatible = .agent_openai(messages, provider_tools,
+                system, model, config, ...),
                       openai_codex = .agent_openai_codex(messages, provider_tools,
                 system, model, config, web_search = web_search, ...),
                       ollama = .agent_ollama(messages, provider_tools, system, model,
@@ -510,8 +522,13 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         body[[name]] <- extra[[name]]
     }
 
-    headers <- c("Content-Type" = "application/json",
-                 "Authorization" = paste("Bearer", config$api_key))
+    # Match .chat_openai_compatible: skip the Authorization header when
+    # there is no key, so keyless gateways (openai_compatible behind a
+    # corporate proxy) don't receive a bare "Bearer " header.
+    headers <- c("Content-Type" = "application/json")
+    if (!is.null(config$api_key) && nzchar(config$api_key)) {
+        headers["Authorization"] <- paste("Bearer", config$api_key)
+    }
 
     resp <- .post_json(url, body, headers)
 
@@ -707,7 +724,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' @param system Character. Default system prompt.
 #' @param model Character. Default model.
 #' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
-#'   "openai_codex", or "ollama".
+#'   "openai_codex", "ollama", or "openai_compatible".
 #' @param verbose Logical. Print tool calls.
 #'
 #' @return A function that takes a prompt and returns a response.
@@ -732,7 +749,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
                          provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
-                                      "openai_codex", "ollama"),
+                                      "openai_codex", "ollama", "openai_compatible"),
                          verbose = TRUE) {
     provider <- match.arg(provider)
 

@@ -12,7 +12,7 @@ with_stubbed <- function(name, stub, expr) {
              finally = assignInNamespace(name, orig, ns = "llm.api"))
 }
 
-old_opts <- options(llm.api.api_base = NULL, llm.api.api_key = NULL)
+old_opts <- options(llm.api_base = NULL, llm.api_key = NULL, llm.api.api_base = NULL, llm.api.api_key = NULL)
 on.exit(options(old_opts), add = TRUE)
 old_key <- Sys.getenv("MOONSHOT_API_KEY", unset = NA_character_)
 on.exit({

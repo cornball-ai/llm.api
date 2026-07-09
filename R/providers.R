@@ -103,8 +103,53 @@
                          api_key = NULL,
                          default_model = "qwen3.5:9b"
         ),
+           openai_compatible = list(
+                                    provider = "openai_compatible",
+                                    base_url = .openai_compatible_base(base),
+                                    chat_path = "/chat/completions",
+                                    api_key = .get_key("openai_compatible"),
+                                    default_model = NULL
+        ),
            stop("Unknown provider: ", provider, call. = FALSE)
     )
+}
+
+# Base URL for the generic openai_compatible provider (OpenRouter,
+# DeepSeek, corporate gateways, ...). Unlike the named providers there
+# is no hardcoded fallback: the caller supplies one via llm_base() or
+# OPENAI_COMPATIBLE_BASE_URL. The URL is used as given (minus a
+# trailing slash) with "/chat/completions" appended, so include any
+# /v1 prefix the gateway expects, e.g. "https://openrouter.ai/api/v1".
+# Returns NULL when unset; .check_openai_compatible() turns that into
+# an informative error before any request is attempted.
+.openai_compatible_base <- function(base) {
+    url <- base %||% Sys.getenv("OPENAI_COMPATIBLE_BASE_URL", "")
+    if (!nzchar(url)) {
+        return(NULL)
+    }
+    sub("/+$", "", url)
+}
+
+# Fail fast for the generic provider: both the endpoint and the model
+# are caller-supplied (there is no meaningful default for either), so
+# chat() and agent() call this right after .get_provider_config()
+# instead of letting curl error against a NULL URL.
+.check_openai_compatible <- function(config, model) {
+    if (!identical(config$provider, "openai_compatible")) {
+        return(invisible(NULL))
+    }
+    if (is.null(config$base_url)) {
+        stop("provider \"openai_compatible\" needs a base URL: call ",
+             "llm_base(\"https://your-gateway/v1\") or set the ",
+             "OPENAI_COMPATIBLE_BASE_URL environment variable ",
+             "(\"/chat/completions\" is appended to it)", call. = FALSE)
+    }
+    if (is.null(model)) {
+        stop("provider \"openai_compatible\" has no default model: pass ",
+             "`model` with the id your gateway expects, e.g. ",
+             "\"meta-llama/llama-3-70b-instruct\"", call. = FALSE)
+    }
+    invisible(NULL)
 }
 
 #' Default model for a provider
@@ -115,8 +160,11 @@
 #' duplicating the lookup table.
 #'
 #' @param provider Character. One of `"openai"`, `"anthropic"`,
-#'   `"anthropic_claude"`, `"moonshot"`, `"openai_codex"`, `"ollama"`.
-#' @return Character. The default model id for that provider.
+#'   `"anthropic_claude"`, `"moonshot"`, `"openai_codex"`, `"ollama"`,
+#'   `"openai_compatible"`.
+#' @return Character. The default model id for that provider, or NULL
+#'   for `"openai_compatible"`, which has no default (the model id is
+#'   whatever the target gateway expects).
 #' @export
 #' @examples
 #' provider_default_model("anthropic")

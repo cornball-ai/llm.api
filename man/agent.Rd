@@ -4,8 +4,7 @@
 \title{Chat with tool use (agentic mode)}
 \usage{
 agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
-      provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
-                   "openai_codex", "ollama"),
+      provider = c("anthropic", "anthropic_claude", "openai", "moonshot", "openai_codex", "ollama", "openai_compatible"),
       max_turns = 20L, verbose = TRUE, history = NULL, history_callback = NULL,
       cache = c("none", "5m", "1h"), thinking_budget_tokens = NULL,
       web_search = FALSE, ...)
@@ -17,16 +16,19 @@ agent(prompt, tools = list(), tool_handler = NULL, system = NULL, model = NULL,
 
 \item{tool_handler}{Function. Called with `(name, args)` and returns a
 result string. If it declares a formal named `context`, it also
-receives (by name) a read-only per-call snapshot with `assistant_text`
-(the model's text for this turn), `agent_turn`, `call_index`,
-`call_count`, and `provider`; two-argument handlers are called unchanged.}
+receives (by name) a read-only per-call snapshot with `assistant_text` (the model's
+text for this turn), `agent_turn`, `call_index`, `call_count`, and
+`provider`; two-argument handlers are called unchanged.}
 
 \item{system}{Character. System prompt.}
 
 \item{model}{Character. Model name.}
 
 \item{provider}{Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
-"openai_codex", or "ollama".}
+"openai_codex", "ollama", or "openai_compatible" (a generic
+OpenAI-compatible gateway; requires a base URL via
+\code{llm_base()} or \code{OPENAI_COMPATIBLE_BASE_URL}, and an
+explicit \code{model}).}
 
 \item{max_turns}{Integer. Maximum tool-use turns (default: 20).}
 

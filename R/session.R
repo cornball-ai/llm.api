@@ -9,7 +9,8 @@
 #' @param model Character. Model name.
 #' @param system_prompt Character or NULL. System prompt.
 #' @param provider Character. Provider: "openai", "anthropic",
-#'   "anthropic_claude", "moonshot", "openai_codex", or "ollama".
+#'   "anthropic_claude", "moonshot", "openai_codex", "ollama", or
+#'   "openai_compatible".
 #' @param ... Additional parameters passed to chat().
 #'
 #' @return A list with functions:
@@ -39,7 +40,7 @@
 #' }
 chat_session <- function(model = NULL, system_prompt = NULL,
                          provider = c("openai", "anthropic", "anthropic_claude", "moonshot",
-                                      "openai_codex", "ollama"),
+                                      "openai_codex", "ollama", "openai_compatible"),
                          ...) {
     provider <- match.arg(provider)
 
