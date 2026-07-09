@@ -2,7 +2,7 @@
 
 # Canonical option names. The `<pkgname>_base` / `<pkgname>_key` form
 # matches the sibling API packages (tts.api_base, stt.api_base,
-# xtx.api_base), so llm.api reads the same way. The pre-0.2.0 names
+# xtx.api_base), so llm.api reads the same way. The pre-0.1.8.1 names
 # (llm.api.api_base / llm.api.api_key, with the doubled "api") are
 # still read as a deprecated fallback; see .get_base() / .get_key().
 .opt_base <- "llm.api_base"
@@ -44,8 +44,8 @@ llm_key <- function(key) {
     invisible(old)
 }
 
-# Read an option that was renamed in 0.2.0: prefer the canonical name,
-# fall back to the pre-0.2.0 name with a one-time deprecation warning
+# Read an option that was renamed in 0.1.8.1: prefer the canonical name,
+# fall back to the pre-0.1.8.1 name with a one-time deprecation warning
 # per session so a stale .Rprofile keeps working while nudging callers
 # to migrate.
 .deprecated_opt_warned <- new.env(parent = emptyenv())

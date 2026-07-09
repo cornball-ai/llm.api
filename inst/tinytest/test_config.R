@@ -1,7 +1,7 @@
 # Test configuration functions
 
 # --- Setup: save and restore options ---
-# Clear both the canonical (0.2.0+) and legacy option names so a stale
+# Clear both the canonical (0.1.8.1+) and legacy option names so a stale
 # value from the environment can't leak into these assertions.
 old_opts <- options(llm.api_base = NULL, llm.api_key = NULL,
                     llm.api.api_base = NULL, llm.api.api_key = NULL)
@@ -42,7 +42,7 @@ options(llm.api_key = NULL)
 Sys.setenv(MOONSHOT_API_KEY = "moonshot-test-key")
 expect_equal(llm.api:::.get_key("moonshot"), "moonshot-test-key")
 
-# --- legacy option names (pre-0.2.0) still read, with a deprecation warning ---
+# --- legacy option names (pre-0.1.8.1) still read, with a deprecation warning ---
 
 # Base: only the legacy name set -> read it, and warn once.
 options(llm.api_base = NULL, llm.api.api_base = "https://legacy.example.com")

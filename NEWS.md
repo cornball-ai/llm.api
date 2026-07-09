@@ -1,4 +1,4 @@
-# llm.api 0.2.0
+# llm.api 0.1.8.1
 
 * New `openai_compatible` provider: point `chat()`, `agent()`, and
   `chat_session()` at any OpenAI-compatible gateway (OpenRouter,
@@ -18,7 +18,7 @@
 * The endpoint/key options are renamed to `llm.api_base` and
   `llm.api_key`, matching the sibling API packages (`tts.api_base`,
   `stt.api_base`, `xtx.api_base`). `llm_base()` / `llm_key()` are
-  unchanged. The pre-0.2.0 names (`llm.api.api_base` /
+  unchanged. The pre-0.1.8.1 names (`llm.api.api_base` /
   `llm.api.api_key`) are still read as a fallback, with a one-time
   deprecation warning per session.
 
