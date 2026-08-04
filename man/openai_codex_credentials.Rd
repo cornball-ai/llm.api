@@ -3,8 +3,10 @@
 \alias{openai_codex_credentials}
 \title{OpenAI Codex subscription credentials}
 \usage{
-openai_codex_credentials(access_token = Sys.getenv("OPENAI_CODEX_ACCESS_TOKEN", ""),
-                         account_id = Sys.getenv("OPENAI_CODEX_ACCOUNT_ID", ""))
+openai_codex_credentials(
+  access_token = Sys.getenv("OPENAI_CODEX_ACCESS_TOKEN", ""),
+  account_id = Sys.getenv("OPENAI_CODEX_ACCOUNT_ID", "")
+)
 }
 \arguments{
 \item{access_token}{Optional access token. If omitted, read from
