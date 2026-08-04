@@ -5,7 +5,8 @@
 \usage{
 chat(prompt, model = NULL, system = NULL, history = NULL, temperature = NULL,
      max_tokens = NULL,
-     provider = c("auto", "openai", "anthropic", "anthropic_claude", "moonshot", "openai_codex", "ollama", "openai_compatible"),
+     provider = c("auto", "openai", "anthropic", "anthropic_claude",
+                  "moonshot", "openai_codex", "ollama", "openai_compatible"),
      stream = FALSE, cache = c("none", "5m", "1h"),
      thinking_budget_tokens = NULL, web_search = FALSE, ...)
 }

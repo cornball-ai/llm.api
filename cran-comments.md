@@ -24,33 +24,10 @@ backwards-compatible.
 
 * Local: Ubuntu 24.04, R 4.5.3
 * Windows 10: R 4.6.0 and R-devel (2026-07-21 r90286 ucrt)
-* win-builder: R-devel and R-release
 
 ## R CMD check results
 
-0 errors | 0 warnings | 1 note
-
-### NOTE: Rd \usage line width
-
-```
-* checking Rd line widths ... NOTE
-Rd file 'agent.Rd':
-  \usage lines wider than 90 characters:
-     provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
-     "openai_codex", "ollama", "openai_compatible"),
-```
-
-`agent()` and `create_agent()` document their `provider` choices in the
-signature so `?agent` shows the full set. Adding `openai_compatible`
-takes that vector to seven entries, and the documentation generator now
-emits it as a single line instead of wrapping it as it did at six.
-
-The alternative is to hide the choices behind a constant, which would
-shorten the `\usage` line at the cost of removing the list of valid
-providers from the rendered documentation. The signature and its
-defaults are unchanged from 0.1.8 apart from the one added element, so
-I have kept the self-documenting form. Happy to change it if the
-reviewer would prefer.
+0 errors | 0 warnings | 0 notes
 
 ## Notes
 
