@@ -29,6 +29,23 @@ backwards-compatible.
 
 0 errors | 0 warnings | 0 notes
 
+## On the 0.1.8 NOTE for r-devel-linux-x86_64-debian-gcc
+
+The published 0.1.8 carries a "new files in some other directories"
+NOTE on that one flavour, listing 119 `~/tmp/scratch/Rtmp*` directories
+and 39 `~/tmp/scratch/xvfb-run.*` files.
+
+Those are not this package's. llm.api has no graphics code and never
+invokes a display server, so it cannot produce an `xvfb-run` file, and a
+full check opens a handful of R sessions rather than 119. `~/tmp/scratch`
+is that builder's shared `TMPDIR`, and the check appears to be
+attributing debris left by concurrent checks. No other flavour reports
+it.
+
+Nothing in the package writes outside `tempdir()`. The one function that
+starts a subprocess, `mcp_start()`, is `\dontrun{}` and is not reached
+from any test.
+
 ## Notes
 
 This package is a minimal-dependency client for several LLM (Large
