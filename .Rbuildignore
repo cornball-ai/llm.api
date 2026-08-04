@@ -10,3 +10,4 @@
 ^cran-comments\.md$
 ^data-raw$
 ^CONTRIBUTING\.md$
+^tools$
