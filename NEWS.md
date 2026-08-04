@@ -1,4 +1,4 @@
-# llm.api 0.1.8.1
+# llm.api 0.1.9
 
 * New `openai_compatible` provider: point `chat()`, `agent()`, and
   `chat_session()` at any OpenAI-compatible gateway (OpenRouter,
