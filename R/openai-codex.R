@@ -216,7 +216,9 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
         } else if (is.list(msg) && !is.null(msg$role)) {
             role <- msg$role
             content <- msg$content %||% ""
-            if (is.character(content)) {
+            if (inherits(content, "llm_content")) {
+                content <- .llm_content_blocks(content, "responses", role)
+            } else if (is.character(content)) {
                 content_type <- if (identical(role, "assistant")) {
                     "output_text"
                 } else {
@@ -244,6 +246,7 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
 }
 
 .openai_codex_post_sse <- function(url, body, headers) {
+    .llm_assert_translated(body$input, "the Responses input")
     h <- curl::new_handle()
     curl::handle_setopt(
                         h,
