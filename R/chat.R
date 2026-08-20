@@ -348,6 +348,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 #' @noRd
 .chat_openai_compatible <- function(body, config, stream) {
     url <- paste0(config$base_url, config$chat_path)
+    body$messages <- .llm_blocks(body$messages, "openai")
 
     # OpenAI deprecated max_tokens in favor of max_completion_tokens
     # and reasoning (o-series) models reject max_tokens entirely. Map
@@ -421,7 +422,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     system_msg <- NULL
     messages <- list()
 
-    for (msg in body$messages) {
+    for (msg in .llm_blocks(body$messages, "anthropic")) {
         if (msg$role == "system") {
             system_msg <- msg$content
         } else {

@@ -1,3 +1,13 @@
+# llm.api 0.1.9.1
+
+* Images in a user turn. `llm_image()` wraps a file (or raw bytes) and
+  `llm_content()` mixes it with text; pass the result as `prompt` to
+  `chat()` or `agent()`. Provider-neutral: the same call works against
+  Anthropic, the Chat Completions API, and the OpenAI Responses API,
+  which spell the block three different ways. `llm_has_image()` is
+  there for callers that need to gate on whether the model they are
+  pointed at can take one. A plain character prompt is unaffected.
+
 # llm.api 0.1.9
 
 * New `openai_compatible` provider: point `chat()`, `agent()`, and

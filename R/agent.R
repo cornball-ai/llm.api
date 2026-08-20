@@ -433,7 +433,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                              ...) {
     url <- paste0(config$base_url, config$chat_path)
 
-    body <- list(model = model, messages = messages, max_tokens = 4096)
+    body <- list(model = model, messages = .llm_blocks(messages, "anthropic"),
+                 max_tokens = 4096)
 
     sys <- .anthropic_system(system, cache,
                              oauth = is.function(config$credentials))
@@ -499,7 +500,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     if (!is.null(system)) {
         api_messages[[1]] <- list(role = "system", content = system)
     }
-    api_messages <- c(api_messages, messages)
+    api_messages <- c(api_messages, .llm_blocks(messages, "openai"))
 
     body <- list(model = model, messages = api_messages)
 
@@ -568,7 +569,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     if (!is.null(system)) {
         api_messages[[1]] <- list(role = "system", content = system)
     }
-    api_messages <- c(api_messages, messages)
+    api_messages <- c(api_messages, .llm_blocks(messages, "openai"))
 
     body <- list(model = model, messages = api_messages, stream = FALSE)
 
@@ -692,6 +693,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
 # Helper: POST JSON request
 .post_json <- function(url, body, headers) {
+    .llm_assert_translated(body$messages, "the request body")
     h <- curl::new_handle()
     curl::handle_setopt(h,
                         customrequest = "POST",

@@ -70,7 +70,7 @@
     headers <- .moonshot_headers(config)
     ws_tool <- .moonshot_web_search_tool(body$web_search)
 
-    messages <- body$messages
+    messages <- .llm_blocks(body$messages, "openai")
     searches <- list()
     # Cap round-trips so a misbehaving backend can't loop forever.
     for (i in seq_len(10L)) {
