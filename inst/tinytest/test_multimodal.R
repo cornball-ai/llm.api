@@ -199,21 +199,27 @@ for (spec in list(list(provider = "anthropic", dialect = "anthropic",
     })
 }
 
-# The Codex/Responses path has its own converter and its own POST.
+# The Codex/Responses path has its own converter, shared by four entry
+# points. Driven through the body builder rather than through agent():
+# .openai_codex_request() asks config$credentials() for headers before
+# it ever reaches the POST, so a runner with no cached Codex token
+# cannot get that far. (It got that far locally, on a token in my own
+# cache, and failed on CI -- which is the whole argument for not
+# testing a pure conversion through a credentialed transport.)
 local({
-    captured <- NULL
-    stub <- function(url, body, headers) {
-        captured <<- body
-        list(content = "ok", usage = NULL, tool_calls = list(),
-             raw_output = list())
-    }
-    with_stubbed(".openai_codex_post_sse", stub,
-        llm.api::agent(prompt = cnt, provider = "openai_codex",
-                       model = "gpt-5.5", verbose = FALSE, max_turns = 1L))
-    turn <- captured$input[[length(captured$input)]]
+    body <- llm.api:::.openai_codex_body(
+        messages = list(list(role = "system", content = "sys"),
+                        list(role = "user", content = cnt)),
+        tools = list(), system = NULL, model = "gpt-5.5")
+    turn <- body$input[[length(body$input)]]
     expect_identical(turn$role, "user")
     expect_identical(turn$content[[1L]]$type, "input_text")
+    expect_identical(turn$content[[1L]]$text, "what is this")
     expect_identical(turn$content[[2L]]$type, "input_image")
+    expect_identical(turn$content[[2L]]$image_url,
+                     paste0("data:image/png;base64,", img$data))
+    # The system turn beside it is untouched, and still a string.
+    expect_identical(body$instructions, "sys")
 })
 
 # chat() does not go through .post_json -- it hands the JSON to curl
