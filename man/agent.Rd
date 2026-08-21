@@ -93,10 +93,7 @@ whatever text had arrived. The assistant message is not appended to
 unmatched tool call that breaks the following request; the caller
 knows what was delivered and records it.
 
-Wired for the Responses wire only -- \code{"openai_codex"}, and
-\code{"openai"} when \code{web_search} routes it there. Every other
-provider posts once and waits, so there is nothing to stream;
-passing it warns and is ignored rather than silently doing nothing.}
+Wired for every provider.}
 
 \item{...}{Additional parameters passed to the API.}
 }
