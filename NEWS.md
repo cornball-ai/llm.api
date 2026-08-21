@@ -1,9 +1,16 @@
-# llm.api 0.1.9.3
+# llm.api 0.1.9.4
 
-* **Streaming over the Chat Completions wire**: `on_delta` now works
-  for `openai`, `moonshot`, `ollama` and `openai_compatible`, not just
-  the Responses providers. `llm_cancel()` works there too. Anthropic is
-  the one provider left that posts once and waits.
+* **Every provider streams.** `on_delta` and `llm_cancel()` now work on
+  the Chat Completions wire (`openai`, `moonshot`, `ollama`,
+  `openai_compatible`) and on the Anthropic Messages wire, not only on
+  the Responses providers. Passing `on_delta` no longer warns anywhere,
+  because there is nowhere left that ignores it.
+
+* Anthropic content arrives as indexed blocks, and a tool call's
+  arguments as `partial_json` fragments that are spliced and parsed only
+  once the block closes. Both wires reassemble into exactly the
+  non-streamed response shape, so the two paths compare with
+  `identical()`.
 
 * **`chat(stream = TRUE)` was broken and is fixed.** It set curl's
   `writefunction` handle option, which curl 7.x rejects outright, so

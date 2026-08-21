@@ -62,10 +62,7 @@
 #'   unmatched tool call that breaks the following request; the caller
 #'   knows what was delivered and records it.
 #'
-#'   Wired for every provider except \code{"anthropic"} and
-#'   \code{"anthropic_claude"}, whose Messages API request is not
-#'   streamed yet; passing it there warns and is ignored rather than
-#'   silently doing nothing.
+#'   Wired for every provider.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
@@ -126,23 +123,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             thinking_budget_tokens <- NULL
         }
     }
-    # on_delta only works where the request is streamed. Anthropic is
-    # the one provider left that posts once and waits, so passing a
-    # callback there is warned rather than ignored, on `cache`'s
-    # reasoning: a caller that passed one is building on it, and silence
-    # would have it believe the deltas were arriving and the model
-    # simply had nothing to say until the end.
-    if (!is.null(on_delta)) {
-        if (!is.function(on_delta)) {
-            stop("`on_delta` must be a function of one argument.",
-                 call. = FALSE)
-        }
-        if (.is_anthropic(provider)) {
-            warning("`on_delta` is not wired for provider \"", provider,
-                    "\" yet (the Messages API request is not streamed); ",
-                    "ignoring.", call. = FALSE)
-            on_delta <- NULL
-        }
+    # Every provider streams now, so there is nothing left to warn
+    # about -- only the shape of the callback itself to check.
+    if (!is.null(on_delta) && !is.function(on_delta)) {
+        stop("`on_delta` must be a function of one argument.", call. = FALSE)
     }
     if (!isFALSE(web_search) && !provider %in% .web_search_providers()) {
         warning("`web_search` is not yet supported for provider \"", provider,
@@ -248,7 +232,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       anthropic_claude = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens,
-                web_search = web_search, ...),
+                web_search = web_search, on_delta = on_delta, ...),
                       openai = .agent_openai(messages, provider_tools, system, model,
                 config, on_delta = on_delta, ...),
                       moonshot = .agent_openai(messages, provider_tools, system,
@@ -505,7 +489,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 # Anthropic request
 .agent_anthropic <- function(messages, tools, system, model, config,
                              cache = "none", thinking_budget_tokens = NULL,
-                             ...) {
+                             on_delta = NULL, ...) {
     url <- paste0(config$base_url, config$chat_path)
 
     body <- list(model = model, messages = .llm_blocks(messages, "anthropic"),
@@ -536,7 +520,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     headers <- .anthropic_headers(config)
 
-    resp <- .post_json(url, body, headers)
+    resp <- if (is.null(on_delta)) {
+        .post_json(url, body, headers)
+    } else {
+        .anthropic_post_sse(url, body, headers, on_delta = on_delta)
+    }
 
     # Parse response
     text_parts <- character()
@@ -559,6 +547,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     list(
          text = paste(text_parts, collapse = "\n"),
          tool_calls = tool_calls,
+         cancelled = isTRUE(attr(resp, "llm_cancelled")),
          assistant_message = list(role = "assistant", content = resp$content),
          usage = resp$usage, # input_tokens, output_tokens
          citations = search_info$citations,

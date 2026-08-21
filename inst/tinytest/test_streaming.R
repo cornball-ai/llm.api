@@ -142,23 +142,15 @@ local({
     expect_false(parsed$cancelled)
 })
 
-# --- agent() gating ---
-# on_delta on a provider that does not stream warns rather than being
-# ignored: a caller that passed a callback is building on it, and
-# silence would have it believe the model simply said nothing until the
-# end.
-expect_warning(
-    tryCatch(llm.api::agent("hi", provider = "anthropic", model = "m",
-                            on_delta = function(x) x, verbose = FALSE,
-                            max_turns = 1L),
-             error = function(e) NULL),
-    "not wired for provider")
-
-# ... and the chat-completions providers no longer warn, because they
-# stream now. This half is the one that would go quietly stale: a
-# warning that stops being emitted is invisible unless something
-# asserts its absence.
-for (p in c("ollama", "openai", "moonshot")) {
+# --- agent() accepts on_delta everywhere ---
+# Every provider streams now, so none of them warns. Asserted for all
+# six rather than for the one that changed: this assertion has been
+# rewritten twice as providers were wired up, each time because it
+# named the un-streamed ones and they stopped being un-streamed. A
+# list of every provider goes stale loudly -- by failing -- instead of
+# by quietly describing a boundary that has moved.
+for (p in c("anthropic", "anthropic_claude", "openai", "moonshot",
+            "openai_codex", "ollama")) {
     expect_silent(
         tryCatch(llm.api::agent("hi", provider = p, model = "m",
                                 on_delta = function(x) x, verbose = FALSE,

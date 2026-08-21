@@ -93,10 +93,7 @@ whatever text had arrived. The assistant message is not appended to
 unmatched tool call that breaks the following request; the caller
 knows what was delivered and records it.
 
-Wired for every provider except \code{"anthropic"} and
-\code{"anthropic_claude"}, whose Messages API request is not
-streamed yet; passing it there warns and is ignored rather than
-silently doing nothing.}
+Wired for every provider.}
 
 \item{...}{Additional parameters passed to the API.}
 }
