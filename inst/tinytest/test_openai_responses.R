@@ -24,7 +24,7 @@ with_stubbed <- function(name, stub, expr) {
 # Captures the URL/body/headers handed to the shared SSE poster and returns a
 # minimal Responses payload (a message plus one search and one citation).
 capture_responses <- function(target) {
-    function(url, body, headers) {
+    function(url, body, headers, on_delta = NULL) {
         target$url <- url
         target$body <- body
         target$headers <- headers
@@ -92,7 +92,9 @@ local({
 # chat() without web_search stays on chat-completions (Responses poster
 # untouched); stub it to fail if hit.
 local({
-    boom <- function(url, body, headers) stop("should not route to Responses")
+    boom <- function(url, body, headers, on_delta = NULL) {
+        stop("should not route to Responses")
+    }
     hit <- FALSE
     res <- with_stubbed(".openai_codex_post_sse", boom, {
         with_stubbed(".chat_openai_compatible",

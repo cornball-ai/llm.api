@@ -1,3 +1,15 @@
+# llm.api 0.1.9.2
+
+* **The model's text, while it is still being written.** `agent()` gains
+  `on_delta`, called with each fragment as it arrives on the Responses
+  wire (`openai_codex`, and `openai` when `web_search` routes it there).
+  Calling `llm_cancel()` from inside it abandons the request: the
+  connection closes, the provider stops generating, and `agent()`
+  returns `cancelled = TRUE` with the text that had arrived. Every other
+  provider posts once and waits, so passing `on_delta` there warns
+  rather than doing nothing quietly. Nothing changes for a caller that
+  does not pass one.
+
 # llm.api 0.1.9.1
 
 * Images in a user turn. `llm_image()` wraps a file (or raw bytes) and

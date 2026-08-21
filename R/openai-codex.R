@@ -234,7 +234,11 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     input
 }
 
-.openai_codex_request <- function(messages, tools, system, model, config, ...) {
+# on_delta is a named formal rather than riding `...`, because `...`
+# lands in the request body: an on_delta in there would be posted to
+# the provider as a parameter it has never heard of.
+.openai_codex_request <- function(messages, tools, system, model, config,
+                                  on_delta = NULL, ...) {
     url <- paste0(config$base_url, config$chat_path)
     credentials <- config$credentials()
     headers <- c("Content-Type" = "application/json",
@@ -242,10 +246,10 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
                  "originator" = "llm.api", "accept" = "text/event-stream",
                  unlist(credentials))
     body <- .openai_codex_body(messages, tools, system, model, ...)
-    .openai_codex_post_sse(url, body, headers)
+    .openai_codex_post_sse(url, body, headers, on_delta = on_delta)
 }
 
-.openai_codex_post_sse <- function(url, body, headers) {
+.openai_codex_post_sse <- function(url, body, headers, on_delta = NULL) {
     .llm_assert_translated(body$input, "the Responses input")
     h <- curl::new_handle()
     curl::handle_setopt(
@@ -258,6 +262,12 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     result <- NULL
     buffer <- ""
     raw_text <- ""
+    # The text as it streamed, kept separately. The merger reconstructs
+    # a message from output_item.done and ignores the text deltas
+    # entirely, so on a cancelled stream -- which never reaches done --
+    # there is otherwise nothing to report but an empty response, even
+    # though the caller has already spoken half a sentence of it.
+    streamed <- ""
     callback <- function(data) {
         text <- rawToChar(data)
         raw_text <<- paste0(raw_text, text)
@@ -281,12 +291,60 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
             )
             if (!is.null(chunk)) {
                 result <<- .openai_codex_merge_chunk(result, chunk)
+                # The text as it is written. The merger does not handle
+                # this event at all -- it reconstructs the message from
+                # output_item.done -- so the deltas were arriving and
+                # being dropped on the floor. Nothing needed them until
+                # something wanted to start speaking before the model
+                # had finished writing.
+                if (identical(chunk$type, "response.output_text.delta")) {
+                    d <- chunk$delta
+                    if (is.character(d) && length(d) == 1L && !is.na(d)) {
+                        streamed <<- paste0(streamed, d)
+                    }
+                    .llm_emit_delta(on_delta, d)
+                }
             }
         }
         length(data)
     }
 
-    resp <- curl::curl_fetch_stream(url, callback, handle = h)
+    # A cancel raised inside on_delta unwinds through here, closing the
+    # connection: the provider stops generating and stops charging.
+    # What arrived before that point is kept and returned, because the
+    # caller has already acted on it -- spoken it aloud, most likely --
+    # and a cancelled request that answered nothing would be a worse
+    # account of what happened than a partial one.
+    fetched <- .llm_with_cancel(curl::curl_fetch_stream(url, callback,
+            handle = h))
+    if (fetched$cancelled) {
+        partial <- result %||% list(output = list(), usage = NULL)
+        # Fill in the message the stream was part-way through, so a
+        # cancelled response says what it managed to say.
+        #
+        # Keyed on whether any text actually survived the merge, not on
+        # whether a message item exists. response.output_item.added
+        # creates the message *empty* and the text only lands at
+        # output_item.done, so on every real cancellation there is a
+        # message item present and holding nothing -- and a presence
+        # check skips the fill and returns "". A fixture without that
+        # event passes either way, which is how this shipped once.
+        if (nzchar(streamed) && !nzchar(.openai_codex_output_text(partial))) {
+            item <- list(type = "message",
+                         content = list(list(type = "output_text", text = streamed)))
+            at <- which(vapply(partial$output %||% list(),
+                               function(o) identical(o$type, "message"),
+                               logical(1)))
+            if (length(at)) {
+                partial$output[[at[[1L]]]] <- item
+            } else {
+                partial$output <- c(partial$output %||% list(), list(item))
+            }
+        }
+        attr(partial, "llm_cancelled") <- TRUE
+        return(partial)
+    }
+    resp <- fetched$value
     if (resp$status_code >= 400) {
         err <- tryCatch(jsonlite::fromJSON(raw_text, simplifyVector = FALSE),
                         error = function(e) list(error = list(message = raw_text)))
@@ -343,6 +401,24 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     result
 }
 
+# The text already present in a response's output items. Used to decide
+# whether a cancelled stream has anything to say for itself, so it has
+# to agree with what .openai_codex_parse_response() would extract.
+.openai_codex_output_text <- function(resp) {
+    parts <- character()
+    for (output in resp$output %||% list()) {
+        if (!identical(output$type, "message")) {
+            next
+        }
+        for (content in output$content %||% list()) {
+            if (!is.null(content$text)) {
+                parts <- c(parts, content$text)
+            }
+        }
+    }
+    paste(parts, collapse = "")
+}
+
 .openai_codex_parse_response <- function(resp) {
     text_parts <- character()
     tool_calls <- list()
@@ -386,6 +462,11 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
          tool_calls = tool_calls,
          citations = citations,
          searches = searches,
+         # Carried on an attribute rather than a field, because the
+         # response object is the provider's and every field name in it
+         # is theirs to define. Read back into an ordinary field here,
+         # where the shape is ours.
+         cancelled = isTRUE(attr(resp, "llm_cancelled")),
          assistant_message = list(type = ".openai_codex_output",
                                   output = resp$output %||% list()),
          usage = .openai_codex_usage(resp$usage)
@@ -435,7 +516,8 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
          searches = parsed$searches)
 }
 
-.agent_openai_codex <- function(messages, tools, system, model, config, ...) {
+.agent_openai_codex <- function(messages, tools, system, model, config,
+                                on_delta = NULL, ...) {
     extra <- list(...)
     if (!is.null(extra$credentials)) {
         config$credentials <- extra$credentials
@@ -444,7 +526,7 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     resp <- do.call(
                     .openai_codex_request,
                     c(list(messages = messages, tools = tools, system = system,
-                           model = model, config = config),
+                           model = model, config = config, on_delta = on_delta),
                       extra)
     )
     .openai_codex_parse_response(resp)

@@ -18,6 +18,7 @@ agent(
   cache = c("none", "5m", "1h"),
   thinking_budget_tokens = NULL,
   web_search = FALSE,
+  on_delta = NULL,
   ...
 )
 }
@@ -77,6 +78,25 @@ the Responses endpoint), \code{"anthropic"},
 (the \code{$web_search} builtin, whose calls are handled internally
 rather than via \code{tool_handler}); ignored with a warning
 otherwise.}
+
+\item{on_delta}{Function or NULL. Called with each fragment of the
+model's text as it arrives, before the response is complete, so a
+caller can start displaying or speaking it. Called many times per
+turn, with a single non-empty character scalar each time; its
+return value is ignored.
+
+Calling \code{\link{llm_cancel}} from inside it abandons the
+request: the connection closes, the provider stops generating, and
+\code{agent()} returns immediately with \code{cancelled = TRUE} and
+whatever text had arrived. The assistant message is not appended to
+\code{history} in that case, because a partial one can carry an
+unmatched tool call that breaks the following request; the caller
+knows what was delivered and records it.
+
+Wired for the Responses wire only -- \code{"openai_codex"}, and
+\code{"openai"} when \code{web_search} routes it there. Every other
+provider posts once and waits, so there is nothing to stream;
+passing it warns and is ignored rather than silently doing nothing.}
 
 \item{...}{Additional parameters passed to the API.}
 }
