@@ -1,3 +1,16 @@
+# llm.api 0.1.9.3
+
+* **Streaming over the Chat Completions wire**: `on_delta` now works
+  for `openai`, `moonshot`, `ollama` and `openai_compatible`, not just
+  the Responses providers. `llm_cancel()` works there too. Anthropic is
+  the one provider left that posts once and waits.
+
+* **`chat(stream = TRUE)` was broken and is fixed.** It set curl's
+  `writefunction` handle option, which curl 7.x rejects outright, so
+  every streamed `chat()` threw before reaching the network. Nothing
+  caught it: streaming is only used interactively and no test exercised
+  it. It also reports `usage` now, where it always returned NULL.
+
 # llm.api 0.1.9.2
 
 * **The model's text, while it is still being written.** `agent()` gains
