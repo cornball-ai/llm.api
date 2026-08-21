@@ -367,14 +367,18 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         headers["Authorization"] <- paste("Bearer", config$api_key)
     }
 
+    # Streaming builds its own request: the SSE reader needs a body with
+    # stream = TRUE in it, which this one does not have.
+    if (stream) {
+        return(.stream_response(url, body, headers))
+    }
+
     h <- curl::new_handle()
     curl::handle_setopt(h, customrequest = "POST",
                         postfields = jsonlite::toJSON(body, auto_unbox = TRUE))
     curl::handle_setheaders(h, .list = as.list(headers))
 
-    if (stream) {
-        .stream_response(url, h)
-    } else {
+    {
         resp <- curl::curl_fetch_memory(url, handle = h)
 
         if (resp$status_code >= 400) {
@@ -556,52 +560,27 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 }
 
 #' Stream response with live output
+#'
+#' Rebuilt on \code{.openai_cc_post_sse()}. The previous version set
+#' curl's \code{writefunction} option on the handle, which curl 7.x
+#' rejects outright -- "Option writefunction (20011) has unknown or
+#' unsupported type" -- so every \code{chat(stream = TRUE)} call threw
+#' before it reached the network. Nothing caught it because streaming
+#' is only used interactively and no test exercised the function.
+#'
+#' Usage comes back now too, where the old one always reported NULL.
 #' @noRd
-.stream_response <- function(url, handle) {
-    full_content <- ""
-    full_thinking <- ""
-    finish_reason <- NULL
-
-    callback <- function(data) {
-        lines <- strsplit(rawToChar(data), "\n")[[1]]
-        for (line in lines) {
-            if (startsWith(line, "data: ") && line != "data: [DONE]") {
-                json_str <- substring(line, 7)
-                tryCatch({
-                    chunk <- jsonlite::fromJSON(json_str)
-                    choice <- chunk$choices[[1]]
-                    delta <- choice$delta$content
-                    if (!is.null(delta)) {
-                        cat(delta)
-                        full_content <<- paste0(full_content, delta)
-                    }
-                    think_delta <- choice$delta$reasoning_content %||%
-                    choice$delta$reasoning
-                    if (!is.null(think_delta)) {
-                        full_thinking <<- paste0(full_thinking, think_delta)
-                    }
-                    if (!is.null(choice$finish_reason)) {
-                        finish_reason <<- choice$finish_reason
-                    }
-                }, error = function(e) NULL)
-            }
-        }
-        length(data)
-    }
-
-    curl::handle_setopt(handle, writefunction = callback)
-    curl::curl_fetch_memory(url, handle = handle)
+.stream_response <- function(url, body, headers) {
+    resp <- .openai_cc_post_sse(url, body, headers,
+                                on_delta = function(text) cat(text))
     cat("\n")
-
-    if (nzchar(full_thinking)) {
-        thinking <- full_thinking
-    } else {
-        thinking <- NULL
-    }
-    .warn_if_truncated(full_content, thinking, finish_reason)
-
-    list(content = full_content, thinking = thinking,
-         finish_reason = finish_reason, usage = NULL)
+    msg <- resp$choices[[1L]]$message
+    content <- msg$content %||% ""
+    thinking <- msg$reasoning_content
+    finish_reason <- resp$choices[[1L]]$finish_reason
+    .warn_if_truncated(content, thinking, finish_reason)
+    list(content = content, thinking = thinking,
+         finish_reason = finish_reason, usage = resp$usage)
 }
 
 #' Null coalescing operator

@@ -148,11 +148,23 @@ local({
 # silence would have it believe the model simply said nothing until the
 # end.
 expect_warning(
-    tryCatch(llm.api::agent("hi", provider = "ollama", model = "m",
+    tryCatch(llm.api::agent("hi", provider = "anthropic", model = "m",
                             on_delta = function(x) x, verbose = FALSE,
                             max_turns = 1L),
              error = function(e) NULL),
-    "only wired for the Responses providers")
+    "not wired for provider")
+
+# ... and the chat-completions providers no longer warn, because they
+# stream now. This half is the one that would go quietly stale: a
+# warning that stops being emitted is invisible unless something
+# asserts its absence.
+for (p in c("ollama", "openai", "moonshot")) {
+    expect_silent(
+        tryCatch(llm.api::agent("hi", provider = p, model = "m",
+                                on_delta = function(x) x, verbose = FALSE,
+                                max_turns = 1L),
+                 error = function(e) NULL, warning = function(w) w))
+}
 
 expect_error(llm.api::agent("hi", provider = "openai_codex",
                             on_delta = "not a function", verbose = FALSE),
