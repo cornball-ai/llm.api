@@ -95,7 +95,7 @@ expect_equal(merged$output[[1L]]$arguments, "{\"a\":1}")
 # Agent loop: first Codex response asks for a tool, second returns text.
 call_count <- 0L
 captured_bodies <- list()
-stub_sse <- function(url, body, headers) {
+stub_sse <- function(url, body, headers, on_delta = NULL) {
     call_count <<- call_count + 1L
     captured_bodies[[call_count]] <<- body
     if (call_count == 1L) {
@@ -193,8 +193,11 @@ expect_null(b_other$max_tokens)
 expect_equal(b_other$temperature, 0.5)
 
 # Captured request body through chat(): no token cap reaches /codex/responses.
+# The doubles mirror the real signature rather than taking `...`: they
+# stand in for .openai_codex_post_sse(), and one that quietly accepts
+# any argument stops being a check that the call site is right.
 capture_sse <- function(target) {
-    function(url, body, headers) {
+    function(url, body, headers, on_delta = NULL) {
         target$body <- body
         list(output = list(list(type = "message", content = list(
             list(type = "output_text", text = "ok")))),

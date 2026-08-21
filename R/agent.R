@@ -48,6 +48,24 @@
 #'   (the \code{$web_search} builtin, whose calls are handled internally
 #'   rather than via \code{tool_handler}); ignored with a warning
 #'   otherwise.
+#' @param on_delta Function or NULL. Called with each fragment of the
+#'   model's text as it arrives, before the response is complete, so a
+#'   caller can start displaying or speaking it. Called many times per
+#'   turn, with a single non-empty character scalar each time; its
+#'   return value is ignored.
+#'
+#'   Calling \code{\link{llm_cancel}} from inside it abandons the
+#'   request: the connection closes, the provider stops generating, and
+#'   \code{agent()} returns immediately with \code{cancelled = TRUE} and
+#'   whatever text had arrived. The assistant message is not appended to
+#'   \code{history} in that case, because a partial one can carry an
+#'   unmatched tool call that breaks the following request; the caller
+#'   knows what was delivered and records it.
+#'
+#'   Wired for the Responses wire only -- \code{"openai_codex"}, and
+#'   \code{"openai"} when \code{web_search} routes it there. Every other
+#'   provider posts once and waits, so there is nothing to stream;
+#'   passing it warns and is ignored rather than silently doing nothing.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history. The
@@ -84,7 +102,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                                "openai_codex", "ollama", "openai_compatible"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, cache = c("none", "5m", "1h"),
-                  thinking_budget_tokens = NULL, web_search = FALSE, ...) {
+                  thinking_budget_tokens = NULL, web_search = FALSE,
+                  on_delta = NULL, ...) {
     provider <- match.arg(provider)
     cache <- match.arg(cache)
 
@@ -105,6 +124,25 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
                     "for provider \"", provider, "\".", call. = FALSE)
             thinking_budget_tokens <- NULL
+        }
+    }
+    # on_delta only works where the request is streamed, and today that
+    # is the Responses wire alone -- every other provider posts once and
+    # waits. Warned rather than ignored, on `cache`'s reasoning: a caller
+    # that passed a callback is building on it, and silence would have it
+    # believe the deltas were arriving and the model simply had nothing
+    # to say until the end.
+    if (!is.null(on_delta)) {
+        if (!is.function(on_delta)) {
+            stop("`on_delta` must be a function of one argument.",
+                 call. = FALSE)
+        }
+        if (!(identical(provider, "openai_codex") ||
+                (identical(provider, "openai") && !isFALSE(web_search)))) {
+            warning("`on_delta` is only wired for the Responses providers ",
+                    "(\"openai_codex\", or \"openai\" with web_search); ",
+                    "ignoring for provider \"", provider, "\".", call. = FALSE)
+            on_delta <- NULL
         }
     }
     if (!isFALSE(web_search) && !provider %in% .web_search_providers()) {
@@ -204,7 +242,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         # Make API request with tools
         response <- if (use_responses) {
             .agent_openai_responses(messages, provider_tools, system, model,
-                                    config, web_search = web_search, ...)
+                                    config, web_search = web_search,
+                                    on_delta = on_delta, ...)
         } else switch(provider,
                       anthropic =,
                       anthropic_claude = .agent_anthropic(messages, provider_tools, system, model, config,
@@ -218,7 +257,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       openai_compatible = .agent_openai(messages, provider_tools,
                 system, model, config, ...),
                       openai_codex = .agent_openai_codex(messages, provider_tools,
-                system, model, config, web_search = web_search, ...),
+                system, model, config, web_search = web_search,
+                on_delta = on_delta, ...),
                       ollama = .agent_ollama(messages, provider_tools, system, model,
                 config, ...)
         )
@@ -256,6 +296,42 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         }
         total_citations <- c(total_citations, response$citations %||% list())
         total_searches <- c(total_searches, response$searches %||% list())
+
+        # Cancelled from inside on_delta. Returns before the tool-call
+        # check, because a cancelled response can carry a half-built
+        # tool call and running it would execute something the model
+        # had not finished asking for.
+        #
+        # The assistant message is deliberately NOT appended. A partial
+        # one is the thing most likely to be malformed -- an unmatched
+        # tool_use block makes the *next* request fail, which is a long
+        # way from here -- and the caller knows better than this loop
+        # what was actually delivered. It gets the text and decides.
+        if (isTRUE(response$cancelled)) {
+            return(list(
+                        content = response$text,
+                        cancelled = TRUE,
+                        model = model,
+                        provider = provider,
+                        turns = turn,
+                        history = messages,
+                        usage = list(
+                                     input_tokens = total_input_tokens,
+                                     output_tokens = total_output_tokens,
+                                     total_tokens = total_input_tokens +
+                                     total_output_tokens,
+                                     cache_read_input_tokens = total_cache_read,
+                                     cache_creation_input_tokens =
+                                     total_cache_write_5m + total_cache_write_1h,
+                                     cache_creation = list(
+                            ephemeral_5m_input_tokens = total_cache_write_5m,
+                            ephemeral_1h_input_tokens = total_cache_write_1h),
+                                     cost = if (cost_na) NA_real_ else total_cost
+                    ),
+                        citations = total_citations,
+                        searches = total_searches
+                ))
+        }
 
         # Check if done (no tool calls)
         if (length(response$tool_calls) == 0) {

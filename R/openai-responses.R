@@ -61,7 +61,7 @@
 }
 
 .openai_responses_request <- function(messages, tools, system, model, config,
-                                      ...) {
+                                      on_delta = NULL, ...) {
     url <- paste0(config$base_url, "/v1/responses")
     headers <- c("Content-Type" = "application/json",
                  "accept" = "text/event-stream")
@@ -69,7 +69,7 @@
         headers["Authorization"] <- paste("Bearer", config$api_key)
     }
     body <- .openai_responses_body(messages, tools, system, model, ...)
-    .openai_codex_post_sse(url, body, headers)
+    .openai_codex_post_sse(url, body, headers, on_delta = on_delta)
 }
 
 .chat_openai_responses <- function(body, config, stream) {
@@ -93,12 +93,12 @@
 }
 
 .agent_openai_responses <- function(messages, tools, system, model, config,
-                                    ...) {
+                                    on_delta = NULL, ...) {
     extra <- list(...)
     resp <- do.call(
                     .openai_responses_request,
                     c(list(messages = messages, tools = tools, system = system,
-                           model = model, config = config), extra)
+                           model = model, config = config, on_delta = on_delta), extra)
     )
     .openai_codex_parse_response(resp)
 }
