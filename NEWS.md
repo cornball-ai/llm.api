@@ -1,3 +1,29 @@
+# llm.api 0.1.9.5
+
+* **`agent()` no longer treats a cut-off response as a clean
+  completion** (#38). A truncated response returned through the
+  no-tool-calls branch: an interrupted tool call either executed with
+  partial arguments or was dropped, so a mid-task cutoff presented as
+  a normal finish, possibly with empty content. Every wire's cutoff
+  signal is now parsed — Anthropic `stop_reason` `"max_tokens"` and
+  `"model_context_window_exceeded"`, chat-completions
+  `finish_reason = "length"`, Responses `status = "incomplete"`
+  (`max_output_tokens` and `content_filter` alike) — on both the
+  streamed and non-streamed transports. On any of them the loop warns
+  and returns immediately with `truncated = TRUE` and
+  `truncation_reason` (the wire's literal reason), tool calls
+  unexecuted, the partial assistant message left out of `history` (as
+  on the cancelled path), and `$content` ending in a matching marker:
+  `[Output truncated: max_tokens]`,
+  `[Output truncated: model_context_window_exceeded]`, or
+  `[Response incomplete: <reason>]`.
+
+* `chat()` on the Responses paths (`openai_codex`, and `openai` routed
+  through Responses) reported `finish_reason = NULL` even for
+  incomplete responses; it now maps to the documented vocabulary:
+  `"stop"`, `"length"` for `max_output_tokens`, or the literal reason
+  (e.g. `"content_filter"`).
+
 # llm.api 0.1.9.4
 
 * **Every provider streams.** `on_delta` and `llm_cancel()` now work on

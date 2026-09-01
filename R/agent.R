@@ -65,7 +65,27 @@
 #'   Wired for every provider.
 #' @param ... Additional parameters passed to the API.
 #'
-#' @return List with final response and conversation history. The
+#' @return List with final response and conversation history.
+#'
+#'   A response the provider cut off before completion returns
+#'   immediately with \code{truncated = TRUE}: its tool calls are not
+#'   executed (a call the cutoff interrupted carries partial arguments,
+#'   or was dropped from the response entirely) and the partial
+#'   assistant message is not appended to \code{history}, for the same
+#'   reason as the cancelled path. \code{truncation_reason} carries the
+#'   wire's own reason: \code{"max_tokens"}, \code{"length"}, or
+#'   \code{"max_output_tokens"} for the output-token budget (raise
+#'   \code{max_tokens} via \code{...} to avoid it),
+#'   \code{"model_context_window_exceeded"} when input plus output
+#'   overflowed the model's window (shorten the input instead), or
+#'   another provider reason such as \code{"content_filter"}.
+#'   \code{$content} ends with a matching marker --
+#'   \code{"[Output truncated: max_tokens]"},
+#'   \code{"[Output truncated: model_context_window_exceeded]"}, or
+#'   \code{"[Response incomplete: <reason>]"} -- so callers that only
+#'   read the text still see the cutoff.
+#'
+#'   The
 #'   returned \code{$usage} carries cumulative \code{input_tokens},
 #'   \code{output_tokens}, \code{total_tokens}, and \code{cost} (USD
 #'   scalar, derived from the bundled price snapshot; \code{0} for
@@ -316,6 +336,69 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 ))
         }
 
+        # Cut off at the output-token budget. Checked before the
+        # no-tool-calls branch, because a truncated response is
+        # indistinguishable from a completed one there: a tool call the
+        # cap interrupted either arrives with partial arguments or is
+        # dropped from the response entirely, and running what remains
+        # would execute something the model never finished asking for
+        # (#38). Mirrors the cancelled path: the partial assistant
+        # message is NOT appended (an unmatched tool_use block would 400
+        # the next request built on this history), and the return is
+        # marked so the caller can tell "cut off" from "done".
+        if (isTRUE(response$truncated)) {
+            reason <- response$truncation_reason %||% "max_tokens"
+            if (reason %in% c("max_tokens", "length", "max_output_tokens")) {
+                # One name for the same budget cutoff on every wire.
+                warning("Response truncated at the output-token limit ",
+                        "after ", turn, " turn(s); raise `max_tokens`.",
+                        call. = FALSE)
+                marker <- "[Output truncated: max_tokens]"
+            } else if (identical(reason, "model_context_window_exceeded")) {
+                # Raising max_tokens cannot help here: input plus output
+                # overflowed the model's window.
+                warning("Response truncated at the model context window ",
+                        "after ", turn, " turn(s); shorten the input or ",
+                        "history.", call. = FALSE)
+                marker <- "[Output truncated: model_context_window_exceeded]"
+            } else {
+                # Not a token cutoff (e.g. the Responses wire's
+                # content_filter): same fail-closed handling, accurately
+                # named.
+                warning("Response incomplete (", reason, ") after ",
+                        turn, " turn(s).", call. = FALSE)
+                marker <- paste0("[Response incomplete: ", reason, "]")
+            }
+            return(list(
+                        content = if (nzchar(response$text %||% "")) {
+                        paste0(response$text, "\n\n", marker)
+                    } else {
+                        marker
+                    },
+                        truncated = TRUE,
+                        truncation_reason = reason,
+                        model = model,
+                        provider = provider,
+                        turns = turn,
+                        history = messages,
+                        usage = list(
+                                     input_tokens = total_input_tokens,
+                                     output_tokens = total_output_tokens,
+                                     total_tokens = total_input_tokens +
+                                     total_output_tokens,
+                                     cache_read_input_tokens = total_cache_read,
+                                     cache_creation_input_tokens =
+                                     total_cache_write_5m + total_cache_write_1h,
+                                     cache_creation = list(
+                            ephemeral_5m_input_tokens = total_cache_write_5m,
+                            ephemeral_1h_input_tokens = total_cache_write_1h),
+                                     cost = if (cost_na) NA_real_ else total_cost
+                    ),
+                        citations = total_citations,
+                        searches = total_searches
+                ))
+        }
+
         # Check if done (no tool calls)
         if (length(response$tool_calls) == 0) {
             # Append final assistant message so caller's history is complete
@@ -544,10 +627,20 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     search_info <- .anthropic_search_blocks(resp$content)
 
+    # Both the non-streamed response and the SSE reassembly carry
+    # stop_reason. "max_tokens" is the output budget cutting the
+    # response off; "model_context_window_exceeded" is input plus
+    # output overflowing the window. Anthropic documents both as
+    # truncation, and either can leave a partial tool_use block.
+    truncated <- isTRUE(resp$stop_reason %in%
+                        c("max_tokens", "model_context_window_exceeded"))
+
     list(
          text = paste(text_parts, collapse = "\n"),
          tool_calls = tool_calls,
          cancelled = isTRUE(attr(resp, "llm_cancelled")),
+         truncated = truncated,
+         truncation_reason = if (truncated) resp$stop_reason,
          assistant_message = list(role = "assistant", content = resp$content),
          usage = resp$usage, # input_tokens, output_tokens
          citations = search_info$citations,
@@ -628,6 +721,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
          text = msg$content %||% "",
          tool_calls = tool_calls,
          cancelled = isTRUE(attr(resp, "llm_cancelled")),
+         # "length" is the chat-completions wire's max_tokens cutoff.
+         truncated = identical(choice$finish_reason, "length"),
+         truncation_reason = if (identical(choice$finish_reason, "length")) {
+            "length"
+        },
          assistant_message = msg,
          usage = resp$usage # prompt_tokens, completion_tokens, total_tokens
     )
@@ -696,6 +794,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
          text = msg$content %||% "",
          tool_calls = tool_calls,
          cancelled = isTRUE(attr(resp, "llm_cancelled")),
+         # Same chat-completions wire as OpenAI: "length" = cut off.
+         truncated = identical(resp$choices[[1]]$finish_reason, "length"),
+         truncation_reason = if (identical(resp$choices[[1]]$finish_reason,
+                "length")) {
+            "length"
+        },
          assistant_message = msg,
          usage = resp$usage
     )

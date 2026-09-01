@@ -467,10 +467,36 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
          # is theirs to define. Read back into an ordinary field here,
          # where the shape is ours.
          cancelled = isTRUE(attr(resp, "llm_cancelled")),
+         # The Responses wire reports any cutoff as status "incomplete";
+         # incomplete_details$reason says which kind (max_output_tokens,
+         # content_filter). The SSE assembler returns the response
+         # object from response.incomplete events, so both transports
+         # carry it. Fail closed on every incomplete response and let
+         # the caller see the reason.
+         truncated = identical(resp$status, "incomplete"),
+         truncation_reason = if (identical(resp$status, "incomplete")) {
+            resp$incomplete_details$reason %||% "incomplete"
+        },
          assistant_message = list(type = ".openai_codex_output",
                                   output = resp$output %||% list()),
          usage = .openai_codex_usage(resp$usage)
     )
+}
+
+# chat()'s documented finish_reason vocabulary: "stop" on a normal
+# completion, "length" when truncated by the output-token budget; any
+# other incomplete reason (content_filter) passes through literally.
+# The Responses wire spells the token cap both ways depending on the
+# surface ("max_output_tokens" in retrieve, "max_tokens" in streaming
+# examples); both are the same cap.
+.openai_responses_finish_reason <- function(parsed) {
+    if (!isTRUE(parsed$truncated)) {
+        return("stop")
+    }
+    if (parsed$truncation_reason %in% c("max_output_tokens", "max_tokens")) {
+        return("length")
+    }
+    parsed$truncation_reason
 }
 
 .openai_codex_usage <- function(usage) {
@@ -511,7 +537,8 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     if (isTRUE(stream) && nzchar(parsed$text)) {
         cat(parsed$text, "\n", sep = "")
     }
-    list(content = parsed$text, thinking = NULL, finish_reason = NULL,
+    list(content = parsed$text, thinking = NULL,
+         finish_reason = .openai_responses_finish_reason(parsed),
          usage = parsed$usage, citations = parsed$citations,
          searches = parsed$searches)
 }

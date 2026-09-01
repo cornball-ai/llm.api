@@ -87,7 +87,8 @@
     if (isTRUE(stream) && nzchar(parsed$text)) {
         cat(parsed$text, "\n", sep = "")
     }
-    list(content = parsed$text, thinking = NULL, finish_reason = NULL,
+    list(content = parsed$text, thinking = NULL,
+         finish_reason = .openai_responses_finish_reason(parsed),
          usage = parsed$usage, citations = parsed$citations,
          searches = parsed$searches)
 }
