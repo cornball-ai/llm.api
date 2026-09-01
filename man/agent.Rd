@@ -100,15 +100,23 @@ Wired for every provider.}
 \value{
 List with final response and conversation history.
 
-  A response cut off at the output-token budget returns immediately
-  with \code{truncated = TRUE}: its tool calls are not executed (a
-  call the cap interrupted carries partial arguments, or was dropped
-  from the response entirely) and the partial assistant message is
-  not appended to \code{history}, for the same reason as the
-  cancelled path. \code{$content} ends with
-  \code{"[Output truncated: max_tokens]"} so callers that only read
-  the text still see the cutoff; raise \code{max_tokens} (via
-  \code{...}) to avoid it.
+  A response the provider cut off before completion returns
+  immediately with \code{truncated = TRUE}: its tool calls are not
+  executed (a call the cutoff interrupted carries partial arguments,
+  or was dropped from the response entirely) and the partial
+  assistant message is not appended to \code{history}, for the same
+  reason as the cancelled path. \code{truncation_reason} carries the
+  wire's own reason: \code{"max_tokens"}, \code{"length"}, or
+  \code{"max_output_tokens"} for the output-token budget (raise
+  \code{max_tokens} via \code{...} to avoid it),
+  \code{"model_context_window_exceeded"} when input plus output
+  overflowed the model's window (shorten the input instead), or
+  another provider reason such as \code{"content_filter"}.
+  \code{$content} ends with a matching marker --
+  \code{"[Output truncated: max_tokens]"},
+  \code{"[Output truncated: model_context_window_exceeded]"}, or
+  \code{"[Response incomplete: <reason>]"} -- so callers that only
+  read the text still see the cutoff.
 
   The
   returned \code{$usage} carries cumulative \code{input_tokens},

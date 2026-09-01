@@ -475,8 +475,8 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
          # the caller see the reason.
          truncated = identical(resp$status, "incomplete"),
          truncation_reason = if (identical(resp$status, "incomplete")) {
-        resp$incomplete_details$reason %||% "incomplete"
-    },
+            resp$incomplete_details$reason %||% "incomplete"
+        },
          assistant_message = list(type = ".openai_codex_output",
                                   output = resp$output %||% list()),
          usage = .openai_codex_usage(resp$usage)

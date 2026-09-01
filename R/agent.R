@@ -724,8 +724,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
          # "length" is the chat-completions wire's max_tokens cutoff.
          truncated = identical(choice$finish_reason, "length"),
          truncation_reason = if (identical(choice$finish_reason, "length")) {
-        "length"
-    },
+            "length"
+        },
          assistant_message = msg,
          usage = resp$usage # prompt_tokens, completion_tokens, total_tokens
     )
@@ -797,9 +797,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
          # Same chat-completions wire as OpenAI: "length" = cut off.
          truncated = identical(resp$choices[[1]]$finish_reason, "length"),
          truncation_reason = if (identical(resp$choices[[1]]$finish_reason,
-                                           "length")) {
-        "length"
-    },
+                "length")) {
+            "length"
+        },
          assistant_message = msg,
          usage = resp$usage
     )
