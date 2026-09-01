@@ -98,7 +98,19 @@ Wired for every provider.}
 \item{...}{Additional parameters passed to the API.}
 }
 \value{
-List with final response and conversation history. The
+List with final response and conversation history.
+
+  A response cut off at the output-token budget returns immediately
+  with \code{truncated = TRUE}: its tool calls are not executed (a
+  call the cap interrupted carries partial arguments, or was dropped
+  from the response entirely) and the partial assistant message is
+  not appended to \code{history}, for the same reason as the
+  cancelled path. \code{$content} ends with
+  \code{"[Output truncated: max_tokens]"} so callers that only read
+  the text still see the cutoff; raise \code{max_tokens} (via
+  \code{...}) to avoid it.
+
+  The
   returned \code{$usage} carries cumulative \code{input_tokens},
   \code{output_tokens}, \code{total_tokens}, and \code{cost} (USD
   scalar, derived from the bundled price snapshot; \code{0} for

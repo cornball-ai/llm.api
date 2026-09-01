@@ -345,10 +345,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             marker <- "[Output truncated: max_tokens]"
             return(list(
                         content = if (nzchar(response$text %||% "")) {
-                paste0(response$text, "\n\n", marker)
-            } else {
-                marker
-            },
+                        paste0(response$text, "\n\n", marker)
+                    } else {
+                        marker
+                    },
                         truncated = TRUE,
                         model = model,
                         provider = provider,
