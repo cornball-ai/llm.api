@@ -1,3 +1,17 @@
+# llm.api 0.1.9.5
+
+* **`agent()` no longer treats a `max_tokens` cutoff as a clean
+  completion** (#38). A truncated response returned through the
+  no-tool-calls branch: an interrupted tool call either executed with
+  partial arguments or was dropped, so a mid-task cutoff presented as
+  a normal finish, possibly with empty content. Every wire's cutoff
+  signal is now parsed (Anthropic `stop_reason = "max_tokens"`,
+  chat-completions `finish_reason = "length"`, Responses
+  `status = "incomplete"`); on truncation the loop warns and returns
+  immediately with `truncated = TRUE`, tool calls unexecuted, the
+  partial assistant message left out of `history` (as on the cancelled
+  path), and `$content` ending in `[Output truncated: max_tokens]`.
+
 # llm.api 0.1.9.4
 
 * **Every provider streams.** `on_delta` and `llm_cancel()` now work on
