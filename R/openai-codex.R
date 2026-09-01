@@ -467,6 +467,11 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
          # is theirs to define. Read back into an ordinary field here,
          # where the shape is ours.
          cancelled = isTRUE(attr(resp, "llm_cancelled")),
+         # The Responses wire reports a cutoff as status "incomplete"
+         # (reason max_output_tokens); the SSE assembler returns the
+         # response object from response.incomplete events, so both
+         # transports carry it.
+         truncated = identical(resp$status, "incomplete"),
          assistant_message = list(type = ".openai_codex_output",
                                   output = resp$output %||% list()),
          usage = .openai_codex_usage(resp$usage)
