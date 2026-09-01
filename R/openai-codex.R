@@ -486,11 +486,14 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
 # chat()'s documented finish_reason vocabulary: "stop" on a normal
 # completion, "length" when truncated by the output-token budget; any
 # other incomplete reason (content_filter) passes through literally.
+# The Responses wire spells the token cap both ways depending on the
+# surface ("max_output_tokens" in retrieve, "max_tokens" in streaming
+# examples); both are the same cap.
 .openai_responses_finish_reason <- function(parsed) {
     if (!isTRUE(parsed$truncated)) {
         return("stop")
     }
-    if (identical(parsed$truncation_reason, "max_output_tokens")) {
+    if (parsed$truncation_reason %in% c("max_output_tokens", "max_tokens")) {
         return("length")
     }
     parsed$truncation_reason

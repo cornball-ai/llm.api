@@ -144,6 +144,10 @@ expect_identical(llm.api:::.openai_responses_finish_reason(
 expect_identical(llm.api:::.openai_responses_finish_reason(
     list(truncated = TRUE, truncation_reason = "max_output_tokens")),
     "length")
+# The streaming surface spells the same cap "max_tokens"
+expect_identical(llm.api:::.openai_responses_finish_reason(
+    list(truncated = TRUE, truncation_reason = "max_tokens")),
+    "length")
 expect_identical(llm.api:::.openai_responses_finish_reason(
     list(truncated = TRUE, truncation_reason = "content_filter")),
     "content_filter")
