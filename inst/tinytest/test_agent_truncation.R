@@ -101,6 +101,192 @@ fake_done <- list(status = "completed",
                   usage = list(input_tokens = 1L, output_tokens = 1L))
 expect_false(llm.api:::.openai_codex_parse_response(fake_done)$truncated)
 
+# --- anthropic wire: context-window overflow is the other truncation ---
+# stop_reason "model_context_window_exceeded" also leaves a partial
+# tool_use; it must gate identically, with its own reason and marker
+# (raising max_tokens would not help, so the advice differs too).
+ctx_calls <- 0L
+stub_ctx <- function(url, body, headers) {
+    list(content = list(list(type = "tool_use", id = "tu_2",
+                             name = "echo", input = list())),
+         stop_reason = "model_context_window_exceeded",
+         usage = list(input_tokens = 190000L, output_tokens = 4L))
+}
+expect_warning(
+    res_ctx <- with_stubbed_post_json(stub_ctx, llm.api::agent(
+        prompt = "go", tools = echo_tools,
+        tool_handler = function(name, args) {
+            ctx_calls <<- ctx_calls + 1L
+            "should never run"
+        },
+        model = "claude-test", provider = "anthropic", verbose = FALSE)),
+    pattern = "context window")
+expect_identical(ctx_calls, 0L)
+expect_true(isTRUE(res_ctx$truncated))
+expect_identical(res_ctx$truncation_reason, "model_context_window_exceeded")
+expect_identical(res_ctx$content,
+                 "[Output truncated: model_context_window_exceeded]")
+
+# --- responses wire: reason split, including content_filter ---
+fake_filtered <- list(
+    status = "incomplete",
+    incomplete_details = list(reason = "content_filter"),
+    output = list(),
+    usage = list(input_tokens = 10L, output_tokens = 30L))
+parsed_cf <- llm.api:::.openai_codex_parse_response(fake_filtered)
+expect_true(isTRUE(parsed_cf$truncated))
+expect_identical(parsed_cf$truncation_reason, "content_filter")
+
+# chat()'s Responses paths map the split onto the documented
+# finish_reason vocabulary: "stop" / "length" / literal otherwise.
+expect_identical(llm.api:::.openai_responses_finish_reason(
+    list(truncated = FALSE)), "stop")
+expect_identical(llm.api:::.openai_responses_finish_reason(
+    list(truncated = TRUE, truncation_reason = "max_output_tokens")),
+    "length")
+expect_identical(llm.api:::.openai_responses_finish_reason(
+    list(truncated = TRUE, truncation_reason = "content_filter")),
+    "content_filter")
+
+# --- streamed: the terminal SSE events carry the cutoff end to end ---
+# Each wire's *real* assembler runs over fixture events (file:// URLs
+# stream through curl_fetch_stream like any other transport); only the
+# URL is swapped, exactly because this regression was a wiring failure.
+sse_file <- function(lines) {
+    path <- tempfile(fileext = ".sse")
+    writeLines(lines, path)
+    paste0("file://", normalizePath(path, winslash = "/"))
+}
+anthropic_sse <- function(events) {
+    sse_file(unlist(lapply(events, function(e) {
+        ty <- sub('^.*?"type":"([^"]+)".*$', "\\1", e)
+        c(paste0("event: ", ty), paste0("data: ", e), "")
+    })))
+}
+data_sse <- function(events) {
+    sse_file(c(unlist(lapply(events, function(e) {
+        c(paste0("data: ", e), "")
+    })), "data: [DONE]", ""))
+}
+with_stubbed_sse <- function(fn_name, fixture_url, expr) {
+    orig <- get(fn_name, envir = ns, inherits = FALSE)
+    stub <- function(url, body, headers, on_delta = NULL) {
+        orig(fixture_url, body, headers, on_delta = on_delta)
+    }
+    assignInNamespace(fn_name, stub, ns = "llm.api")
+    tryCatch(force(expr),
+             finally = assignInNamespace(fn_name, orig, ns = "llm.api"))
+}
+swallow <- function(x) NULL
+
+# anthropic: partial tool_use spliced from input_json_delta fragments,
+# stop_reason max_tokens at message_delta
+anthropic_truncated <- function(reason) anthropic_sse(c(
+    '{"type":"message_start","message":{"usage":{"input_tokens":11}}}',
+    paste0('{"type":"content_block_start","index":0,',
+           '"content_block":{"type":"tool_use","id":"tu9",',
+           '"name":"echo","input":{}}}'),
+    paste0('{"type":"content_block_delta","index":0,',
+           '"delta":{"type":"input_json_delta",',
+           '"partial_json":"{\\"x\\": \\"lo"}}'),
+    '{"type":"content_block_stop","index":0}',
+    paste0('{"type":"message_delta","delta":{"stop_reason":"', reason,
+           '"},"usage":{"output_tokens":30}}'),
+    '{"type":"message_stop"}'))
+stream_calls <- 0L
+res_s1 <- suppressWarnings(with_stubbed_sse(
+    ".anthropic_post_sse", anthropic_truncated("max_tokens"),
+    llm.api::agent(prompt = "go", tools = echo_tools,
+                   tool_handler = function(name, args) {
+                       stream_calls <<- stream_calls + 1L
+                       "should never run"
+                   },
+                   model = "claude-test", provider = "anthropic",
+                   verbose = FALSE, on_delta = swallow)))
+expect_identical(stream_calls, 0L)
+expect_true(isTRUE(res_s1$truncated))
+expect_identical(res_s1$truncation_reason, "max_tokens")
+expect_identical(res_s1$content, marker)
+
+res_s2 <- suppressWarnings(with_stubbed_sse(
+    ".anthropic_post_sse",
+    anthropic_truncated("model_context_window_exceeded"),
+    llm.api::agent(prompt = "go", tools = echo_tools,
+                   tool_handler = function(name, args) {
+                       stream_calls <<- stream_calls + 1L
+                       "should never run"
+                   },
+                   model = "claude-test", provider = "anthropic",
+                   verbose = FALSE, on_delta = swallow)))
+expect_identical(stream_calls, 0L)
+expect_identical(res_s2$truncation_reason, "model_context_window_exceeded")
+
+# chat-completions (key-free ollama): tool-call fragments, then
+# finish_reason "length" on the terminal chunk
+cc_truncated <- data_sse(c(
+    paste0('{"choices":[{"index":0,"delta":{"role":"assistant"},',
+           '"finish_reason":null}]}'),
+    paste0('{"choices":[{"index":0,"delta":{"tool_calls":[{"index":0,',
+           '"id":"c1","type":"function","function":{"name":"echo",',
+           '"arguments":"{\\"x\\":"}}]},"finish_reason":null}]}'),
+    paste0('{"choices":[{"index":0,"delta":{},"finish_reason":"length"}],',
+           '"usage":{"prompt_tokens":9,"completion_tokens":30}}')))
+res_s3 <- suppressWarnings(with_stubbed_sse(
+    ".openai_cc_post_sse", cc_truncated,
+    llm.api::agent(prompt = "go", tools = echo_tools,
+                   tool_handler = function(name, args) {
+                       stream_calls <<- stream_calls + 1L
+                       "should never run"
+                   },
+                   model = "test-model", provider = "ollama",
+                   verbose = FALSE, on_delta = swallow)))
+expect_identical(stream_calls, 0L)
+expect_true(isTRUE(res_s3$truncated))
+expect_identical(res_s3$truncation_reason, "length")
+expect_identical(res_s3$content, marker)
+
+# responses wire (openai + web_search routes over it): a function_call
+# item lands via output_item.done, then response.incomplete
+responses_truncated <- function(reason) data_sse(c(
+    paste0('{"type":"response.output_item.done","output_index":0,',
+           '"item":{"type":"function_call","call_id":"c2",',
+           '"name":"echo","arguments":"{\\"x\\":1"}}'),
+    paste0('{"type":"response.incomplete","response":{"status":',
+           '"incomplete","incomplete_details":{"reason":"', reason,
+           '"},"output":[],"usage":{"input_tokens":8,',
+           '"output_tokens":30}}}')))
+res_s4 <- suppressWarnings(with_stubbed_sse(
+    ".openai_codex_post_sse", responses_truncated("max_output_tokens"),
+    llm.api::agent(prompt = "go", tools = echo_tools,
+                   tool_handler = function(name, args) {
+                       stream_calls <<- stream_calls + 1L
+                       "should never run"
+                   },
+                   model = "gpt-test", provider = "openai",
+                   web_search = TRUE, verbose = FALSE,
+                   on_delta = swallow)))
+expect_identical(stream_calls, 0L)
+expect_true(isTRUE(res_s4$truncated))
+expect_identical(res_s4$truncation_reason, "max_output_tokens")
+expect_identical(res_s4$content, marker)
+
+# content_filter through the same path: fail closed, accurately named
+expect_warning(
+    res_s5 <- with_stubbed_sse(
+        ".openai_codex_post_sse", responses_truncated("content_filter"),
+        llm.api::agent(prompt = "go", tools = echo_tools,
+                       tool_handler = function(name, args) {
+                           stream_calls <<- stream_calls + 1L
+                           "should never run"
+                       },
+                       model = "gpt-test", provider = "openai",
+                       web_search = TRUE, verbose = FALSE,
+                       on_delta = swallow)),
+    pattern = "incomplete")
+expect_identical(stream_calls, 0L)
+expect_identical(res_s5$truncation_reason, "content_filter")
+expect_identical(res_s5$content, "[Response incomplete: content_filter]")
+
 # --- live: a 30-token budget cannot finish emitting a tool call ---
 if (at_home() && nzchar(Sys.getenv("ANTHROPIC_API_KEY"))) {
     live_calls <- 0L
