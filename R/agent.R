@@ -899,15 +899,15 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 # connection there is is curl's.
 .llm_is_transport_error <- function(e, notes = character()) {
     inherits(e, "curl_error") ||
-        grepl(paste0("Timeout was reached|Operation too slow|Recv failure|",
-                     "Send failure|Connection reset|Could not resolve|",
-                     "Couldn't connect|Failed to connect|Failed to open|",
-                     "Empty reply|Failure when receiving|",
-                     "Transferred a partial|connection to .* failed|",
-                     "SSL|OpenSSL|cannot open the connection|",
-                     "cannot read from connection|error reading from connection"),
-              paste(c(conditionMessage(e), notes), collapse = " "),
-              ignore.case = TRUE)
+    grepl(paste0("Timeout was reached|Operation too slow|Recv failure|",
+                 "Send failure|Connection reset|Could not resolve|",
+                 "Couldn't connect|Failed to connect|Failed to open|",
+                 "Empty reply|Failure when receiving|",
+                 "Transferred a partial|connection to .* failed|",
+                 "SSL|OpenSSL|cannot open the connection|",
+                 "cannot read from connection|error reading from connection"),
+          paste(c(conditionMessage(e), notes), collapse = " "),
+          ignore.case = TRUE)
 }
 
 # One retry for a request the transport lost before any byte of the
