@@ -575,7 +575,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                              on_delta = NULL, ...) {
     url <- paste0(config$base_url, config$chat_path)
 
-    body <- list(model = model, messages = .llm_blocks(messages, "anthropic"),
+    # Marker on the translated copy, not on `messages`: the loop keeps
+    # extending that list, and a marker left on it would be re-sent on
+    # every later request alongside the new one.
+    body <- list(model = model,
+                 messages = .anthropic_mark_history(
+                     .llm_blocks(messages, "anthropic"), cache),
                  max_tokens = 4096)
 
     sys <- .anthropic_system(system, cache,
