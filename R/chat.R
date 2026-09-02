@@ -76,6 +76,77 @@
     blocks
 }
 
+# Put a cache_control marker on the tail of the message history, so the
+# next request reads this one's context from cache instead of paying
+# for it again.
+#
+# Anthropic caches tools + system + messages up to a marked block. With
+# the marker on system alone, only the static prefix is ever read back;
+# in an agent loop that is a few thousand tokens against a history that
+# grows every iteration and is re-sent whole each time. On the corteza
+# ARC harness one game re-sent a history that reached ~429k tokens
+# across 239 requests: 59.4M uncached input tokens, of which the system
+# marker would have covered about 0.5%.
+#
+# Marking the final block instead means request N writes the whole
+# conversation so far, and request N+1 -- whose prefix is N's messages
+# plus the new assistant turn and tool results -- looks back, finds N's
+# entry, and pays fresh input only for the appended blocks. Anthropic
+# documents this as the intended pattern for multi-turn use. The
+# lookback is bounded at 20 positions, where a run of consecutive
+# tool_use blocks counts as one and a run of tool_result blocks as one;
+# an agent iteration appends two, so the previous entry is always in
+# reach. A single request that appends more than 20 positions of other
+# content would miss and rewrite the whole prefix; that is the one case
+# this does not cover, and usage$cache_creation_input_tokens near the
+# full conversation size on every request is its signature.
+#
+# Applied to the translated copy at request-build time, never to the
+# caller's accumulating history, and it strips any marker already
+# present before placing one -- so a history that was marked on a
+# previous request carries exactly one marker into the next, rather
+# than one per iteration until the four-breakpoint limit 400s. Same TTL
+# as the system marker, so Anthropic's rule that a longer-TTL breakpoint
+# precede a shorter one never engages. "none" returns the input as is:
+# byte-identical serialization is what a test on that path checks.
+.anthropic_mark_history <- function(messages, cache) {
+    if (identical(cache, "none") || !length(messages)) {
+        return(messages)
+    }
+    control <- if (identical(cache, "1h")) {
+        list(type = "ephemeral", ttl = "1h")
+    } else {
+        list(type = "ephemeral")
+    }
+    messages <- lapply(messages, function(m) {
+        if (is.list(m$content)) {
+            m$content <- lapply(m$content, function(b) {
+                b$cache_control <- NULL
+                b
+            })
+        }
+        m
+    })
+    last <- length(messages)
+    content <- messages[[last]]$content
+    if (is.character(content)) {
+        messages[[last]]$content <- list(list(type = "text", text = content,
+                cache_control = control))
+        return(messages)
+    }
+    # Walk back past anything a marker cannot sit on. thinking blocks
+    # are the only such type a history can end in.
+    i <- length(content)
+    while (i >= 1L &&
+        isTRUE(content[[i]]$type %in% c("thinking", "redacted_thinking"))) {
+        i <- i - 1L
+    }
+    if (i >= 1L) {
+        messages[[last]]$content[[i]]$cache_control <- control
+    }
+    messages
+}
+
 # Providers with provider-native web search wired up. Grows as each provider's
 # native mechanism is added (openai_codex/openai Responses tool, anthropic
 # web_search_<date>, moonshot $web_search).
@@ -147,10 +218,13 @@
 #'   a corporate proxy; requires a base URL via \code{llm_base()} or
 #'   \code{OPENAI_COMPATIBLE_BASE_URL}, and an explicit \code{model}).
 #' @param stream Logical. Stream the response (prints as it arrives).
-#' @param cache Character. Anthropic prompt caching for the system
-#'   message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
-#'   ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
-#'   for other providers.
+#' @param cache Character. Anthropic prompt caching: \code{"none"}
+#'   (default), \code{"5m"}, or \code{"1h"} ephemeral TTL. Places a
+#'   marker on the system message and another on the final message, so
+#'   a follow-up call that resends this conversation reads it from
+#'   cache. Billing-only: the model receives identical input either
+#'   way. Anthropic-only; warns and degrades to \code{"none"} for other
+#'   providers.
 #' @param thinking_budget_tokens Integer or NULL. Anthropic extended
 #'   thinking budget; must be at least 1024 and less than
 #'   \code{max_tokens}. Anthropic-only; ignored with a warning for
@@ -418,10 +492,12 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 
 #' Anthropic chat request
 #' @noRd
-.chat_anthropic <- function(body, config, stream, cache = "none",
-                            thinking_budget_tokens = NULL) {
-    url <- paste0(config$base_url, config$chat_path)
-
+# The request body for the one-shot chat() path, split out of
+# .chat_anthropic() so it can be checked without a network stub: that
+# function posts through a curl handle, and the body set on a handle
+# cannot be read back. Pure over its inputs.
+.anthropic_chat_body <- function(body, cache = "none",
+                                 thinking_budget_tokens = NULL, oauth = FALSE) {
     # Convert messages format for Anthropic
     system_msg <- NULL
     messages <- list()
@@ -434,11 +510,11 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         }
     }
 
-    anthropic_body <- list(model = body$model, messages = messages,
+    anthropic_body <- list(model = body$model,
+                           messages = .anthropic_mark_history(messages, cache),
                            max_tokens = body$max_tokens %||% 4096)
 
-    sys <- .anthropic_system(system_msg, cache,
-                             oauth = is.function(config$credentials))
+    sys <- .anthropic_system(system_msg, cache, oauth = oauth)
     if (!is.null(sys)) {
         anthropic_body$system <- sys
     }
@@ -458,6 +534,17 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     if (!is.null(ws_tool)) {
         anthropic_body$tools <- list(ws_tool)
     }
+
+    anthropic_body
+}
+
+.chat_anthropic <- function(body, config, stream, cache = "none",
+                            thinking_budget_tokens = NULL) {
+    url <- paste0(config$base_url, config$chat_path)
+
+    anthropic_body <- .anthropic_chat_body(body, cache = cache,
+        thinking_budget_tokens = thinking_budget_tokens,
+        oauth = is.function(config$credentials))
 
     headers <- .anthropic_headers(config)
 

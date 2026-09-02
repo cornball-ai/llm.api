@@ -40,10 +40,13 @@ a corporate proxy; requires a base URL via \code{llm_base()} or
 
 \item{stream}{Logical. Stream the response (prints as it arrives).}
 
-\item{cache}{Character. Anthropic prompt caching for the system
-message: \code{"none"} (default), \code{"5m"}, or \code{"1h"}
-ephemeral TTL. Anthropic-only; warns and degrades to \code{"none"}
-for other providers.}
+\item{cache}{Character. Anthropic prompt caching: \code{"none"}
+(default), \code{"5m"}, or \code{"1h"} ephemeral TTL. Places a
+marker on the system message and another on the final message, so
+a follow-up call that resends this conversation reads it from
+cache. Billing-only: the model receives identical input either
+way. Anthropic-only; warns and degrades to \code{"none"} for other
+providers.}
 
 \item{thinking_budget_tokens}{Integer or NULL. Anthropic extended
 thinking budget; must be at least 1024 and less than

@@ -1,3 +1,22 @@
+# llm.api 0.1.9.6
+
+* **`cache` now covers the message history, not just the system
+  prompt.** `cache = "5m"` / `"1h"` also places a `cache_control`
+  marker on the final cacheable block of the final message, so request
+  N+1 in an `agent()` loop reads request N's context from cache and
+  pays fresh input only for the blocks appended since. With the marker
+  on system alone, only the static prefix was ever read back: on one
+  agentic run whose history reached ~429k tokens across 239 requests,
+  the system marker covered about 0.5% of 59.4M input tokens. Exactly
+  one history marker goes out per request however many preceded it
+  (the helper strips any already present), the marker is applied to
+  the request copy and never to the caller's history, and `"none"` is
+  byte-identical to before. `chat()`'s body assembly is split out as
+  `.anthropic_chat_body()` so that path is testable without a network
+  stub. Not handled: a single request appending more than 20 positions
+  of non-tool content, which falls outside Anthropic's lookback and
+  rewrites the prefix; documented on the helper.
+
 # llm.api 0.1.9.5
 
 * **`agent()` no longer treats a cut-off response as a clean
