@@ -579,8 +579,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # extending that list, and a marker left on it would be re-sent on
     # every later request alongside the new one.
     body <- list(model = model,
-                 messages = .anthropic_mark_history(
-                     .llm_blocks(messages, "anthropic"), cache),
+                 messages = .anthropic_mark_history(.llm_blocks(messages, "anthropic"),
+            cache),
                  max_tokens = 4096)
 
     sys <- .anthropic_system(system, cache,

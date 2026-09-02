@@ -131,14 +131,14 @@
     content <- messages[[last]]$content
     if (is.character(content)) {
         messages[[last]]$content <- list(list(type = "text", text = content,
-                                              cache_control = control))
+                cache_control = control))
         return(messages)
     }
     # Walk back past anything a marker cannot sit on. thinking blocks
     # are the only such type a history can end in.
     i <- length(content)
     while (i >= 1L &&
-           isTRUE(content[[i]]$type %in% c("thinking", "redacted_thinking"))) {
+        isTRUE(content[[i]]$type %in% c("thinking", "redacted_thinking"))) {
         i <- i - 1L
     }
     if (i >= 1L) {
@@ -494,8 +494,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 # function posts through a curl handle, and the body set on a handle
 # cannot be read back. Pure over its inputs.
 .anthropic_chat_body <- function(body, cache = "none",
-                                 thinking_budget_tokens = NULL,
-                                 oauth = FALSE) {
+                                 thinking_budget_tokens = NULL, oauth = FALSE) {
     # Convert messages format for Anthropic
     system_msg <- NULL
     messages <- list()
@@ -540,8 +539,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                             thinking_budget_tokens = NULL) {
     url <- paste0(config$base_url, config$chat_path)
 
-    anthropic_body <- .anthropic_chat_body(
-        body, cache = cache, thinking_budget_tokens = thinking_budget_tokens,
+    anthropic_body <- .anthropic_chat_body(body, cache = cache,
+        thinking_budget_tokens = thinking_budget_tokens,
         oauth = is.function(config$credentials))
 
     headers <- .anthropic_headers(config)
