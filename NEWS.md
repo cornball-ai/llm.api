@@ -1,3 +1,15 @@
+# llm.api 0.1.9.7
+
+* **Price snapshot refreshed to litellm as of 2026-09-02** (2,778 models,
+  from 2,157 on 2026-05-24, which had passed the package's own 90-day
+  staleness threshold). Adds the current generation: `gpt-5.6` and its
+  `-sol` / `-luna` / `-terra` / `-cyber` variants, and `claude-opus-5`,
+  all of which priced as `NA` before, so any `usage$cost` summed over
+  a run on them came back `NA`. `gpt-5.6-sol` on the codex wire resolves
+  through the bare litellm key (input $4/M, cached $0.40/M), so the
+  hand-maintained codex table needed no entry. `prices_snapshot_stale()`
+  is `FALSE` again.
+
 # llm.api 0.1.9.6
 
 * **`cache` now covers the message history, not just the system

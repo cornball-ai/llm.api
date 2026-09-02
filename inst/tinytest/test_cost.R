@@ -24,6 +24,40 @@ expect_equal(llm.api:::.cost_for("claude-sonnet-4-6", "anthropic", 1000, 500),
 expect_equal(llm.api:::.cost_for("claude-sonnet-4-20250514", "anthropic", 1000, 500),
              0.0105)
 
+# ---- Current-generation models (litellm snapshot 2026-09-02) ----
+# These were NA in the 2026-05-24 snapshot, so every cost a caller
+# summed over a gpt-5.6 or claude-opus-5 run came back NA. The rates
+# below are litellm's; the expected values are computed by hand from
+# them, not read back from .PRICES, so a row that regressed to NA or
+# to a different tier fails here rather than agreeing with itself.
+
+# gpt-5.6-sol on the codex wire: input 4e-06, output 2e-05 -> 0.014.
+# The codex hand table has no 5.6 entry, so this proves the fallthrough
+# to the bare litellm key for provider "openai_codex".
+expect_equal(llm.api:::.cost_for("gpt-5.6-sol", "openai_codex", 1000, 500),
+             0.014)
+expect_equal(llm.api:::.cost_for("gpt-5.6", "openai", 1000, 500), 0.014)
+
+# gpt-5.6-luna: input 2e-07, output 1.2e-06 -> 0.0008.
+expect_equal(llm.api:::.cost_for("gpt-5.6-luna", "openai_codex", 1000, 500),
+             0.0008)
+
+# claude-opus-5: input 5e-06, output 2.5e-05 -> 0.0175, on both
+# Anthropic providers.
+expect_equal(llm.api:::.cost_for("claude-opus-5", "anthropic", 1000, 500),
+             0.0175)
+expect_equal(llm.api:::.cost_for("claude-opus-5", "anthropic_claude", 1000, 500),
+             0.0175)
+
+# usage_cost() through the OpenAI gross-count path: a codex usage
+# reports input_tokens *including* cached ones, so 4417 in / 4224
+# cached / 5 out is 193 fresh x 4e-06 + 4224 x 4e-07 + 5 x 2e-05.
+expect_equal(llm.api::usage_cost(list(input_tokens = 4417L, output_tokens = 5L,
+                                      cache_read_input_tokens = 4224L),
+                                 model = "gpt-5.6-sol",
+                                 provider = "openai_codex"),
+             193 * 4e-06 + 4224 * 4e-07 + 5 * 2e-05)
+
 # ---- Ollama short-circuits to zero ----
 
 expect_equal(llm.api:::.cost_for("llama3.2", "ollama", 1000, 500), 0)
