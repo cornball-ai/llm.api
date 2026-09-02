@@ -613,11 +613,14 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 
     headers <- .anthropic_headers(config)
 
-    resp <- if (is.null(on_delta)) {
-        .post_json(url, body, headers)
-    } else {
-        .anthropic_post_sse(url, body, headers, on_delta = on_delta)
-    }
+    # Always stream. A plain POST sends nothing until the whole response
+    # is generated, and R's curl aborts a connection that is silent for
+    # ten minutes -- which one long generation on a large max_tokens can
+    # be, and which a queued request looks identical to. On a stream the
+    # bytes flow as tokens are produced (Anthropic pings through pauses),
+    # so the cutoff only trips on a genuine stall. With no on_delta the
+    # SSE path assembles the same response object the plain POST did.
+    resp <- .anthropic_post_sse(url, body, headers, on_delta = on_delta)
 
     # Parse response
     text_parts <- character()
@@ -885,16 +888,62 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 }
 
 # Helper: POST JSON request
+# Is this error the transport's (timeout, reset, DNS, refused, stall)
+# rather than the API's or ours? curl_fetch_memory() signals a classed
+# `curl_error` with libcurl's text. curl_fetch_stream() goes through an
+# R connection: libcurl's text arrives as a *warning* ("Failed to open
+# 'url': ... Couldn't connect to server") and the error itself is R's
+# generic "cannot open the connection", so the caller passes the
+# warnings it saw as `notes` and both are matched. The generic
+# connection messages count too: inside these transports the only
+# connection there is is curl's.
+.llm_is_transport_error <- function(e, notes = character()) {
+    inherits(e, "curl_error") ||
+    grepl(paste0("Timeout was reached|Operation too slow|Recv failure|",
+                 "Send failure|Connection reset|Could not resolve|",
+                 "Couldn't connect|Failed to connect|Failed to open|",
+                 "Empty reply|Failure when receiving|",
+                 "Transferred a partial|connection to .* failed|",
+                 "SSL|OpenSSL|cannot open the connection|",
+                 "cannot read from connection|error reading from connection"),
+          paste(c(conditionMessage(e), notes), collapse = " "),
+          ignore.case = TRUE)
+}
+
+# One retry for a request the transport lost before any byte of the
+# response arrived: a transport error on a call whose `received()`
+# says nothing came back. A request that had started to answer is not
+# retried -- re-sending it bills the generation twice and can duplicate
+# a side effect. Anything that is not the transport's (an API error, a
+# bug) propagates untouched. The wait between attempts is
+# `getOption("llm.api.transport_wait", 5)` seconds.
+.llm_transport_retry <- function(run, received = function() FALSE,
+                                 wait = getOption("llm.api.transport_wait", 5)) {
+    notes <- character()
+    attempt <- function() {
+        withCallingHandlers(run(), warning = function(w) {
+            notes <<- c(notes, conditionMessage(w))
+        })
+    }
+    tryCatch(attempt(), error = function(e) {
+        if (!.llm_is_transport_error(e, notes) || isTRUE(received())) {
+            stop(e)
+        }
+        Sys.sleep(wait)
+        attempt()
+    })
+}
+
 .post_json <- function(url, body, headers) {
     .llm_assert_translated(body$messages, "the request body")
-    h <- curl::new_handle()
-    curl::handle_setopt(h,
-                        customrequest = "POST",
-                        postfields = jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
-    )
-    curl::handle_setheaders(h, .list = as.list(headers))
-
-    resp <- curl::curl_fetch_memory(url, handle = h)
+    payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
+    run <- function() {
+        h <- curl::new_handle()
+        curl::handle_setopt(h, customrequest = "POST", postfields = payload)
+        curl::handle_setheaders(h, .list = as.list(headers))
+        curl::curl_fetch_memory(url, handle = h)
+    }
+    resp <- .llm_transport_retry(run)
 
     if (resp$status_code >= 400) {
         err <- tryCatch(

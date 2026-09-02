@@ -189,15 +189,23 @@ local({
     cfg <- list(provider = "anthropic", base_url = "http://127.0.0.1:1",
                 chat_path = "/v1/messages", api_key = "k")
 
-    plain <- with_stub(".post_json", function(url, body, headers) whole,
+    # `plain`: what the agent path makes of the wire's whole record,
+    # handed back by a stubbed transport (the agent path always streams
+    # since 0.1.9.8, so the stub sits on the SSE transport).
+    plain <- with_stub(".anthropic_post_sse",
+        function(url, body, headers, on_delta = NULL) whole,
         llm.api:::.agent_anthropic(list(), list(), NULL, "m", cfg))
 
-    streamed <- llm.api:::.agent_anthropic(list(), list(), NULL, "m",
-        list(provider = "anthropic", base_url = sse_url(fragments),
-             chat_path = "", api_key = "k"),
+    sse_cfg <- list(provider = "anthropic", base_url = sse_url(fragments),
+                    chat_path = "", api_key = "k")
+    streamed <- llm.api:::.agent_anthropic(list(), list(), NULL, "m", sse_cfg,
         on_delta = function(x) NULL)
+    # No callback is the agent's default now; it must assemble the same
+    # record from the same fragments.
+    quiet <- llm.api:::.agent_anthropic(list(), list(), NULL, "m", sse_cfg)
 
     # The whole record. A field-by-field comparison is how a codec that
     # drops one field passes.
     expect_identical(streamed, plain)
+    expect_identical(quiet, plain)
 })
