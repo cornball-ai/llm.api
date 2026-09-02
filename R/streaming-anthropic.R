@@ -119,11 +119,7 @@
 .anthropic_post_sse <- function(url, body, headers, on_delta = NULL) {
     .llm_assert_translated(body$messages, "the request body")
     body$stream <- TRUE
-
-    h <- curl::new_handle()
-    curl::handle_setopt(h, customrequest = "POST",
-                        postfields = jsonlite::toJSON(body, auto_unbox = TRUE, null = "null"))
-    curl::handle_setheaders(h, .list = as.list(headers))
+    payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
 
     state <- list(blocks = list(), usage = NULL, stop_reason = NULL)
     buffer <- ""
@@ -164,8 +160,19 @@
         length(data)
     }
 
-    fetched <- .llm_with_cancel(curl::curl_fetch_stream(url, callback,
-            handle = h))
+    # Fresh handle and fresh parser state per attempt, so a retry (see
+    # .llm_transport_retry) starts from nothing rather than from the
+    # tail of a connection that died.
+    run <- function() {
+        state <<- list(blocks = list(), usage = NULL, stop_reason = NULL)
+        buffer <<- ""
+        raw_text <<- ""
+        h <- curl::new_handle()
+        curl::handle_setopt(h, customrequest = "POST", postfields = payload)
+        curl::handle_setheaders(h, .list = as.list(headers))
+        .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h))
+    }
+    fetched <- .llm_transport_retry(run, received = function() nzchar(raw_text))
     if (fetched$cancelled) {
         partial <- .llm_anthropic_assemble(state)
         attr(partial, "llm_cancelled") <- TRUE

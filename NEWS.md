@@ -1,3 +1,23 @@
+# llm.api 0.1.9.8
+
+* **The Anthropic agent path always streams.** `agent()` on
+  `anthropic` / `anthropic_claude` used a plain POST unless the caller
+  passed `on_delta`. A plain POST sends nothing until the whole response
+  is generated, and R's curl aborts a connection that is silent for ten
+  minutes ("Operation too slow. Less than 1 bytes/sec transferred the
+  last 600 seconds"), which one long generation on a large `max_tokens`
+  can be and which a queued request looks identical to. One such abort
+  ended an ARC-AGI-3 game on `claude-opus-5` at 8 of 9 levels. Requests
+  now go through the SSE transport whether or not there is a callback;
+  it assembles the same response object, so nothing changes for callers.
+* **One retry for a request lost by the transport before any byte
+  arrived.** Curl errors (timeouts, resets, DNS, refused connections) on
+  a request that received nothing are retried once after
+  `getOption("llm.api.transport_wait", 5)` seconds, on both the plain
+  POST and the SSE transport. A request that had started to answer is
+  not retried, since re-sending it would bill the generation twice; API
+  errors propagate untouched.
+
 # llm.api 0.1.9.7
 
 * **Price snapshot refreshed to litellm as of 2026-09-02** (2,778 models,
