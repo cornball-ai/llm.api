@@ -186,11 +186,21 @@ b_keep <- llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
                                        max_output_tokens = 456L)
 expect_null(b_keep$max_output_tokens)
 
-# Other extra params are still forwarded (drop is scoped to the token caps).
+# Sampling temperature is also unsupported: warn once, then drop it.
+codex_state$warned_temperature <- NULL
+expect_warning(
+    b_temperature <- llm.api:::.openai_codex_body(
+        mk_user(), list(), "sys", "gpt-5.5", temperature = 0.5),
+    "not supported by the Codex backend")
+expect_null(b_temperature$temperature)
+expect_silent(llm.api:::.openai_codex_body(
+    mk_user(), list(), "sys", "gpt-5.5", temperature = 0.2))
+
+# Other extra params are still forwarded.
 b_other <- llm.api:::.openai_codex_body(mk_user(), list(), "sys", "gpt-5.5",
-                                        max_tokens = 5L, temperature = 0.5)
+                                        max_tokens = 5L, metadata = list(test = TRUE))
 expect_null(b_other$max_tokens)
-expect_equal(b_other$temperature, 0.5)
+expect_true(isTRUE(b_other$metadata$test))
 
 # Captured request body through chat(): no token cap reaches /codex/responses.
 # The doubles mirror the real signature rather than taking `...`: they

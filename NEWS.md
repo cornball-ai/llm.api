@@ -1,3 +1,10 @@
+# llm.api 0.1.9.10
+
+* The `openai_codex` provider now drops unsupported `temperature` sampling
+  controls with a once-per-session warning, matching its existing handling of
+  unsupported output-token caps. Generic callers no longer receive a 400 from
+  the subscription Codex endpoint for this provider-neutral option.
+
 # llm.api 0.1.9.9
 
 * **Agent hosts can checkpoint or compact at a safe between-turn boundary.**
