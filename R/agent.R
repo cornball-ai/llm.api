@@ -5,7 +5,9 @@
 #' Send a prompt to an LLM with tools. Automatically handles tool calls
 #' in a loop until the model responds with text only.
 #'
-#' @param prompt Character. The user message.
+#' @param prompt Character or NULL. The user message. NULL continues directly
+#'   from \code{history} without appending another user message; \code{history}
+#'   must then be non-empty.
 #' @param tools List. Tool definitions (from mcp_tools_for_claude or manual).
 #' @param tool_handler Function. Called with `(name, args)` and returns a
 #'   result string. If it declares a formal named `context`, it also
@@ -28,6 +30,16 @@
 #'   snapshot intermediate state so an interrupt mid-turn doesn't lose
 #'   the work that was already done. Errors raised inside the callback
 #'   are swallowed so telemetry/snapshotting can't break a turn.
+#' @param checkpoint_callback Function or NULL. Called after one complete
+#'   assistant tool-use turn and all of its tool results have been appended,
+#'   immediately before the next model request. The signature is
+#'   \code{checkpoint_callback(history, context)}. Return NULL to leave history
+#'   unchanged, or \code{list(history = replacement)} to atomically replace the
+#'   provider-native history used by the next request. \code{context} contains
+#'   \code{agent_turn}, \code{provider}, \code{model}, \code{assistant_text},
+#'   \code{tool_call_count}, and the provider's \code{usage} for that turn.
+#'   Unlike \code{history_callback}, errors propagate because this callback is
+#'   part of agent-loop control rather than best-effort telemetry.
 #' @param cache Character. Anthropic prompt caching: \code{"none"}
 #'   (default), \code{"5m"}, or \code{"1h"} ephemeral TTL. Places a
 #'   marker on the system message and another on the tail of the
@@ -123,7 +135,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
                                "openai_codex", "ollama", "openai_compatible"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
-                  history_callback = NULL, cache = c("none", "5m", "1h"),
+                  history_callback = NULL, checkpoint_callback = NULL,
+                  cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, web_search = FALSE,
                   on_delta = NULL, ...) {
     provider <- match.arg(provider)
@@ -152,6 +165,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # about -- only the shape of the callback itself to check.
     if (!is.null(on_delta) && !is.function(on_delta)) {
         stop("`on_delta` must be a function of one argument.", call. = FALSE)
+    }
+    if (!is.null(checkpoint_callback) && !is.function(checkpoint_callback)) {
+        stop("`checkpoint_callback` must be a function of two arguments.",
+             call. = FALSE)
     }
     if (!isFALSE(web_search) && !provider %in% .web_search_providers()) {
         warning("`web_search` is not yet supported for provider \"", provider,
@@ -219,7 +236,13 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     } else {
         messages <- list()
     }
-    messages[[length(messages) + 1]] <- list(role = "user", content = prompt)
+    if (is.null(prompt)) {
+        if (length(messages) == 0L) {
+            stop("`prompt = NULL` requires non-empty `history`.", call. = FALSE)
+        }
+    } else {
+        messages[[length(messages) + 1L]] <- list(role = "user", content = prompt)
+    }
 
     turn <- 0L
 
@@ -506,6 +529,34 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                 wire
             )
             .fire_history_callback(history_callback, messages)
+        }
+
+        # Quiescent boundary between model turns: the assistant message and
+        # every result in its tool batch are complete, and the next provider
+        # request has not started. A host may replace the provider-native
+        # history here (for example, with a compaction summary plus retained
+        # tail) without splitting a tool call/result pair.
+        if (!is.null(checkpoint_callback)) {
+            checkpoint <- checkpoint_callback(
+                messages,
+                list(
+                     agent_turn = turn,
+                     provider = provider,
+                     model = model,
+                     assistant_text = response$text %||% "",
+                     tool_call_count = dispatch_count,
+                     usage = response$usage
+                )
+            )
+            if (!is.null(checkpoint)) {
+                if (!is.list(checkpoint) || is.null(checkpoint$history) ||
+                    !is.list(checkpoint$history)) {
+                    stop("`checkpoint_callback` must return NULL or ",
+                         "`list(history = <list>)`.", call. = FALSE)
+                }
+                messages <- checkpoint$history
+                .fire_history_callback(history_callback, messages)
+            }
         }
     }
 

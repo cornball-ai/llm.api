@@ -1,3 +1,16 @@
+# llm.api 0.1.9.9
+
+* **Agent hosts can checkpoint or compact at a safe between-turn boundary.**
+  `agent()` gains an optional `checkpoint_callback(history, context)` after an
+  assistant tool-use response and its entire result batch have been appended,
+  but before the next model request. The callback may atomically replace the
+  provider-native history; callback errors propagate so a failed durable
+  checkpoint cannot silently discard state. Existing two-argument tool
+  handlers and callers without the hook are unchanged.
+* `agent(prompt = NULL, history = ...)` continues an existing non-empty
+  provider-native history without inventing a user message. This supports a
+  host's one compact-and-retry response to a real context-window overflow.
+
 # llm.api 0.1.9.8
 
 * **The Anthropic agent path always streams.** `agent()` on
