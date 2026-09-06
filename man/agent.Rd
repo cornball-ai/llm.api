@@ -15,6 +15,7 @@ agent(
   verbose = TRUE,
   history = NULL,
   history_callback = NULL,
+  checkpoint_callback = NULL,
   cache = c("none", "5m", "1h"),
   thinking_budget_tokens = NULL,
   web_search = FALSE,
@@ -23,7 +24,9 @@ agent(
 )
 }
 \arguments{
-\item{prompt}{Character. The user message.}
+\item{prompt}{Character or NULL. The user message. NULL continues directly
+from \code{history} without appending another user message; \code{history}
+must then be non-empty.}
 
 \item{tools}{List. Tool definitions (from mcp_tools_for_claude or manual).}
 
@@ -55,6 +58,17 @@ appended and after each tool result is appended. Lets callers
 snapshot intermediate state so an interrupt mid-turn doesn't lose
 the work that was already done. Errors raised inside the callback
 are swallowed so telemetry/snapshotting can't break a turn.}
+
+\item{checkpoint_callback}{Function or NULL. Called after one complete
+assistant tool-use turn and all of its tool results have been appended,
+immediately before the next model request. The signature is
+\code{checkpoint_callback(history, context)}. Return NULL to leave history
+unchanged, or \code{list(history = replacement)} to atomically replace the
+provider-native history used by the next request. \code{context} contains
+\code{agent_turn}, \code{provider}, \code{model}, \code{assistant_text},
+\code{tool_call_count}, and the provider's \code{usage} for that turn.
+Unlike \code{history_callback}, errors propagate because this callback is
+part of agent-loop control rather than best-effort telemetry.}
 
 \item{cache}{Character. Anthropic prompt caching: \code{"none"}
 (default), \code{"5m"}, or \code{"1h"} ephemeral TTL. Places a

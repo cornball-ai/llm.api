@@ -4,10 +4,18 @@
 
 ns <- asNamespace("llm.api")
 orig_post_json <- get(".post_json", envir = ns, inherits = FALSE)
+orig_post_sse <- get(".anthropic_post_sse", envir = ns, inherits = FALSE)
+# The Anthropic agent path streams (0.1.9.8), so a stub on the plain
+# POST alone is never reached there: install it on both transports.
 with_stubbed_post_json <- function(stub, expr) {
+    sse <- function(url, body, headers, on_delta = NULL) stub(url, body, headers)
     assignInNamespace(".post_json", stub, ns = "llm.api")
+    assignInNamespace(".anthropic_post_sse", sse, ns = "llm.api")
     tryCatch(force(expr),
-             finally = assignInNamespace(".post_json", orig_post_json, ns = "llm.api"))
+             finally = {
+                 assignInNamespace(".post_json", orig_post_json, ns = "llm.api")
+                 assignInNamespace(".anthropic_post_sse", orig_post_sse, ns = "llm.api")
+             })
 }
 
 # First response: assistant text + two tool_use blocks. Second: end turn.

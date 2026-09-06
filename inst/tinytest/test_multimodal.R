@@ -164,7 +164,9 @@ with_stubbed <- function(name, stub, expr) {
     force(expr)
 }
 
-# agent(): Anthropic, OpenAI, and Ollama all go out through .post_json.
+# agent(): OpenAI and Ollama go out through .post_json; Anthropic
+# streams through .anthropic_post_sse (0.1.9.8), so the stub sits on
+# both.
 for (spec in list(list(provider = "anthropic", dialect = "anthropic",
                        image_type = "image"),
                   list(provider = "openai", dialect = "openai",
@@ -186,9 +188,11 @@ for (spec in list(list(provider = "anthropic", dialect = "anthropic",
                      usage = list(prompt_tokens = 1L, completion_tokens = 1L))
             }
         }
+        sse <- function(url, body, headers, on_delta = NULL) stub(url, body, headers)
         with_stubbed(".post_json", stub,
-            llm.api::agent(prompt = cnt, provider = s$provider,
-                           model = "m", verbose = FALSE, max_turns = 1L))
+            with_stubbed(".anthropic_post_sse", sse,
+                llm.api::agent(prompt = cnt, provider = s$provider,
+                               model = "m", verbose = FALSE, max_turns = 1L)))
         # The user turn is last: OpenAI and Ollama prepend a system one.
         turn <- captured$messages[[length(captured$messages)]]
         expect_identical(turn$role, "user")
