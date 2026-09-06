@@ -158,6 +158,20 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
                     "it. (Shown once per session.)", call. = FALSE)
         }
     }
+    # The subscription Codex endpoint also rejects sampling temperature.
+    # `chat()` exposes temperature across providers, so ignore it here with
+    # the same once-per-session warning used for output-token caps.
+    if (!is.null(extra$temperature)) {
+        extra$temperature <- NULL
+        first <- is.null(.codex_state$warned_temperature)
+        .codex_state$warned_temperature <- TRUE
+        if (first) {
+            warning("`temperature` is not supported by the Codex backend ",
+                    "(/codex/responses rejects sampling controls); ignoring ",
+                    "it. (Shown once per session.)", call. = FALSE)
+        }
+    }
+
     if (is.null(system)) {
         extracted <- .openai_codex_extract_system(messages)
         system <- extracted$system %||% "You are a helpful assistant."
