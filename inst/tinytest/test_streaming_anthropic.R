@@ -96,6 +96,57 @@ local({
     }
 })
 
+# --- Server-side tool calls ---
+# A web search streams as a server_tool_use block whose `input` arrives
+# in input_json_delta fragments exactly like a tool_use, followed by a
+# web_search_tool_result block. The first assembler only knew tool_use:
+# the server block closed with partial_json still on it, went into the
+# agent history verbatim, and the API refused every later request in
+# the conversation --
+#   messages.22.content.2.server_tool_use.partial_json: Extra inputs
+#   are not permitted
+# -- so one search poisoned the whole session.
+local({
+    resp <- post(c(
+        paste0('{"type":"content_block_start","index":0,"content_block":',
+               '{"type":"server_tool_use","id":"srvtoolu_1",',
+               '"name":"web_search","input":{}}}'),
+        paste0('{"type":"content_block_delta","index":0,"delta":',
+               '{"type":"input_json_delta","partial_json":"{\\"query\\":"}}'),
+        paste0('{"type":"content_block_delta","index":0,"delta":',
+               '{"type":"input_json_delta","partial_json":"\\"R 4.6 release\\"}"}}'),
+        '{"type":"content_block_stop","index":0}',
+        paste0('{"type":"content_block_start","index":1,"content_block":',
+               '{"type":"web_search_tool_result","tool_use_id":"srvtoolu_1",',
+               '"content":[{"type":"web_search_result",',
+               '"url":"https://r-project.org","title":"R"}]}}'),
+        '{"type":"content_block_stop","index":1}',
+        paste0('{"type":"content_block_start","index":2,',
+               '"content_block":{"type":"text","text":""}}'),
+        paste0('{"type":"content_block_delta","index":2,',
+               '"delta":{"type":"text_delta","text":"Released."}}'),
+        '{"type":"content_block_stop","index":2}',
+        '{"type":"message_stop"}'))
+    srv <- resp$content[[1L]]
+    expect_identical(srv$type, "server_tool_use")
+    expect_identical(srv$id, "srvtoolu_1")
+    expect_identical(srv$input, list(query = "R 4.6 release"))
+    expect_null(srv$partial_json)
+    # Nothing in the assembled content carries the scaffolding field.
+    expect_false(any(vapply(resp$content,
+                            function(b) "partial_json" %in% names(b),
+                            logical(1))))
+    # The result block passes through untouched.
+    expect_identical(resp$content[[2L]]$type, "web_search_tool_result")
+    expect_identical(resp$content[[2L]]$content[[1L]]$url,
+                     "https://r-project.org")
+    expect_identical(resp$content[[3L]]$text, "Released.")
+    # And the query is what the citation reader finds, which it could
+    # not while the streamed block's input stayed empty.
+    searches <- llm.api:::.anthropic_search_blocks(resp$content)$searches
+    expect_identical(searches[[1L]]$query, "R 4.6 release")
+})
+
 # Interleaved blocks: text and a tool call open together and their
 # deltas alternate. Keyed on index, so neither ends up inside the other.
 local({

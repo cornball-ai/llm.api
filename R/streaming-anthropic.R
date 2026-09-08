@@ -33,10 +33,19 @@
     if (identical(type, "content_block_start")) {
         key <- as.character(ev$index %||% 0L)
         block <- ev$content_block
-        # A tool_use block's `input` arrives as JSON text in the deltas,
-        # not as the object the start event carries (which is empty).
-        # Held as a string until the block closes.
-        if (identical(block$type, "tool_use")) {
+        # A block with `input` -- tool_use, and the server-side kinds
+        # shaped like it (server_tool_use for web search, mcp_tool_use)
+        # -- gets that input as JSON text in the deltas, not as the
+        # object the start event carries (which is empty). Held as a
+        # string until the block closes.
+        #
+        # Keyed on the field, not the type. The first version listed
+        # tool_use alone, so a server_tool_use block closed with its
+        # partial_json still attached, went into the agent history
+        # verbatim, and the API refused every later request in that
+        # conversation ("server_tool_use.partial_json: Extra inputs are
+        # not permitted") -- one web search poisoned the whole session.
+        if ("input" %in% names(block)) {
             block$partial_json <- ""
         }
         state$blocks[[key]] <- block
@@ -68,12 +77,16 @@
     if (identical(type, "content_block_stop")) {
         key <- as.character(ev$index %||% 0L)
         block <- state$blocks[[key]]
-        if (!is.null(block) && identical(block$type, "tool_use")) {
+        # Any block that accumulated fragments, whatever its type. The
+        # scaffolding field must not survive into the result: the
+        # assembled content is the next request's history, and the API
+        # refuses it on the way back in.
+        if (!is.null(block) && !is.null(block$partial_json)) {
             # Parsed only now that every fragment is in. An empty
             # argument object streams as "{}" or as nothing at all, and
             # both have to end up as the empty named list the
             # non-streamed wire delivers.
-            json <- block$partial_json %||% ""
+            json <- block$partial_json
             block$partial_json <- NULL
             block$input <- if (nzchar(json)) {
                 tryCatch(jsonlite::fromJSON(json, simplifyVector = FALSE),
