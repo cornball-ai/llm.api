@@ -1,3 +1,13 @@
+# llm.api 0.1.9.11
+
+* Streamed Anthropic `server_tool_use` blocks (web search) no longer keep
+  their `partial_json` scaffolding: the fragments are parsed into `input`
+  and the field removed at block stop, as for `tool_use`. Previously the
+  block went into the agent history verbatim and the API refused every
+  later request in the conversation (`server_tool_use.partial_json: Extra
+  inputs are not permitted`). The query is recoverable from a streamed
+  block as a result, so `searches` no longer come back empty.
+
 # llm.api 0.1.9.10
 
 * The `openai_codex` provider now drops unsupported `temperature` sampling
