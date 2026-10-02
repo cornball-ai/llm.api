@@ -36,3 +36,51 @@ expect_equal(info$citations[[1]]$url, "https://www.r-project.org/")
 empty <- ns$.anthropic_search_blocks(list(list(type = "text", text = "hi")))
 expect_equal(length(empty$citations), 0L)
 expect_equal(length(empty$searches), 0L)
+
+# reply text: the API cuts a cited answer into text blocks at every
+# citation boundary, mid-sentence. The pieces are one passage; the text
+# before the search is a paragraph of its own. This is the block
+# sequence of a real web-search reply.
+join <- ns$.anthropic_join_text
+types <- c("text", "server_tool_use", "web_search_tool_result", "text",
+           "text", "text")
+texts <- c("I'll search for the score.", NA, NA, "Based on the results, ",
+           "the Braves are leading 5-0",
+           ". The game is still being played.")
+expect_identical(join(types, texts), paste0(
+    "I'll search for the score.\n\n",
+    "Based on the results, the Braves are leading 5-0",
+    ". The game is still being played."))
+# No stray line holds only punctuation.
+expect_false(any(grepl("^[.,]", strsplit(join(types, texts), "\n")[[1]])))
+# One text block, or none.
+expect_identical(join("text", "hi"), "hi")
+expect_identical(join(character(), character()), "")
+expect_identical(join(c("tool_use", "thinking"), c(NA, NA)), "")
+# Text around a tool call or a thinking block: separate paragraphs, and
+# no more than one blank line whatever the first piece ended with.
+expect_identical(join(c("text", "tool_use", "text"), c("a\n", NA, "b")),
+                 "a\n\nb")
+expect_identical(join(c("thinking", "text", "thinking", "text"),
+                      c(NA, "a", NA, "b")), "a\n\nb")
+expect_identical(join(c("text", "text"), c("a", NA)), "a")
+
+# chat()'s parser sees content either as a list or, when jsonlite
+# simplifies it, as a data frame; both give the same joined text.
+raw_json <- paste0(
+    '{"content":[{"type":"text","text":"Before."},',
+    '{"type":"server_tool_use","id":"s1","name":"web_search",',
+    '"input":{"query":"q"}},',
+    '{"type":"text","text":"It is "},',
+    '{"type":"text","text":"5-0","citations":[{"url":"https://x.test"}]},',
+    '{"type":"text","text":"."}]}')
+as_df <- jsonlite::fromJSON(raw_json)$content
+expect_true(is.data.frame(as_df))
+expect_identical(join(as_df$type, as.character(as_df$text)),
+                 "Before.\n\nIt is 5-0.")
+as_list <- jsonlite::fromJSON(raw_json, simplifyVector = FALSE)$content
+expect_identical(
+    join(vapply(as_list, function(b) b$type, ""),
+         vapply(as_list, function(b) as.character(b$text %||% NA_character_),
+                "")),
+    "Before.\n\nIt is 5-0.")

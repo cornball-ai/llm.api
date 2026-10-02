@@ -181,6 +181,40 @@
     tool
 }
 
+# The reply text of an Anthropic response, from its content blocks:
+# `types` is each block's type in order, `texts` its text (NA where the
+# block has none).
+#
+# Consecutive text blocks are pieces of one passage, not separate lines.
+# With web search the API cuts the reply at every citation boundary, in
+# the middle of a sentence, so the pieces are joined with nothing
+# between them. Joined with a newline, as this used to do, a cited
+# answer came out with "." and ", with the ..." stranded on lines of
+# their own. A text block that follows any other kind of block (a
+# search, a tool call, thinking) starts a new paragraph.
+.anthropic_join_text <- function(types, texts) {
+    out <- ""
+    started <- FALSE
+    after_text <- FALSE
+    for (i in seq_along(types)) {
+        if (!identical(types[[i]], "text")) {
+            after_text <- FALSE
+            next
+        }
+        piece <- texts[[i]]
+        if (is.na(piece)) {
+            piece <- ""
+        }
+        if (started && !after_text) {
+            out <- paste0(sub("\n+$", "", out), "\n\n")
+        }
+        out <- paste0(out, piece)
+        started <- TRUE
+        after_text <- TRUE
+    }
+    out
+}
+
 # Extract web-search citations and search queries from a list of Anthropic
 # content blocks (parsed with simplifyVector = FALSE). Citations live on text
 # blocks; the search query lives on the server_tool_use block.
@@ -577,21 +611,18 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     # out of "thinking" blocks.
     if (is.data.frame(data$content)) {
         types <- data$content$type
-        text_blocks <- data$content$text[types == "text"]
+        texts <- as.character(data$content$text %||% rep(NA, length(types)))
         thinking_blocks <- data$content$thinking[types == "thinking"]
     } else {
         types <- vapply(data$content, function(b) b$type %||% "", character(1))
-        text_blocks <- vapply(data$content[types == "text"],
-                              function(b) b$text %||% "", character(1))
+        texts <- vapply(data$content, function(b) {
+            as.character(b$text %||% NA_character_)[1L]
+        }, character(1))
         thinking_blocks <- vapply(data$content[types == "thinking"],
                                   function(b) b$thinking %||% "", character(1))
     }
 
-    if (length(text_blocks)) {
-        content <- paste(text_blocks, collapse = "\n")
-    } else {
-        content <- ""
-    }
+    content <- .anthropic_join_text(types, texts)
     thinking <- if (length(thinking_blocks)) {
         paste(thinking_blocks, collapse = "\n")
     } else {
