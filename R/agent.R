@@ -674,13 +674,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     resp <- .anthropic_post_sse(url, body, headers, on_delta = on_delta)
 
     # Parse response
-    text_parts <- character()
     tool_calls <- list()
 
     for (block in resp$content) {
-        if (block$type == "text") {
-            text_parts <- c(text_parts, block$text)
-        } else if (block$type == "tool_use") {
+        if (block$type == "tool_use") {
             tool_calls[[length(tool_calls) + 1]] <- list(
                 id = block$id,
                 name = block$name,
@@ -699,8 +696,13 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     truncated <- isTRUE(resp$stop_reason %in%
                         c("max_tokens", "model_context_window_exceeded"))
 
+    types <- vapply(resp$content, function(b) b$type %||% "", character(1))
+    texts <- vapply(resp$content, function(b) {
+        as.character(b$text %||% NA_character_)[1L]
+    }, character(1))
+
     list(
-         text = paste(text_parts, collapse = "\n"),
+         text = .anthropic_join_text(types, texts),
          tool_calls = tool_calls,
          cancelled = isTRUE(attr(resp, "llm_cancelled")),
          truncated = truncated,
