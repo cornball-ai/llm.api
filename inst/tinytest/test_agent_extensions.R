@@ -173,6 +173,110 @@ local({
     expect_null(anth_agent_capture$thinking)
 })
 
+# --- thinking: the Anthropic thinking field by type ------------------
+# Claude Sonnet 5.5 has no budget to set: it thinks by default, answers
+# without thinking first under type "between_tools", and refuses
+# "disabled". `thinking` carries the type (or the whole field).
+
+vt <- llm.api:::.validate_thinking
+expect_null(vt(NULL))
+expect_identical(vt("between_tools"), list(type = "between_tools"))
+expect_identical(vt(list(type = "adaptive", display = "summarized")),
+                 list(type = "adaptive", display = "summarized"))
+expect_error(vt(c("a", "b")), "thinking type")
+expect_error(vt(""), "thinking type")
+expect_error(vt(NA_character_), "thinking type")
+expect_error(vt(TRUE), "thinking type")
+expect_error(vt(2048L), "thinking type")
+expect_error(vt(list(display = "summarized")), "thinking type")
+# A list with no `type` is not rescued by a name that starts with it.
+expect_error(vt(list(type_hint = "adaptive")), "thinking type")
+
+# It is a formal of its own. Before it was, R matched `thinking = ` to
+# `thinking_budget_tokens` by prefix and the call failed as a bad budget.
+expect_true("thinking" %in% names(formals(llm.api::agent)))
+expect_true("thinking" %in% names(formals(llm.api::chat)))
+
+# agent(): a type name becomes the body field, with no budget.
+local({
+    anth_agent_capture <<- NULL
+    with_stubbed_post_json(anth_agent_stub, {
+        llm.api::agent(prompt = "go", provider = "anthropic",
+                       model = "claude-test", verbose = FALSE,
+                       tools = list(), thinking = "between_tools")
+    })
+    expect_identical(anth_agent_capture$thinking,
+                     list(type = "between_tools"))
+    expect_identical(
+        as.character(jsonlite::toJSON(anth_agent_capture$thinking,
+                                      auto_unbox = TRUE)),
+        "{\"type\":\"between_tools\"}")
+})
+
+# agent(): a list is sent as given.
+local({
+    anth_agent_capture <<- NULL
+    with_stubbed_post_json(anth_agent_stub, {
+        llm.api::agent(prompt = "go", provider = "anthropic",
+                       model = "claude-test", verbose = FALSE,
+                       tools = list(),
+                       thinking = list(type = "adaptive",
+                                       display = "summarized"))
+    })
+    expect_identical(anth_agent_capture$thinking,
+                     list(type = "adaptive", display = "summarized"))
+})
+
+# Both name the same body field: an error, before any request.
+local({
+    anth_agent_capture <<- NULL
+    with_stubbed_post_json(anth_agent_stub, {
+        expect_error(
+            llm.api::agent(prompt = "go", provider = "anthropic",
+                           model = "claude-test", verbose = FALSE,
+                           tools = list(), max_tokens = 8000L,
+                           thinking = "adaptive",
+                           thinking_budget_tokens = 2048L),
+            "not both")
+    })
+    expect_null(anth_agent_capture)
+})
+expect_error(llm.api::chat("hi", model = "claude-test",
+                           provider = "anthropic", max_tokens = 8000L,
+                           thinking = "adaptive",
+                           thinking_budget_tokens = 2048L), "not both")
+
+# Other providers: warned about and left out of the body.
+local({
+    openai_capture_body <<- NULL
+    openai_thinking_stub <- function(url, body, headers) {
+        openai_capture_body <<- body
+        list(choices = list(list(message = list(role = "assistant",
+                                                content = "done",
+                                                tool_calls = NULL),
+                                 finish_reason = "stop")),
+             usage = list(prompt_tokens = 1L, completion_tokens = 1L))
+    }
+    expect_warning(
+        with_stubbed_post_json(openai_thinking_stub, {
+            llm.api::agent(prompt = "go", provider = "moonshot",
+                           model = "kimi-k2", verbose = FALSE,
+                           thinking = "between_tools")
+        }),
+        pattern = "`thinking` is Anthropic-only")
+    expect_false("thinking" %in% names(openai_capture_body))
+})
+
+# chat(): the one-shot body carries it too.
+cb <- llm.api:::.anthropic_chat_body(
+    list(model = "claude-test",
+         messages = list(list(role = "user", content = "hi"))),
+    thinking = list(type = "between_tools"))
+expect_identical(cb$thinking, list(type = "between_tools"))
+expect_null(llm.api:::.anthropic_chat_body(
+    list(model = "claude-test",
+         messages = list(list(role = "user", content = "hi"))))$thinking)
+
 # --- agent() OpenAI max_tokens rename via ... ----------------------
 
 # Capture the body that .agent_openai sends; verify max_tokens
@@ -263,8 +367,9 @@ with_stubbed <- function(name, stub, expr) {
 
 captured <- NULL
 anthropic_stub <- function(body, config, stream, cache = "none",
-                           thinking_budget_tokens = NULL) {
-    captured <<- list(cache = cache, thinking = thinking_budget_tokens)
+                           thinking_budget_tokens = NULL, thinking = NULL) {
+    captured <<- list(cache = cache, thinking = thinking_budget_tokens,
+                      field = thinking)
     list(content = "ok", thinking = NULL, finish_reason = "stop", usage = NULL)
 }
 
@@ -290,6 +395,19 @@ local({
     expect_equal(captured$thinking, 2000L)
 })
 
+# And for a thinking type: it reaches the dispatch as the field, and
+# does not arrive as a budget.
+local({
+    captured <<- NULL
+    w <- collect_warnings(with_stubbed(".chat_anthropic", anthropic_stub, {
+        llm.api::chat("hi", model = "claude-sonnet-5-5",
+                      thinking = "between_tools")
+    }))
+    expect_false(any(grepl("Anthropic-only", w)))
+    expect_identical(captured$field, list(type = "between_tools"))
+    expect_null(captured$thinking)
+})
+
 # Positive control: a genuine OpenAI model still trips the guard and the
 # warning fires (detection resolves "auto" -> openai before the guard).
 local({
@@ -301,4 +419,8 @@ local({
         llm.api::chat("hi", model = "gpt-4o", cache = "5m")
     }))
     expect_true(any(grepl("cache.*Anthropic-only", w)))
+    w2 <- collect_warnings(with_stubbed(".chat_openai_compatible", openai_stub, {
+        llm.api::chat("hi", model = "gpt-4o", thinking = "adaptive")
+    }))
+    expect_true(any(grepl("`thinking` is Anthropic-only", w2)))
 })

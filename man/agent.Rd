@@ -20,6 +20,7 @@ agent(
   thinking_budget_tokens = NULL,
   web_search = FALSE,
   on_delta = NULL,
+  thinking = NULL,
   ...
 )
 }
@@ -113,6 +114,17 @@ unmatched tool call that breaks the following request; the caller
 knows what was delivered and records it.
 
 Wired for every provider.}
+
+\item{thinking}{Character, list, or NULL. The Anthropic
+\code{thinking} request field, for models where a budget is not the
+control: a type name such as \code{"adaptive"}, \code{"disabled"},
+or \code{"between_tools"}, or the field itself as a list, e.g.
+\code{list(type = "adaptive", display = "summarized")}. Sent as
+given on every request of the loop; which types a model accepts is
+the provider's rule (Claude Sonnet 5.5 answers without thinking
+first under \code{"between_tools"} and refuses \code{"disabled"}).
+Cannot be combined with \code{thinking_budget_tokens}.
+Anthropic-only; ignored with a warning for other providers.}
 
 \item{...}{Additional parameters passed to the API.}
 }

@@ -16,6 +16,7 @@ chat(
   cache = c("none", "5m", "1h"),
   thinking_budget_tokens = NULL,
   web_search = FALSE,
+  thinking = NULL,
   ...
 )
 }
@@ -67,6 +68,17 @@ Responses endpoint so search works on the default model. Moonshot
 doesn't expose the query or structured citations, so its
 \code{searches} carry \code{query = NA} and \code{citations} is
 empty (citations are inlined in the answer text).}
+
+\item{thinking}{Character, list, or NULL. The Anthropic
+\code{thinking} request field, for models where a budget is not the
+control: a type name such as \code{"adaptive"}, \code{"disabled"},
+or \code{"between_tools"}, or the field itself as a list, e.g.
+\code{list(type = "adaptive", display = "summarized")}. Sent as
+given; which types a model accepts is the provider's rule (Claude
+Sonnet 5.5 answers without thinking first under
+\code{"between_tools"} and refuses \code{"disabled"}). Cannot be
+combined with \code{thinking_budget_tokens}. Anthropic-only;
+ignored with a warning for other providers.}
 
 \item{...}{Additional parameters passed to the API.}
 }

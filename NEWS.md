@@ -1,3 +1,15 @@
+# llm.api 0.1.9.13
+
+* `agent()` and `chat()` take `thinking`, the Anthropic thinking type:
+  a name such as `"adaptive"` or `"between_tools"`, or the request field
+  as a list, e.g. `list(type = "adaptive", display = "summarized")`.
+  Claude Sonnet 5.5 has no thinking budget; it thinks by default, answers
+  without thinking first under `"between_tools"`, and refuses
+  `"disabled"`. The value is sent as given. It cannot be combined with
+  `thinking_budget_tokens`, and other providers ignore it with a warning.
+  Passing `thinking = ` used to fail as a malformed
+  `thinking_budget_tokens`, because R matched the name by prefix.
+
 # llm.api 0.1.9.12
 
 * Anthropic replies that cite web search results no longer come back with

@@ -80,6 +80,16 @@
 #'   knows what was delivered and records it.
 #'
 #'   Wired for every provider.
+#' @param thinking Character, list, or NULL. The Anthropic
+#'   \code{thinking} request field, for models where a budget is not the
+#'   control: a type name such as \code{"adaptive"}, \code{"disabled"},
+#'   or \code{"between_tools"}, or the field itself as a list, e.g.
+#'   \code{list(type = "adaptive", display = "summarized")}. Sent as
+#'   given on every request of the loop; which types a model accepts is
+#'   the provider's rule (Claude Sonnet 5.5 answers without thinking
+#'   first under \code{"between_tools"} and refuses \code{"disabled"}).
+#'   Cannot be combined with \code{thinking_budget_tokens}.
+#'   Anthropic-only; ignored with a warning for other providers.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return List with final response and conversation history.
@@ -138,9 +148,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   history_callback = NULL, checkpoint_callback = NULL,
                   cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, web_search = FALSE,
-                  on_delta = NULL, ...) {
+                  on_delta = NULL, thinking = NULL, ...) {
     provider <- match.arg(provider)
     cache <- match.arg(cache)
+    thinking <- .validate_thinking(thinking)
+    .check_thinking_exclusive(thinking, thinking_budget_tokens)
 
     # Anthropic-only feature opt-ins emit a one-time warning when a
     # non-default value is passed against another provider so the
@@ -160,6 +172,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                     "for provider \"", provider, "\".", call. = FALSE)
             thinking_budget_tokens <- NULL
         }
+    }
+    if (!is.null(thinking) && !.is_anthropic(provider)) {
+        warning("`thinking` is Anthropic-only; ignoring for provider \"",
+                provider, "\".", call. = FALSE)
+        thinking <- NULL
     }
     # Every provider streams now, so there is nothing left to warn
     # about -- only the shape of the callback itself to check.
@@ -280,7 +297,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       anthropic_claude = .agent_anthropic(messages, provider_tools, system, model, config,
                 cache = cache,
                 thinking_budget_tokens = thinking_budget_tokens,
-                web_search = web_search, on_delta = on_delta, ...),
+                web_search = web_search, on_delta = on_delta,
+                thinking = thinking, ...),
                       openai = .agent_openai(messages, provider_tools, system, model,
                 config, on_delta = on_delta, ...),
                       moonshot = .agent_openai(messages, provider_tools, system,
@@ -628,7 +646,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 # Anthropic request
 .agent_anthropic <- function(messages, tools, system, model, config,
                              cache = "none", thinking_budget_tokens = NULL,
-                             on_delta = NULL, ...) {
+                             on_delta = NULL, thinking = NULL, ...) {
     url <- paste0(config$base_url, config$chat_path)
 
     # Marker on the translated copy, not on `messages`: the loop keeps
@@ -650,6 +668,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     if (!is.null(thinking_budget_tokens)) {
         body$thinking <- list(type = "enabled",
                               budget_tokens = as.integer(thinking_budget_tokens))
+    }
+    if (!is.null(thinking)) {
+        body$thinking <- thinking
     }
 
     extra <- list(...)
