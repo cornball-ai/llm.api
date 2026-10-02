@@ -217,7 +217,7 @@ local({
 local({
     anth_agent_capture <<- NULL
     with_stubbed_post_json(anth_agent_stub, {
-        llm.api::agent(prompt = "go", provider = "anthropic_claude",
+        llm.api::agent(prompt = "go", provider = "anthropic",
                        model = "claude-test", verbose = FALSE,
                        tools = list(),
                        thinking = list(type = "adaptive",
