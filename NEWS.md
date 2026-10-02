@@ -1,3 +1,12 @@
+# llm.api 0.1.9.12
+
+* Anthropic replies that cite web search results no longer come back with
+  line breaks in the middle of sentences. The API returns such a reply as
+  several text blocks, cut at each citation, and `chat()` and `agent()`
+  joined them with a newline. Consecutive text blocks are now joined
+  directly; text on either side of a search, tool call, or thinking block
+  is separated by a blank line.
+
 # llm.api 0.1.9.11
 
 * Streamed Anthropic `server_tool_use` blocks (web search) no longer keep
