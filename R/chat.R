@@ -31,6 +31,43 @@
 # Wrap the system message in a cache_control block when caching is
 # requested, or pass it through as plain text when cache == "none".
 # The "5m" and "1h" values map to Anthropic's ephemeral cache TTLs.
+# Normalize the `thinking` argument to the Anthropic body field, or NULL.
+#
+# A string is the type alone; a list is the field as it will be sent.
+# Nothing is checked against a table of types: which ones a model
+# accepts is the provider's rule and it changes by model (Claude Sonnet
+# 5.5 takes "between_tools" and refuses "disabled", Claude Sonnet 5 the
+# reverse), and its 400 names the fix. `[[`, not `$`, so a list holding
+# only `type_hint` or similar is not read as having a `type`.
+.validate_thinking <- function(thinking) {
+    if (is.null(thinking)) {
+        return(NULL)
+    }
+    if (is.character(thinking) && length(thinking) == 1L &&
+        !is.na(thinking) && nzchar(thinking)) {
+        return(list(type = thinking))
+    }
+    type <- if (is.list(thinking)) {
+        thinking[["type"]]
+    }
+    if (!is.character(type) || length(type) != 1L || is.na(type) ||
+        !nzchar(type)) {
+        stop("`thinking` must be a thinking type such as \"adaptive\", ",
+             "or a list with a `type`.", call. = FALSE)
+    }
+    thinking
+}
+
+# `thinking` and `thinking_budget_tokens` each produce the whole
+# `thinking` body field, so a call naming both has no single meaning.
+.check_thinking_exclusive <- function(thinking, thinking_budget_tokens) {
+    if (!is.null(thinking) && !is.null(thinking_budget_tokens)) {
+        stop("Pass `thinking` or `thinking_budget_tokens`, not both: ",
+             "each sets the request's `thinking` field.", call. = FALSE)
+    }
+    invisible(TRUE)
+}
+
 .anthropic_system_with_cache <- function(system_msg, cache) {
     if (identical(cache, "none")) {
         return(system_msg)
@@ -277,6 +314,16 @@
 #'   doesn't expose the query or structured citations, so its
 #'   \code{searches} carry \code{query = NA} and \code{citations} is
 #'   empty (citations are inlined in the answer text).
+#' @param thinking Character, list, or NULL. The Anthropic
+#'   \code{thinking} request field, for models where a budget is not the
+#'   control: a type name such as \code{"adaptive"}, \code{"disabled"},
+#'   or \code{"between_tools"}, or the field itself as a list, e.g.
+#'   \code{list(type = "adaptive", display = "summarized")}. Sent as
+#'   given; which types a model accepts is the provider's rule (Claude
+#'   Sonnet 5.5 answers without thinking first under
+#'   \code{"between_tools"} and refuses \code{"disabled"}). Cannot be
+#'   combined with \code{thinking_budget_tokens}. Anthropic-only;
+#'   ignored with a warning for other providers.
 #' @param ... Additional parameters passed to the API.
 #'
 #' @return A list with:
@@ -315,7 +362,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  provider = c("auto", "openai", "anthropic", "anthropic_claude",
                               "moonshot", "openai_codex", "ollama", "openai_compatible"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
-                 thinking_budget_tokens = NULL, web_search = FALSE, ...) {
+                 thinking_budget_tokens = NULL, web_search = FALSE,
+                 thinking = NULL, ...) {
     provider <- match.arg(provider)
     cache <- match.arg(cache)
 
@@ -325,6 +373,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     if (!is.null(thinking_budget_tokens)) {
         .validate_thinking_budget(thinking_budget_tokens, max_tokens)
     }
+    thinking <- .validate_thinking(thinking)
+    .check_thinking_exclusive(thinking, thinking_budget_tokens)
 
     # Resolve "auto" to a concrete provider before the Anthropic-only
     # guards below, otherwise they compare against "auto" and wrongly
@@ -345,6 +395,11 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         warning("`thinking_budget_tokens` is Anthropic-only; ignoring ",
                 "for provider \"", provider, "\".", call. = FALSE)
         thinking_budget_tokens <- NULL
+    }
+    if (!is.null(thinking) && !.is_anthropic(provider)) {
+        warning("`thinking` is Anthropic-only; ignoring for provider \"",
+                provider, "\".", call. = FALSE)
+        thinking <- NULL
     }
     # Provider-native web search. Currently wired for openai_codex; other
     # providers are added incrementally (each has its own native mechanism).
@@ -402,7 +457,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     if (.is_anthropic(provider)) {
         result <- .chat_anthropic(body, config, stream,
                                   cache = cache,
-                                  thinking_budget_tokens = thinking_budget_tokens)
+                                  thinking_budget_tokens = thinking_budget_tokens,
+                                  thinking = thinking)
     } else if (provider == "openai_codex") {
         result <- .chat_openai_codex(body, config, stream)
     } else if (provider == "openai" && !isFALSE(web_search)) {
@@ -531,7 +587,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 # function posts through a curl handle, and the body set on a handle
 # cannot be read back. Pure over its inputs.
 .anthropic_chat_body <- function(body, cache = "none",
-                                 thinking_budget_tokens = NULL, oauth = FALSE) {
+                                 thinking_budget_tokens = NULL,
+                                 oauth = FALSE, thinking = NULL) {
     # Convert messages format for Anthropic
     system_msg <- NULL
     messages <- list()
@@ -563,6 +620,9 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                                         budget_tokens = as.integer(thinking_budget_tokens)
         )
     }
+    if (!is.null(thinking)) {
+        anthropic_body$thinking <- thinking
+    }
 
     ws_tool <- .anthropic_web_search_tool(body$web_search)
     if (!is.null(ws_tool)) {
@@ -573,12 +633,12 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 }
 
 .chat_anthropic <- function(body, config, stream, cache = "none",
-                            thinking_budget_tokens = NULL) {
+                            thinking_budget_tokens = NULL, thinking = NULL) {
     url <- paste0(config$base_url, config$chat_path)
 
     anthropic_body <- .anthropic_chat_body(body, cache = cache,
         thinking_budget_tokens = thinking_budget_tokens,
-        oauth = is.function(config$credentials))
+        oauth = is.function(config$credentials), thinking = thinking)
 
     headers <- .anthropic_headers(config)
 
