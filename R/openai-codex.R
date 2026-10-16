@@ -227,8 +227,13 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
         } else if (is.list(msg) &&
             identical(msg$type, "function_call_output")) {
             input[[length(input) + 1L]] <- msg
+        } else if (is.list(msg) && identical(msg$role, "tool")) {
+            input[[length(input) + 1L]] <- list(type = "function_call_output",
+                call_id = msg$tool_call_id, output = msg$content %||% "")
         } else if (is.list(msg) && !is.null(msg$role)) {
             role <- msg$role
+            calls <- msg$tool_calls %||% list()
+            has_text <- !is.null(msg$content) && !identical(msg$content, "")
             content <- msg$content %||% ""
             if (inherits(content, "llm_content")) {
                 content <- .llm_content_blocks(content, "responses", role)
@@ -240,7 +245,15 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
                 }
                 content <- list(list(type = content_type, text = content))
             }
-            input[[length(input) + 1L]] <- list(role = role, content = content)
+            if (!length(calls) || has_text) {
+                input[[length(input) + 1L]] <- list(role = role, content = content)
+            }
+            for (call in calls) {
+                input[[length(input) + 1L]] <- list(
+                    type = "function_call", call_id = call$id,
+                    name = call$`function`$name,
+                    arguments = call$`function`$arguments)
+            }
         } else {
             input[[length(input) + 1L]] <- msg
         }

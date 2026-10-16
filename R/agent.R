@@ -21,6 +21,9 @@
 #'   OpenAI-compatible gateway; requires a base URL via
 #'   \code{llm_base()} or \code{OPENAI_COMPATIBLE_BASE_URL}, and an
 #'   explicit \code{model}).
+#'   GPT-6 OpenAI tool calls use the Responses endpoint independently of
+#'   \code{web_search}. Older models retain Chat Completions when search is
+#'   off; existing Responses histories keep their wire when continued.
 #' @param max_turns Integer. Maximum tool-use turns (default: 20).
 #' @param verbose Logical. Print tool calls and results.
 #' @param history List or NULL. Previous conversation history to continue from.
@@ -208,13 +211,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                         openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
     }
 
-    # Server-side web search on the standard openai provider runs over the
-    # Responses endpoint (the chat-completions path can't search the default
-    # models). The whole run then uses the Responses wire shape -- flat tools,
-    # function_call_output results -- which matches the openai_codex format, so
-    # `wire` drives tool conversion / dispatch / result append while `provider`
-    # stays "openai" for cost lookup and the returned object.
-    use_responses <- identical(provider, "openai") && !isFALSE(web_search)
+    # GPT-6 tool calls require Responses even with search disabled. Older
+    # models retain their supported Chat Completions wire (including hosts
+    # that edit that history shape).
+    # Keep the same wire when continuing a Responses history without tools.
+    use_responses <- identical(provider, "openai") &&
+    agent_uses_responses(provider, model, tools, web_search, history)
     if (use_responses) {
         wire <- "openai_codex"
     } else if (identical(provider, "anthropic_claude")) {

@@ -1,6 +1,7 @@
 # tinyrox says don't edit this manually, but it can't stop you!
 
 export(agent)
+export(agent_uses_responses)
 export(anthropic_claude_credentials)
 export(chat)
 export(chat_claude)
@@ -17,6 +18,7 @@ export(claude_oauth_login)
 export(create_agent)
 export(history_count_tool_calls)
 export(history_tool_calls)
+export(list_models)
 export(list_ollama_models)
 export(llm_base)
 export(llm_cancel)

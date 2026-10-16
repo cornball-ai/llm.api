@@ -10,8 +10,47 @@
 # `.openai_codex_` prefix (SSE merge, output parse, message->input conversion,
 # the web_search tool builder); only the URL, auth (a plain bearer key instead
 # of a ChatGPT account id), and body defaults differ from the Codex path. So
-# the standard `openai` provider only routes here when web_search is on;
-# otherwise it stays on chat-completions (no behaviour change).
+# GPT-6 agent tool calls use this endpoint even when web search is off.
+
+.openai_requires_responses_tools <- function(model) {
+    isTRUE(grepl("^gpt-(?:[6-9]|[1-9][0-9]+)(?:[.-]|$)", model, perl = TRUE))
+}
+
+.openai_responses_history <- function(history) {
+    any(vapply(history, function(entry) {
+        is.list(entry) &&
+        (identical(entry$type, ".openai_codex_output") ||
+               isTRUE(entry$.openai_codex_output) ||
+               identical(entry$type, "function_call_output"))
+    }, logical(1)))
+}
+
+#' Check whether an agent request uses Responses
+#'
+#' Reports the routing decision used by \code{\link{agent}} without a
+#' request or credential lookup. Hosts can use it before offering tools that
+#' require a particular history format. This describes the wire, not the
+#' model's availability or permission to use it.
+#'
+#' @param provider Provider name.
+#' @param model Model identifier, or NULL for the provider default.
+#' @param tools Tool schemas, as passed to \code{agent}.
+#' @param web_search Search setting, as passed to \code{agent}.
+#' @param history Conversation history, as passed to \code{agent}.
+#' @return Logical scalar. TRUE for the Codex provider, or for OpenAI when
+#'   search, GPT-6 tools, or an existing Responses history selects Responses.
+#' @examples
+#' agent_uses_responses("openai", "gpt-6-astra", tools = list(list(name = "lookup")))
+#' agent_uses_responses("openai", "gpt-5.5", web_search = FALSE)
+#' @export
+agent_uses_responses <- function(provider, model = NULL, tools = list(),
+                                 web_search = FALSE, history = NULL) {
+    identical(provider, "openai_codex") ||
+    (identical(provider, "openai") &&
+        (!isFALSE(web_search) ||
+            (length(tools) > 0L && .openai_requires_responses_tools(model)) ||
+            .openai_responses_history(history)))
+}
 
 # Build a Responses API body for the standard OpenAI endpoint. Mirrors the
 # Codex body but: keeps `max_output_tokens` (the public endpoint honors output
@@ -29,8 +68,9 @@
     ws_tool <- .openai_codex_web_search_tool(extra$web_search)
     extra$web_search <- NULL
 
-    cap <- extra$max_output_tokens %||% extra$max_tokens
+    cap <- extra$max_output_tokens %||% extra$max_completion_tokens %||% extra$max_tokens
     extra$max_tokens <- NULL
+    extra$max_completion_tokens <- NULL
     extra$max_output_tokens <- NULL
 
     reasoning <- NULL
