@@ -26,7 +26,8 @@ list_models <- function(provider, base_url = NULL, timeout = 5,
         path <- codex_cache %||% file.path(
             Sys.getenv("CODEX_HOME", path.expand("~/.codex")), "models_cache.json")
         cache <- jsonlite::fromJSON(path, simplifyVector = FALSE)
-        models <- Filter(function(x) identical(x$visibility, "list"), cache$models)
+        models <- Filter(function(x) identical(x$visibility, "list"),
+                         cache$models)
         ids <- vapply(models, function(x) x$slug %||% "", character(1))
         return(structure(unique(ids[nzchar(ids)]), source = "Codex cache"))
     }
@@ -41,7 +42,7 @@ list_models <- function(provider, base_url = NULL, timeout = 5,
     }
     headers <- list(Accept = "application/json")
     path <- if (provider == "ollama") "/api/tags" else if
-        (provider == "openai_compatible") "/models" else "/v1/models"
+    (provider == "openai_compatible") "/models" else "/v1/models"
     if (provider == "anthropic") {
         headers[["x-api-key"]] <- config$api_key
         headers[["anthropic-version"]] <- "2023-06-01"
@@ -54,17 +55,23 @@ list_models <- function(provider, base_url = NULL, timeout = 5,
         url <- paste0(base, path)
         if (provider == "anthropic") {
             url <- paste0(url, "?limit=1000", if (!is.null(cursor))
-                paste0("&after_id=", curl::curl_escape(cursor)))
+                          paste0("&after_id=", curl::curl_escape(cursor)))
         }
         payload <- .models_get(url, headers, timeout)
-        entries <- if (provider == "ollama") payload$models else payload$data
+        if (provider == "ollama") {
+            entries <- payload$models
+        } else {
+            entries <- payload$data
+        }
         if (!is.list(entries)) {
             stop("Invalid provider model catalog.", call. = FALSE)
         }
         ids <- c(ids, vapply(entries, function(x) {
             if (provider == "ollama") x$name %||% "" else x$id %||% ""
         }, character(1)))
-        if (provider != "anthropic" || !isTRUE(payload$has_more)) break
+        if (provider != "anthropic" || !isTRUE(payload$has_more)) {
+            break
+        }
         next_cursor <- payload$last_id
         if (is.null(next_cursor) || identical(next_cursor, cursor)) {
             stop("Invalid model catalog pagination.", call. = FALSE)

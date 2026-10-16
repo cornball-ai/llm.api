@@ -19,9 +19,9 @@
 .openai_responses_history <- function(history) {
     any(vapply(history, function(entry) {
         is.list(entry) &&
-            (identical(entry$type, ".openai_codex_output") ||
-             isTRUE(entry$.openai_codex_output) ||
-             identical(entry$type, "function_call_output"))
+        (identical(entry$type, ".openai_codex_output") ||
+               isTRUE(entry$.openai_codex_output) ||
+               identical(entry$type, "function_call_output"))
     }, logical(1)))
 }
 
