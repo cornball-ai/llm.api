@@ -4,6 +4,8 @@
   even when web search is disabled. Continued Responses histories keep
   that wire if tools are later removed. Older models retain their existing
   Chat Completions path; `openai_codex` continues using Responses.
+  Switching an existing Chat Completions conversation to Responses preserves
+  earlier function calls and their matching results.
 * Responses requests accept `max_completion_tokens` as an output-cap alias.
 * Add `list_models()` for provider catalogs and the local Codex model cache.
   This lists identifiers without generating a model response.
