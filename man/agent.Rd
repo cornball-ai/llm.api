@@ -45,7 +45,10 @@ text for this turn), `agent_turn`, `call_index`, `call_count`, and
 "openai_codex", "ollama", or "openai_compatible" (a generic
 OpenAI-compatible gateway; requires a base URL via
 \code{llm_base()} or \code{OPENAI_COMPATIBLE_BASE_URL}, and an
-explicit \code{model}).}
+explicit \code{model}).
+GPT-6 OpenAI tool calls use the Responses endpoint independently of
+\code{web_search}. Older models retain Chat Completions when search is
+off; existing Responses histories keep their wire when continued.}
 
 \item{max_turns}{Integer. Maximum tool-use turns (default: 20).}
 
