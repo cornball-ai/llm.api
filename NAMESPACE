@@ -1,6 +1,7 @@
 # tinyrox says don't edit this manually, but it can't stop you!
 
 export(agent)
+export(agent_uses_responses)
 export(anthropic_claude_credentials)
 export(chat)
 export(chat_claude)

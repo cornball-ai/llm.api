@@ -46,10 +46,10 @@
 agent_uses_responses <- function(provider, model = NULL, tools = list(),
                                  web_search = FALSE, history = NULL) {
     identical(provider, "openai_codex") ||
-        (identical(provider, "openai") &&
-         (!isFALSE(web_search) ||
-          (length(tools) > 0L && .openai_requires_responses_tools(model)) ||
-          .openai_responses_history(history)))
+    (identical(provider, "openai") &&
+        (!isFALSE(web_search) ||
+            (length(tools) > 0L && .openai_requires_responses_tools(model)) ||
+            .openai_responses_history(history)))
 }
 
 # Build a Responses API body for the standard OpenAI endpoint. Mirrors the
