@@ -228,9 +228,8 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
             identical(msg$type, "function_call_output")) {
             input[[length(input) + 1L]] <- msg
         } else if (is.list(msg) && identical(msg$role, "tool")) {
-            input[[length(input) + 1L]] <- list(
-                type = "function_call_output", call_id = msg$tool_call_id,
-                output = msg$content %||% "")
+            input[[length(input) + 1L]] <- list(type = "function_call_output",
+                call_id = msg$tool_call_id, output = msg$content %||% "")
         } else if (is.list(msg) && !is.null(msg$role)) {
             role <- msg$role
             calls <- msg$tool_calls %||% list()
