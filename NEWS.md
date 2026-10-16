@@ -7,6 +7,8 @@
   Switching an existing Chat Completions conversation to Responses preserves
   earlier function calls and their matching results.
 * Responses requests accept `max_completion_tokens` as an output-cap alias.
+* Export `agent_uses_responses()` so hosts can check the same routing decision
+  as `agent()` before offering tools that require an editable history format.
 * Add `list_models()` for provider catalogs and the local Codex model cache.
   This lists identifiers without generating a model response.
 

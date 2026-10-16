@@ -2,8 +2,20 @@
 # history replay, and usage accounting are the real agent loop.
 local({
     ns <- asNamespace("llm.api")
+    expect_true(llm.api::agent_uses_responses("openai_codex"))
+    expect_true(llm.api::agent_uses_responses("openai", web_search = TRUE))
+    expect_true(llm.api::agent_uses_responses("openai", web_search = NULL))
+    expect_false(llm.api::agent_uses_responses("openai"))
+    expect_true(llm.api::agent_uses_responses("openai", history = list(
+        list(type = "function_call_output", call_id = "fixture", output = "done"))))
+    for (provider in c("anthropic", "anthropic_claude", "moonshot", "ollama", "openai_compatible")) {
+        expect_false(llm.api::agent_uses_responses(provider, "gpt-6-astra",
+            tools = list(list(name = "lookup")), web_search = TRUE))
+    }
     for (model in c("gpt-6-astra", "gpt-6.1-sol", "gpt-6-sol", "gpt-6-luna")) {
         expect_true(ns$.openai_requires_responses_tools(model))
+        expect_true(llm.api::agent_uses_responses("openai", model, tools = list(list(name = "lookup"))))
+        expect_false(llm.api::agent_uses_responses("openai", model))
     }
     for (model in c("gpt-4o", "gpt-5.5", "gpt-5.6-sol", "other-model")) {
         expect_false(ns$.openai_requires_responses_tools(model))

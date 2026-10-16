@@ -216,9 +216,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # that edit that history shape).
     # Keep the same wire when continuing a Responses history without tools.
     use_responses <- identical(provider, "openai") &&
-    (!isFALSE(web_search) ||
-        (length(tools) > 0L && .openai_requires_responses_tools(model)) ||
-        .openai_responses_history(history))
+        agent_uses_responses(provider, model, tools, web_search, history)
     if (use_responses) {
         wire <- "openai_codex"
     } else if (identical(provider, "anthropic_claude")) {
