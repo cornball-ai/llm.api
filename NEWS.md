@@ -1,3 +1,13 @@
+# llm.api 0.1.9.14
+
+* GPT-6 tool calls through `agent(provider = "openai")` now use Responses
+  even when web search is disabled. Continued Responses histories keep
+  that wire if tools are later removed. Older models retain their existing
+  Chat Completions path; `openai_codex` continues using Responses.
+* Responses requests accept `max_completion_tokens` as an output-cap alias.
+* Add `list_models()` for provider catalogs and the local Codex model cache.
+  This lists identifiers without generating a model response.
+
 # llm.api 0.1.9.13
 
 * `agent()` and `chat()` take `thinking`, the Anthropic thinking type:
