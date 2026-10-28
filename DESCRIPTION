@@ -1,7 +1,7 @@
 Package: llm.api
 Title: Minimal LLM Chat Interface
-Version: 0.1.9.14
-Date: 2026-10-16
+Version: 0.1.9.15
+Date: 2026-10-28
 Authors@R: c(
     person("Troy", "Hernandez", role = c("aut", "cre"),
            email = "troy@cornball.ai",
