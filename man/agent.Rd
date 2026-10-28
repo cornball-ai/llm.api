@@ -21,6 +21,7 @@ agent(
   web_search = FALSE,
   on_delta = NULL,
   thinking = NULL,
+  request_callback = NULL,
   ...
 )
 }
@@ -128,6 +129,17 @@ the provider's rule (Claude Sonnet 5.5 answers without thinking
 first under \code{"between_tools"} and refuses \code{"disabled"}).
 Cannot be combined with \code{thinking_budget_tokens}.
 Anthropic-only; ignored with a warning for other providers.}
+
+\item{request_callback}{Optional function receiving one observational event
+list per request start and per attempt end/error. Events contain the final
+`serialized_request` at start (authentication headers excluded), logical
+request and attempt IDs, provider/wire, requested and reported model,
+raw usage, stop reason, response ID, allowlisted request-ID headers and
+elapsed milliseconds when available. A transport retry has a new attempt
+ID under the same logical request. Callback errors are isolated from the
+request. Treat request bodies as private: they include exact user content.
+Missing usage/headers remain NULL, including cancelled streams where the
+provider never sent them. See [chat()] for the same observer on chat calls.}
 
 \item{...}{Additional parameters passed to the API.}
 }

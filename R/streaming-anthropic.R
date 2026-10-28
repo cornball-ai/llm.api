@@ -28,6 +28,8 @@
     type <- ev$type
     if (identical(type, "message_start")) {
         state$usage <- ev$message$usage
+        state$id <- ev$message$id
+        state$model <- ev$message$model
         return(done(state))
     }
     if (identical(type, "content_block_start")) {
@@ -133,6 +135,7 @@
     .llm_assert_translated(body$messages, "the request body")
     body$stream <- TRUE
     payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
+    request <- .request_new(payload, "messages", body$model)
 
     state <- list(blocks = list(), usage = NULL, stop_reason = NULL)
     buffer <- ""
@@ -183,7 +186,11 @@
         h <- curl::new_handle()
         curl::handle_setopt(h, customrequest = "POST", postfields = payload)
         curl::handle_setheaders(h, .list = as.list(headers))
-        .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h))
+        .request_fetch(request,
+            .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
+            snapshot = function(fetched) list(response = fetched$value,
+                cancelled = fetched$cancelled, data = list(usage = state$usage,
+                    id = state$id, model = state$model, stop_reason = state$stop_reason)))
     }
     fetched <- .llm_transport_retry(run, received = function() nzchar(raw_text))
     if (fetched$cancelled) {

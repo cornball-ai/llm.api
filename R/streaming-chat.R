@@ -57,10 +57,12 @@
     .llm_assert_translated(body$messages, "the request body")
     body$stream <- TRUE
     body$stream_options <- body$stream_options %||% list(include_usage = TRUE)
+    payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
+    request <- .request_new(payload, "chat_completions", body$model)
 
     h <- curl::new_handle()
     curl::handle_setopt(h, customrequest = "POST",
-                        postfields = jsonlite::toJSON(body, auto_unbox = TRUE, null = "null"))
+                        postfields = payload)
     curl::handle_setheaders(h, .list = as.list(headers))
 
     content <- ""
@@ -71,6 +73,8 @@
     calls <- list()
     buffer <- ""
     raw_text <- ""
+    response_id <- NULL
+    reported_model <- NULL
 
     callback <- function(data) {
         text <- rawToChar(data)
@@ -97,6 +101,8 @@
             if (is.null(chunk)) {
                 next
             }
+            response_id <<- chunk$id %||% response_id
+            reported_model <<- chunk$model %||% reported_model
             if (!is.null(chunk$usage)) {
                 usage <<- chunk$usage
             }
@@ -146,8 +152,11 @@
              usage = usage)
     }
 
-    fetched <- .llm_with_cancel(curl::curl_fetch_stream(url, callback,
-            handle = h))
+    fetched <- .request_fetch(request,
+        .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
+        snapshot = function(fetched) list(response = fetched$value,
+            cancelled = fetched$cancelled, data = list(usage = usage, id = response_id,
+                model = reported_model, stop_reason = finish_reason)))
     if (fetched$cancelled) {
         partial <- assemble()
         attr(partial, "llm_cancelled") <- TRUE
