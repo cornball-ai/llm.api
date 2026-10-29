@@ -1,3 +1,13 @@
+# llm.api 0.1.9.15
+
+* Add optional `request_callback` to `agent()` and `chat()`. Observe the exact
+  serialized request, each transport attempt, raw usage, requested/reported
+  model, provider response IDs, allowlisted request-ID headers and timing.
+  Final replies and partial streaming failures are covered; callback errors
+  never trigger transport retries. Authentication headers are excluded.
+* Add offline `prices_snapshot_digest()` fingerprints for the bundled price
+  table and calculation source, including provider overrides.
+
 # llm.api 0.1.9.14
 
 * GPT-6 tool calls through `agent(provider = "openai")` now use Responses

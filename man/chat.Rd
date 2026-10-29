@@ -17,6 +17,7 @@ chat(
   thinking_budget_tokens = NULL,
   web_search = FALSE,
   thinking = NULL,
+  request_callback = NULL,
   ...
 )
 }
@@ -79,6 +80,10 @@ Sonnet 5.5 answers without thinking first under
 \code{"between_tools"} and refuses \code{"disabled"}). Cannot be
 combined with \code{thinking_budget_tokens}. Anthropic-only;
 ignored with a warning for other providers.}
+
+\item{request_callback}{Optional request observer, with the same event
+contract as [agent()]. Receives the final serialized request body without
+authentication headers and per-attempt completion, usage and error metadata.}
 
 \item{...}{Additional parameters passed to the API.}
 }

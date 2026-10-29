@@ -357,13 +357,16 @@
 #' result <- chat("Hello")
 #' chat("Tell me more", history = result$history)
 #' }
+#' @param request_callback Optional request observer, with the same event
+#'   contract as [agent()]. Receives the final serialized request body without
+#'   authentication headers and per-attempt completion, usage and error metadata.
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  temperature = NULL, max_tokens = NULL,
                  provider = c("auto", "openai", "anthropic", "anthropic_claude",
                               "moonshot", "openai_codex", "ollama", "openai_compatible"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, web_search = FALSE,
-                 thinking = NULL, ...) {
+                 thinking = NULL, request_callback = NULL, ...) {
     provider <- match.arg(provider)
     cache <- match.arg(cache)
 
@@ -382,6 +385,8 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     if (provider == "auto") {
         provider <- .detect_provider(model)
     }
+    previous_request <- .request_enter(request_callback, provider)
+    on.exit(.request_runtime$current <- previous_request, add = TRUE)
 
     # Anthropic-only feature opt-ins emit a one-time warning when a
     # non-default value is passed against another provider so the
@@ -537,13 +542,15 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         return(.stream_response(url, body, headers))
     }
 
+    payload <- jsonlite::toJSON(body, auto_unbox = TRUE)
+    request <- .request_new(payload, "chat_completions", body$model)
     h <- curl::new_handle()
     curl::handle_setopt(h, customrequest = "POST",
-                        postfields = jsonlite::toJSON(body, auto_unbox = TRUE))
+                        postfields = payload)
     curl::handle_setheaders(h, .list = as.list(headers))
 
     {
-        resp <- curl::curl_fetch_memory(url, handle = h)
+        resp <- .request_fetch(request, curl::curl_fetch_memory(url, handle = h))
 
         if (resp$status_code >= 400) {
             err <- tryCatch(
@@ -641,15 +648,16 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         oauth = is.function(config$credentials), thinking = thinking)
 
     headers <- .anthropic_headers(config)
-
+    payload <- jsonlite::toJSON(anthropic_body, auto_unbox = TRUE)
+    request <- .request_new(payload, "messages", anthropic_body$model)
     h <- curl::new_handle()
     curl::handle_setopt(h,
                         customrequest = "POST",
-                        postfields = jsonlite::toJSON(anthropic_body, auto_unbox = TRUE)
+                        postfields = payload
     )
     curl::handle_setheaders(h, .list = as.list(headers))
 
-    resp <- curl::curl_fetch_memory(url, handle = h)
+    resp <- .request_fetch(request, curl::curl_fetch_memory(url, handle = h))
 
     if (resp$status_code >= 400) {
         raw <- rawToChar(resp$content)

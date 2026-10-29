@@ -278,11 +278,13 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
 
 .openai_codex_post_sse <- function(url, body, headers, on_delta = NULL) {
     .llm_assert_translated(body$input, "the Responses input")
+    payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
+    request <- .request_new(payload, "responses", body$model)
     h <- curl::new_handle()
     curl::handle_setopt(
                         h,
                         customrequest = "POST",
-                        postfields = jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
+                        postfields = payload
     )
     curl::handle_setheaders(h, .list = as.list(headers))
 
@@ -342,8 +344,10 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     # caller has already acted on it -- spoken it aloud, most likely --
     # and a cancelled request that answered nothing would be a worse
     # account of what happened than a partial one.
-    fetched <- .llm_with_cancel(curl::curl_fetch_stream(url, callback,
-            handle = h))
+    fetched <- .request_fetch(request,
+        .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
+        snapshot = function(fetched) list(response = fetched$value,
+            cancelled = fetched$cancelled, data = result))
     if (fetched$cancelled) {
         partial <- result %||% list(output = list(), usage = NULL)
         # Fill in the message the stream was part-way through, so a

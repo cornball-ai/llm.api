@@ -57,6 +57,4 @@ for (key in names(raw)) {
 
 message(sprintf("Snapshot: %d models, %s", length(.PRICES), .PRICES_SNAPSHOT_DATE))
 
-save(.PRICES, .PRICES_SNAPSHOT_DATE,
-     file = "R/sysdata.rda",
-     compress = "xz")
+source("data-raw/save-prices.R")

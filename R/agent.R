@@ -127,6 +127,16 @@
 #'   / \code{cache_creation$ephemeral_1h_input_tokens}. Passing this
 #'   \code{$usage} back to \code{\link{usage_cost}} recomputes the same
 #'   \code{cost}.
+#' @param request_callback Optional function receiving one observational event
+#'   list per request start and per attempt end/error. Events contain the final
+#'   `serialized_request` at start (authentication headers excluded), logical
+#'   request and attempt IDs, provider/wire, requested and reported model,
+#'   raw usage, stop reason, response ID, allowlisted request-ID headers and
+#'   elapsed milliseconds when available. A transport retry has a new attempt
+#'   ID under the same logical request. Callback errors are isolated from the
+#'   request. Treat request bodies as private: they include exact user content.
+#'   Missing usage/headers remain NULL, including cancelled streams where the
+#'   provider never sent them. See [chat()] for the same observer on chat calls.
 #' @export
 #'
 #' @examples
@@ -151,8 +161,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   history_callback = NULL, checkpoint_callback = NULL,
                   cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, web_search = FALSE,
-                  on_delta = NULL, thinking = NULL, ...) {
+                  on_delta = NULL, thinking = NULL, request_callback = NULL, ...) {
     provider <- match.arg(provider)
+    previous_request <- .request_enter(request_callback, provider)
+    on.exit(.request_runtime$current <- previous_request, add = TRUE)
     cache <- match.arg(cache)
     thinking <- .validate_thinking(thinking)
     .check_thinking_exclusive(thinking, thinking_budget_tokens)
@@ -1013,11 +1025,14 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 .post_json <- function(url, body, headers) {
     .llm_assert_translated(body$messages, "the request body")
     payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
+    request <- .request_new(payload,
+        if (.is_anthropic(.request_runtime$current$provider %||% "")) "messages" else "chat_completions",
+        body$model)
     run <- function() {
         h <- curl::new_handle()
         curl::handle_setopt(h, customrequest = "POST", postfields = payload)
         curl::handle_setheaders(h, .list = as.list(headers))
-        curl::curl_fetch_memory(url, handle = h)
+        .request_fetch(request, curl::curl_fetch_memory(url, handle = h))
     }
     resp <- .llm_transport_retry(run)
 
