@@ -3,10 +3,10 @@
 \alias{chat_session_openai_codex}
 \title{Create OpenAI Codex chat session}
 \usage{
-chat_session_openai_codex(model = "gpt-5.5", system_prompt = NULL, ...)
+chat_session_openai_codex(model = "gpt-6.1-sol", system_prompt = NULL, ...)
 }
 \arguments{
-\item{model}{Character. Model name (default: "gpt-5.5").}
+\item{model}{Character. Model name (default: "gpt-6.1-sol").}
 
 \item{system_prompt}{Character or NULL. System prompt.}
 

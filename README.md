@@ -18,8 +18,8 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 
 ## Providers
 
-- **openai**: GPT-4o, GPT-4o-mini, o1, o3
-- **anthropic**: Claude (Sonnet, Haiku) via an API key
+- **openai**: GPT-6.1 Sol (default), GPT-6, GPT-5.x, o-series
+- **anthropic**: Claude (Opus 5.5 default, Sonnet, Haiku) via an API key
 - **anthropic_claude**: Claude on a Claude Pro/Max subscription (OAuth, no API key)
 - **moonshot**: Kimi K2 via Moonshot's OpenAI-compatible API
 - **google**: Gemini via Google's OpenAI-compatible endpoint (`GEMINI_API_KEY`)
@@ -31,8 +31,8 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 
 ```r
 # Auto-detect provider from model
-chat("Hello", model = "gpt-5.4-mini")
-chat("Hello", model = "claude-3-5-sonnet-latest")
+chat("Hello", model = "gpt-6.1-sol")
+chat("Hello", model = "claude-opus-5-5")
 chat("Hello", model = "kimi-k2.5")
 chat("Hello", model = "gemini-3.5-flash")
 
@@ -48,7 +48,7 @@ chat("Write a fast parser in R", provider = "google", model = "gemini-3.5-flash"
 
 # ChatGPT subscription-backed Codex provider (log in once; see below)
 chat_openai_codex("Write a small R function")
-chat("Refactor this loop", provider = "openai_codex", model = "gpt-5.5")
+chat("Refactor this loop", provider = "openai_codex", model = "gpt-6.1-sol")
 
 # Claude subscription-backed provider (log in once; see below)
 chat_claude_oauth("Write a haiku about R")
@@ -89,11 +89,13 @@ openai_codex_login()
 # Thereafter, just use the provider; credentials come from the cache
 # and refresh automatically.
 chat_openai_codex("Write a small R function")
-chat("Refactor this", provider = "openai_codex", model = "gpt-5.5")
+chat("Refactor this", provider = "openai_codex", model = "gpt-6.1-sol")
 ```
 
-Models: `gpt-5.5` (default), `gpt-5.4`, `gpt-5.4-mini`,
-`gpt-5.3-codex-spark`.
+Models, as the Codex cache lists them: `gpt-6.1-sol` (default, the
+workhorse tier), `gpt-6-astra`, `gpt-6.1-terra`, `gpt-6-sol`,
+`gpt-6-luna`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`;
+`list_models("openai_codex")` reads the current cache.
 
 To use an externally-obtained token instead of logging in, set
 `OPENAI_CODEX_ACCESS_TOKEN` (and optionally `OPENAI_CODEX_ACCOUNT_ID`);

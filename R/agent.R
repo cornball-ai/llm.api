@@ -219,10 +219,10 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     # Default models with tool support
     if (is.null(model)) {
         model <- switch(provider, anthropic =,
-                        anthropic_claude = "claude-sonnet-4-6",
-                        openai = "gpt-5.4-mini", moonshot = "kimi-k2.5",
+                        anthropic_claude = "claude-opus-5-5",
+                        openai = "gpt-6.1-sol", moonshot = "kimi-k2.5",
                         google = "gemini-3.5-flash",
-                        openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
+                        openai_codex = "gpt-6.1-sol", ollama = "qwen3.5:9b")
     }
 
     # GPT-6 tool calls require Responses even with search disabled. Older

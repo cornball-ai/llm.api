@@ -101,7 +101,7 @@ openai_codex_login <- function(timeout = 600, open_url = interactive()) {
 #' creds <- openai_codex_login()
 #' chat_openai_codex("Write a small R function", credentials = creds)
 #' }
-chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
+chat_openai_codex <- function(prompt, model = "gpt-6.1-sol", ...) {
     chat(prompt, model = model, provider = "openai_codex", ...)
 }
 
