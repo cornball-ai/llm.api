@@ -75,20 +75,20 @@
                          base_url = base %||% "https://api.openai.com",
                          chat_path = "/v1/chat/completions",
                          api_key = .get_key("openai"),
-                         default_model = "gpt-5.4-mini"),
+                         default_model = "gpt-6.1-sol"),
            anthropic = list(
                             provider = "anthropic",
                             base_url = base %||% "https://api.anthropic.com",
                             chat_path = "/v1/messages",
                             api_key = .get_key("anthropic"),
-                            default_model = "claude-sonnet-4-6"
+                            default_model = "claude-opus-5-5"
         ),
            anthropic_claude = list(
                                    provider = "anthropic_claude",
                                    base_url = base %||% "https://api.anthropic.com",
                                    chat_path = "/v1/messages",
                                    credentials = anthropic_claude_credentials(),
-                                   default_model = "claude-sonnet-4-6"
+                                   default_model = "claude-opus-5-5"
         ),
            moonshot = list(
                            provider = "moonshot",
@@ -110,7 +110,7 @@
                                base_url = base %||% "https://chatgpt.com/backend-api",
                                chat_path = "/codex/responses",
                                credentials = openai_codex_credentials(),
-                               default_model = "gpt-5.5"
+                               default_model = "gpt-6.1-sol"
         ),
            ollama = list(
                          provider = "ollama",
@@ -201,9 +201,9 @@ provider_default_model <- function(provider) {
 #' @examples
 #' \dontrun{
 #' chat_openai("Explain quantum computing")
-#' chat_openai("Write a haiku", model = "gpt-5.4-mini")
+#' chat_openai("Write a haiku", model = "gpt-6.1-sol")
 #' }
-chat_openai <- function(prompt, model = "gpt-5.4-mini", ...) {
+chat_openai <- function(prompt, model = "gpt-6.1-sol", ...) {
     chat(prompt, model = model, provider = "openai", ...)
 }
 
@@ -220,7 +220,7 @@ chat_openai <- function(prompt, model = "gpt-5.4-mini", ...) {
 #' chat_claude("Explain the theory of relativity")
 #' chat_claude("Write a poem", model = "claude-haiku-4-5")
 #' }
-chat_claude <- function(prompt, model = "claude-sonnet-4-6", ...) {
+chat_claude <- function(prompt, model = "claude-opus-5-5", ...) {
     chat(prompt, model = model, provider = "anthropic", ...)
 }
 

@@ -1,3 +1,16 @@
+# llm.api 0.1.9.17
+
+* Default models move up a tier: `anthropic` and `anthropic_claude` default
+  to `claude-opus-5-5`, and `openai` and `openai_codex` default to
+  `gpt-6.1-sol`, the model the Codex catalog lists first as its workhorse.
+  The convenience wrappers (`chat_claude()`, `chat_claude_oauth()`,
+  `chat_openai()`, `chat_openai_codex()`, the `chat_session_*()` family)
+  and `agent()`'s fallback follow. Calls that pass `model` are unaffected.
+  A tool call on `gpt-6.1-sol` through `openai` goes over Responses, as for
+  every GPT-6 model.
+* Price snapshot refreshed to 2026-11-02 so the new defaults, the Claude 5.5
+  family, GPT-6 and `gemini-3.8-flash` have cost data.
+
 # llm.api 0.1.9.16
 
 * Add the `google` provider: Gemini through Google's OpenAI-compatible

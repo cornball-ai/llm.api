@@ -62,13 +62,13 @@ options(llm.api_base = NULL, llm.api.api_base = NULL)
 cfg <- llm.api:::.get_provider_config("openai")
 expect_equal(cfg$base_url, "https://api.openai.com")
 expect_equal(cfg$chat_path, "/v1/chat/completions")
-expect_equal(cfg$default_model, "gpt-5.4-mini")
+expect_equal(cfg$default_model, "gpt-6.1-sol")
 
 # Anthropic config
 cfg <- llm.api:::.get_provider_config("anthropic")
 expect_equal(cfg$base_url, "https://api.anthropic.com")
 expect_equal(cfg$chat_path, "/v1/messages")
-expect_equal(cfg$default_model, "claude-sonnet-4-6")
+expect_equal(cfg$default_model, "claude-opus-5-5")
 
 # Moonshot config
 cfg <- llm.api:::.get_provider_config("moonshot")
@@ -97,8 +97,8 @@ expect_error(llm.api:::.get_provider_config("unknown"), pattern = "Unknown provi
 # provider_default_model() exposes the default model id for each
 # supported provider so client code (e.g., status lines) can resolve it
 # upfront without reaching into internals.
-expect_equal(provider_default_model("openai"), "gpt-5.4-mini")
-expect_equal(provider_default_model("anthropic"), "claude-sonnet-4-6")
+expect_equal(provider_default_model("openai"), "gpt-6.1-sol")
+expect_equal(provider_default_model("anthropic"), "claude-opus-5-5")
 expect_equal(provider_default_model("moonshot"), "kimi-k2.5")
 expect_equal(provider_default_model("google"), "gemini-3.5-flash")
 expect_equal(provider_default_model("ollama"), "qwen3.5:9b")

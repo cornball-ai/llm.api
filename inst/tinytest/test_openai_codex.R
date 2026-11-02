@@ -44,8 +44,8 @@ Sys.unsetenv(c("OPENAI_CODEX_ACCESS_TOKEN", "OPENAI_CODEX_REFRESH_TOKEN",
 cfg <- llm.api:::.get_provider_config("openai_codex")
 expect_equal(cfg$base_url, "https://chatgpt.com/backend-api")
 expect_equal(cfg$chat_path, "/codex/responses")
-expect_equal(cfg$default_model, "gpt-5.5")
-expect_equal(provider_default_model("openai_codex"), "gpt-5.5")
+expect_equal(cfg$default_model, "gpt-6.1-sol")
+expect_equal(provider_default_model("openai_codex"), "gpt-6.1-sol")
 
 llm_base("https://chatgpt.com/backend-api")
 expect_equal(llm.api:::.detect_provider(NULL), "openai_codex")

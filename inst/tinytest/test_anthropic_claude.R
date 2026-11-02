@@ -23,9 +23,9 @@ cfg <- llm.api:::.get_provider_config("anthropic_claude")
 expect_equal(cfg$provider, "anthropic_claude")
 expect_equal(cfg$base_url, "https://api.anthropic.com")
 expect_equal(cfg$chat_path, "/v1/messages")
-expect_equal(cfg$default_model, "claude-sonnet-4-6")
+expect_equal(cfg$default_model, "claude-opus-5-5")
 expect_true(is.function(cfg$credentials))
-expect_equal(provider_default_model("anthropic_claude"), "claude-sonnet-4-6")
+expect_equal(provider_default_model("anthropic_claude"), "claude-opus-5-5")
 
 # --- header selection: API key vs OAuth ---
 api_headers <- ns$.anthropic_headers(list(api_key = "sk-test", credentials = NULL))
