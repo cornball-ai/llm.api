@@ -6,8 +6,8 @@
 chat_session(
   model = NULL,
   system_prompt = NULL,
-  provider = c("openai", "anthropic", "anthropic_claude", "moonshot", "openai_codex",
-    "ollama", "openai_compatible"),
+  provider = c("openai", "anthropic", "anthropic_claude", "moonshot", "google",
+    "openai_codex", "ollama", "openai_compatible"),
   ...
 )
 }
@@ -17,8 +17,8 @@ chat_session(
 \item{system_prompt}{Character or NULL. System prompt.}
 
 \item{provider}{Character. Provider: "openai", "anthropic",
-"anthropic_claude", "moonshot", "openai_codex", "ollama", or
-"openai_compatible".}
+"anthropic_claude", "moonshot", "google", "openai_codex", "ollama",
+or "openai_compatible".}
 
 \item{...}{Additional parameters passed to chat().}
 }

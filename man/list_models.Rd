@@ -30,6 +30,7 @@ callers can fall back to their configured models.
 \examples{
 \dontrun{
 list_models("openai")
+list_models("google")
 list_models("openai_codex")
 }
 }

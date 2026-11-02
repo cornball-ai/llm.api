@@ -278,13 +278,15 @@
 #' Send a message to a Large Language Model and get a response.
 #'
 #' @param prompt Character. The user message to send.
-#' @param model Character. Model name (e.g., "gpt-5.4-mini", "claude-sonnet-4-6", "qwen3.5:9b").
+#' @param model Character. Model name (e.g., "gpt-5.4-mini", "claude-sonnet-4-6",
+#'   "gemini-3.5-flash", "qwen3.5:9b").
 #' @param system Character or NULL. System prompt to set context.
 #' @param history List or NULL. Previous conversation turns.
 #' @param temperature Numeric or NULL. Sampling temperature (0-2).
 #' @param max_tokens Integer or NULL. Maximum tokens in response.
 #' @param provider Character. Provider: "auto", "openai", "anthropic", "anthropic_claude",
-#'   "moonshot", "openai_codex", "ollama", or "openai_compatible" (a
+#'   "moonshot", "google" (Gemini through Google's OpenAI-compatible
+#'   endpoint), "openai_codex", "ollama", or "openai_compatible" (a
 #'   generic OpenAI-compatible gateway such as OpenRouter, DeepSeek, or
 #'   a corporate proxy; requires a base URL via \code{llm_base()} or
 #'   \code{OPENAI_COMPATIBLE_BASE_URL}, and an explicit \code{model}).
@@ -363,7 +365,8 @@
 chat <- function(prompt, model = NULL, system = NULL, history = NULL,
                  temperature = NULL, max_tokens = NULL,
                  provider = c("auto", "openai", "anthropic", "anthropic_claude",
-                              "moonshot", "openai_codex", "ollama", "openai_compatible"),
+                              "moonshot", "google", "openai_codex", "ollama",
+                              "openai_compatible"),
                  stream = FALSE, cache = c("none", "5m", "1h"),
                  thinking_budget_tokens = NULL, web_search = FALSE,
                  thinking = NULL, request_callback = NULL, ...) {

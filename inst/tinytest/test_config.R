@@ -5,7 +5,8 @@
 # value from the environment can't leak into these assertions.
 old_opts <- options(llm.api_base = NULL, llm.api_key = NULL,
                     llm.api.api_base = NULL, llm.api.api_key = NULL)
-old_env <- Sys.getenv(c("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY"),
+old_env <- Sys.getenv(c("OPENAI_API_KEY", "ANTHROPIC_API_KEY", "MOONSHOT_API_KEY",
+                        "GEMINI_API_KEY", "GOOGLE_API_KEY"),
                       unset = "")
 on.exit(options(old_opts), add = TRUE)
 on.exit(do.call(Sys.setenv, as.list(old_env)), add = TRUE)
@@ -41,6 +42,15 @@ expect_equal(llm_key("sk-new-key"), "sk-test-key")
 options(llm.api_key = NULL)
 Sys.setenv(MOONSHOT_API_KEY = "moonshot-test-key")
 expect_equal(llm.api:::.get_key("moonshot"), "moonshot-test-key")
+
+# Google: GEMINI_API_KEY first (what Google's own docs set), then
+# GOOGLE_API_KEY, which is often a key for some other Google API.
+Sys.setenv(GEMINI_API_KEY = "gemini-test-key", GOOGLE_API_KEY = "google-test-key")
+expect_equal(llm.api:::.get_key("google"), "gemini-test-key")
+Sys.setenv(GEMINI_API_KEY = "")
+expect_equal(llm.api:::.get_key("google"), "google-test-key")
+Sys.setenv(GOOGLE_API_KEY = "")
+expect_equal(llm.api:::.get_key("google"), "")
 
 # --- legacy option names (pre-0.1.8.1) still read, with a deprecation warning ---
 

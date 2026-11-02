@@ -20,6 +20,11 @@ expect_equal(llm.api:::.detect_provider("kimi-k2"), "moonshot")
 expect_equal(llm.api:::.detect_provider("kimi-k2-turbo-preview"), "moonshot")
 expect_equal(llm.api:::.detect_provider("moonshot-v1-8k"), "moonshot")
 
+# Google / Gemini models. "gemma" stays local: ^gemini must not take it.
+expect_equal(llm.api:::.detect_provider("gemini-3.5-flash"), "google")
+expect_equal(llm.api:::.detect_provider("gemini-3.1-pro-preview"), "google")
+expect_equal(llm.api:::.detect_provider("gemma3"), "ollama")
+
 # Ollama models
 expect_equal(llm.api:::.detect_provider("llama3.2"), "ollama")
 expect_equal(llm.api:::.detect_provider("mistral"), "ollama")
@@ -44,6 +49,10 @@ expect_equal(llm.api:::.detect_provider(NULL), "openai")
 llm_base("https://api.moonshot.ai")
 expect_equal(llm.api:::.detect_provider(NULL), "moonshot")
 
+# Gemini's compat base contains "openai" in its path; google must win.
+llm_base("https://generativelanguage.googleapis.com/v1beta/openai")
+expect_equal(llm.api:::.detect_provider(NULL), "google")
+
 # Reset
 options(llm.api_base = NULL, llm.api.api_base = NULL)
 
@@ -67,6 +76,14 @@ expect_equal(cfg$base_url, "https://api.moonshot.ai")
 expect_equal(cfg$chat_path, "/v1/chat/completions")
 expect_equal(cfg$default_model, "kimi-k2.5")
 
+# Google config: the base carries the /v1beta/openai prefix so the
+# bare "/chat/completions" path appends to it.
+cfg <- llm.api:::.get_provider_config("google")
+expect_equal(cfg$base_url,
+             "https://generativelanguage.googleapis.com/v1beta/openai")
+expect_equal(cfg$chat_path, "/chat/completions")
+expect_equal(cfg$default_model, "gemini-3.5-flash")
+
 # Ollama config
 cfg <- llm.api:::.get_provider_config("ollama")
 expect_equal(cfg$base_url, "http://localhost:11434")
@@ -83,5 +100,6 @@ expect_error(llm.api:::.get_provider_config("unknown"), pattern = "Unknown provi
 expect_equal(provider_default_model("openai"), "gpt-5.4-mini")
 expect_equal(provider_default_model("anthropic"), "claude-sonnet-4-6")
 expect_equal(provider_default_model("moonshot"), "kimi-k2.5")
+expect_equal(provider_default_model("google"), "gemini-3.5-flash")
 expect_equal(provider_default_model("ollama"), "qwen3.5:9b")
 expect_error(provider_default_model("nonsense"), pattern = "Unknown provider")

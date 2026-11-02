@@ -10,7 +10,7 @@ chat(
   history = NULL,
   temperature = NULL,
   max_tokens = NULL,
-  provider = c("auto", "openai", "anthropic", "anthropic_claude", "moonshot",
+  provider = c("auto", "openai", "anthropic", "anthropic_claude", "moonshot", "google",
     "openai_codex", "ollama", "openai_compatible"),
   stream = FALSE,
   cache = c("none", "5m", "1h"),
@@ -24,7 +24,8 @@ chat(
 \arguments{
 \item{prompt}{Character. The user message to send.}
 
-\item{model}{Character. Model name (e.g., "gpt-5.4-mini", "claude-sonnet-4-6", "qwen3.5:9b").}
+\item{model}{Character. Model name (e.g., "gpt-5.4-mini", "claude-sonnet-4-6",
+"gemini-3.5-flash", "qwen3.5:9b").}
 
 \item{system}{Character or NULL. System prompt to set context.}
 
@@ -35,7 +36,8 @@ chat(
 \item{max_tokens}{Integer or NULL. Maximum tokens in response.}
 
 \item{provider}{Character. Provider: "auto", "openai", "anthropic", "anthropic_claude",
-"moonshot", "openai_codex", "ollama", or "openai_compatible" (a
+"moonshot", "google" (Gemini through Google's OpenAI-compatible
+endpoint), "openai_codex", "ollama", or "openai_compatible" (a
 generic OpenAI-compatible gateway such as OpenRouter, DeepSeek, or
 a corporate proxy; requires a base URL via \code{llm_base()} or
 \code{OPENAI_COMPATIBLE_BASE_URL}, and an explicit \code{model}).}

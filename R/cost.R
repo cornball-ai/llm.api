@@ -30,7 +30,7 @@
 #'
 #' @param model Character. Model id as sent to the provider.
 #' @param provider Character. "anthropic", "anthropic_claude", "openai", "moonshot",
-#'   "openai_codex", or "ollama".
+#'   "google", "openai_codex", or "ollama".
 #' @param input_tokens Integer. Non-cached prompt tokens.
 #' @param output_tokens Integer. Completion tokens.
 #' @param cache_write_5m,cache_write_1h Integer. Anthropic 5-minute /
@@ -140,7 +140,7 @@
 #'
 #' @param model Character. Model id as sent to the provider.
 #' @param provider Character. "anthropic", "anthropic_claude", "openai", "moonshot",
-#'   "openai_codex", "ollama", or "openai_compatible" (gateway model
+#'   "google", "openai_codex", "ollama", or "openai_compatible" (gateway model
 #'   ids rarely match the bundled price snapshot, so cost is
 #'   usually `NA`).
 #' @param usage A usage list as found in `chat()$usage` or
@@ -207,7 +207,9 @@ usage_cost <- function(model, provider, usage) {
         return(rec)
     }
     if (!is.null(provider) && nzchar(provider)) {
-        rec <- .PRICES[[paste0(provider, "/", model)]]
+        # litellm files the Gemini API under "gemini/", not "google/".
+        prefix <- if (identical(provider, "google")) "gemini" else provider
+        rec <- .PRICES[[paste0(prefix, "/", model)]]
         if (!is.null(rec)) {
             return(rec)
         }

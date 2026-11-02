@@ -17,7 +17,7 @@
 #' @param system Character. System prompt.
 #' @param model Character. Model name.
 #' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
-#'   "openai_codex", "ollama", or "openai_compatible" (a generic
+#'   "google", "openai_codex", "ollama", or "openai_compatible" (a generic
 #'   OpenAI-compatible gateway; requires a base URL via
 #'   \code{llm_base()} or \code{OPENAI_COMPATIBLE_BASE_URL}, and an
 #'   explicit \code{model}).
@@ -156,7 +156,7 @@
 agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   model = NULL,
                   provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
-                               "openai_codex", "ollama", "openai_compatible"),
+                               "google", "openai_codex", "ollama", "openai_compatible"),
                   max_turns = 20L, verbose = TRUE, history = NULL,
                   history_callback = NULL, checkpoint_callback = NULL,
                   cache = c("none", "5m", "1h"),
@@ -220,6 +220,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         model <- switch(provider, anthropic =,
                         anthropic_claude = "claude-sonnet-4-6",
                         openai = "gpt-5.4-mini", moonshot = "kimi-k2.5",
+                        google = "gemini-3.5-flash",
                         openai_codex = "gpt-5.5", ollama = "qwen3.5:9b")
     }
 
@@ -239,11 +240,11 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
         # don't match the literal "anthropic_claude" and the messages array
         # gets corrupted on the turn after a tool call (a 400 from the API).
         wire <- "anthropic"
-    } else if (identical(provider, "openai_compatible")) {
-        # Generic gateways speak the OpenAI chat-completions wire shape,
-        # so the openai wire drives tool conversion / dispatch / result
-        # appending while `provider` stays "openai_compatible" for cost
-        # lookup and the returned object.
+    } else if (provider %in% c("openai_compatible", "google")) {
+        # Generic gateways and Gemini's compat endpoint speak the OpenAI
+        # chat-completions wire shape, so the openai wire drives tool
+        # conversion / dispatch / result appending while `provider` stays
+        # as given for cost lookup and the returned object.
         wire <- "openai"
     } else {
         wire <- provider
@@ -316,6 +317,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                       openai = .agent_openai(messages, provider_tools, system, model,
                 config, on_delta = on_delta, ...),
                       moonshot = .agent_openai(messages, provider_tools, system,
+                model, config, on_delta = on_delta, ...),
+                      google = .agent_openai(messages, provider_tools, system,
                 model, config, on_delta = on_delta, ...),
                       openai_compatible = .agent_openai(messages, provider_tools,
                 system, model, config, on_delta = on_delta, ...),
@@ -1059,7 +1062,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' @param system Character. Default system prompt.
 #' @param model Character. Default model.
 #' @param provider Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
-#'   "openai_codex", "ollama", or "openai_compatible".
+#'   "google", "openai_codex", "ollama", or "openai_compatible".
 #' @param verbose Logical. Print tool calls.
 #'
 #' @return A function that takes a prompt and returns a response.
@@ -1084,7 +1087,7 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
 #' }
 create_agent <- function(servers = list(), system = NULL, model = NULL,
                          provider = c("anthropic", "anthropic_claude", "openai", "moonshot",
-                                      "openai_codex", "ollama", "openai_compatible"),
+                                      "google", "openai_codex", "ollama", "openai_compatible"),
                          verbose = TRUE) {
     provider <- match.arg(provider)
 
