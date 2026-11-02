@@ -20,8 +20,12 @@ expect_equal(llm.api:::.cost_for("gpt-4o", "openai", 1000, 500), 0.0075)
 expect_equal(llm.api:::.cost_for("claude-sonnet-4-6", "anthropic", 1000, 500),
              0.0105)
 
-# Dated Anthropic id resolves to the same per-token rate.
-expect_equal(llm.api:::.cost_for("claude-sonnet-4-20250514", "anthropic", 1000, 500),
+# Dated Anthropic id resolves to its per-token rate
+# (claude-sonnet-4-5-20250929: input 3e-06, output 1.5e-05 -> 0.0105).
+# There is no date stripping: the id has to be a litellm key, and retired
+# dated ids drop out on a refresh (claude-sonnet-4-20250514 left the table
+# in the 2026-11-02 snapshot).
+expect_equal(llm.api:::.cost_for("claude-sonnet-4-5-20250929", "anthropic", 1000, 500),
              0.0105)
 
 # ---- Current-generation models (litellm snapshot 2026-09-02) ----
@@ -48,6 +52,22 @@ expect_equal(llm.api:::.cost_for("claude-opus-5", "anthropic", 1000, 500),
              0.0175)
 expect_equal(llm.api:::.cost_for("claude-opus-5", "anthropic_claude", 1000, 500),
              0.0175)
+
+# ---- The 0.1.9.17 defaults (litellm snapshot 2026-11-02) ----
+# Both were NA in the 2026-09-02 snapshot, so a default call priced as NA.
+
+# claude-opus-5-5: input 4e-06, output 2e-05 -> 0.014, on both Anthropic
+# providers.
+expect_equal(llm.api:::.cost_for("claude-opus-5-5", "anthropic", 1000, 500),
+             0.014)
+expect_equal(llm.api:::.cost_for("claude-opus-5-5", "anthropic_claude", 1000, 500),
+             0.014)
+
+# gpt-6.1-sol: input 2e-06, output 1e-05 -> 0.007. The codex hand table
+# has no 6.1 entry, so the openai_codex row proves the bare-key fallthrough.
+expect_equal(llm.api:::.cost_for("gpt-6.1-sol", "openai", 1000, 500), 0.007)
+expect_equal(llm.api:::.cost_for("gpt-6.1-sol", "openai_codex", 1000, 500),
+             0.007)
 
 # usage_cost() through the OpenAI gross-count path: a codex usage
 # reports input_tokens *including* cached ones, so 4417 in / 4224
