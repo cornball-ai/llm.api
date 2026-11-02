@@ -17,6 +17,7 @@
 #' @examples
 #' \dontrun{
 #' list_models("openai")
+#' list_models("google")
 #' list_models("openai_codex")
 #' }
 #' @export
@@ -31,7 +32,7 @@ list_models <- function(provider, base_url = NULL, timeout = 5,
         ids <- vapply(models, function(x) x$slug %||% "", character(1))
         return(structure(unique(ids[nzchar(ids)]), source = "Codex cache"))
     }
-    if (!provider %in% c("openai", "anthropic", "moonshot", "ollama",
+    if (!provider %in% c("openai", "anthropic", "moonshot", "google", "ollama",
                          "openai_compatible")) {
         stop("No model catalog for provider: ", provider, call. = FALSE)
     }
@@ -42,7 +43,7 @@ list_models <- function(provider, base_url = NULL, timeout = 5,
     }
     headers <- list(Accept = "application/json")
     path <- if (provider == "ollama") "/api/tags" else if
-    (provider == "openai_compatible") "/models" else "/v1/models"
+    (provider %in% c("openai_compatible", "google")) "/models" else "/v1/models"
     if (provider == "anthropic") {
         headers[["x-api-key"]] <- config$api_key
         headers[["anthropic-version"]] <- "2023-06-01"
@@ -77,6 +78,11 @@ list_models <- function(provider, base_url = NULL, timeout = 5,
             stop("Invalid model catalog pagination.", call. = FALSE)
         }
         cursor <- next_cursor
+    }
+    if (provider == "google") {
+        # Gemini's catalog lists "models/gemini-..." while its chat
+        # endpoint takes the bare id, so return what chat() accepts.
+        ids <- sub("^models/", "", ids)
     }
     structure(sort(unique(ids[nzchar(ids)])), source = "provider")
 }

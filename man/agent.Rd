@@ -9,8 +9,8 @@ agent(
   tool_handler = NULL,
   system = NULL,
   model = NULL,
-  provider = c("anthropic", "anthropic_claude", "openai", "moonshot", "openai_codex",
-    "ollama", "openai_compatible"),
+  provider = c("anthropic", "anthropic_claude", "openai", "moonshot", "google",
+    "openai_codex", "ollama", "openai_compatible"),
   max_turns = 20L,
   verbose = TRUE,
   history = NULL,
@@ -43,7 +43,7 @@ text for this turn), `agent_turn`, `call_index`, `call_count`, and
 \item{model}{Character. Model name.}
 
 \item{provider}{Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
-"openai_codex", "ollama", or "openai_compatible" (a generic
+"google", "openai_codex", "ollama", or "openai_compatible" (a generic
 OpenAI-compatible gateway; requires a base URL via
 \code{llm_base()} or \code{OPENAI_COMPATIBLE_BASE_URL}, and an
 explicit \code{model}).

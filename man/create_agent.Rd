@@ -7,8 +7,8 @@ create_agent(
   servers = list(),
   system = NULL,
   model = NULL,
-  provider = c("anthropic", "anthropic_claude", "openai", "moonshot", "openai_codex",
-    "ollama", "openai_compatible"),
+  provider = c("anthropic", "anthropic_claude", "openai", "moonshot", "google",
+    "openai_codex", "ollama", "openai_compatible"),
   verbose = TRUE
 )
 }
@@ -22,7 +22,7 @@ create_agent(
 \item{model}{Character. Default model.}
 
 \item{provider}{Character. Provider: "anthropic", "anthropic_claude", "openai", "moonshot",
-"openai_codex", "ollama", or "openai_compatible".}
+"google", "openai_codex", "ollama", or "openai_compatible".}
 
 \item{verbose}{Logical. Print tool calls.}
 }

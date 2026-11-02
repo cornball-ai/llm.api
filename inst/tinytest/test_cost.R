@@ -82,6 +82,23 @@ if (!is.null(llm.api:::.PRICES[["moonshot/kimi-k2.5"]])) {
                  info = "moonshot prefix fallback hits moonshot/kimi-k2.5")
 }
 
+# litellm files the Gemini API under "gemini/<id>", so the google
+# provider falls back to that prefix rather than "google/<id>". Pick an
+# id the snapshot holds only in prefixed form so the bare lookup cannot
+# satisfy the assertion.
+local({
+    prices <- llm.api:::.PRICES
+    bare <- sub("^gemini/", "", grep("^gemini/", names(prices), value = TRUE))
+    only_prefixed <- bare[!bare %in% names(prices)]
+    if (length(only_prefixed)) {
+        id <- only_prefixed[[1L]]
+        expect_identical(llm.api:::.price_lookup(id, "google"),
+                         prices[[paste0("gemini/", id)]],
+                         info = "google maps to litellm's gemini/ prefix")
+    }
+    expect_null(llm.api:::.price_lookup("no-such-model", "google"))
+})
+
 # ---- NA / NULL token counts treated as zero ----
 
 # Known model with no tokens at all -> 0, not NA.

@@ -9,7 +9,7 @@ usage_cost(model, provider, usage)
 \item{model}{Character. Model id as sent to the provider.}
 
 \item{provider}{Character. "anthropic", "anthropic_claude", "openai", "moonshot",
-"openai_codex", "ollama", or "openai_compatible" (gateway model
+"google", "openai_codex", "ollama", or "openai_compatible" (gateway model
 ids rarely match the bundled price snapshot, so cost is
 usually `NA`).}
 

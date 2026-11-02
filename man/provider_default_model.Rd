@@ -7,8 +7,8 @@ provider_default_model(provider)
 }
 \arguments{
 \item{provider}{Character. One of `"openai"`, `"anthropic"`,
-`"anthropic_claude"`, `"moonshot"`, `"openai_codex"`, `"ollama"`,
-`"openai_compatible"`.}
+`"anthropic_claude"`, `"moonshot"`, `"google"`, `"openai_codex"`,
+`"ollama"`, `"openai_compatible"`.}
 }
 \value{
 Character. The default model id for that provider, or NULL
@@ -24,4 +24,5 @@ duplicating the lookup table.
 \examples{
 provider_default_model("anthropic")
 provider_default_model("moonshot")
+provider_default_model("google")
 }

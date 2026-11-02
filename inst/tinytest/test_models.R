@@ -11,6 +11,10 @@ local({
     assignInNamespace(".models_get", function(url, headers, timeout) {
         seen[[length(seen) + 1L]] <<- list(url = url, headers = headers,
                                           timeout = timeout)
+        if (grepl("googleapis", url)) {
+            return(list(data = list(list(id = "models/gemini-b"),
+                                    list(id = "models/gemini-a"))))
+        }
         if (grepl("/api/tags$", url)) {
             return(list(models = list(list(name = "local-small"), list(name = "local-large"))))
         }
@@ -36,6 +40,12 @@ local({
     models <- llm.api::list_models("ollama", base_url = "http://localhost:12345")
     expect_equal(as.vector(models), c("local-large", "local-small"))
     expect_equal(seen[[5]]$url, "http://localhost:12345/api/tags")
+    # Gemini lists "models/<id>" but chats on the bare id.
+    models <- llm.api::list_models("google")
+    expect_equal(as.vector(models), c("gemini-a", "gemini-b"))
+    expect_equal(seen[[6]]$url,
+                 "https://generativelanguage.googleapis.com/v1beta/openai/models")
+    expect_equal(seen[[6]]$headers$Authorization, "Bearer fixture-key")
     expect_error(llm.api::list_models("anthropic_claude"), "No model catalog")
     path <- tempfile(fileext = ".json")
     on.exit(unlink(path), add = TRUE)
@@ -45,7 +55,7 @@ local({
     cached <- llm.api::list_models("openai_codex", codex_cache = path)
     expect_equal(as.vector(cached), "gpt-visible")
     expect_equal(attr(cached, "source"), "Codex cache")
-    expect_equal(length(seen), 5L)
+    expect_equal(length(seen), 6L)
     assignInNamespace(".models_get", function(...) list(error = "bad"), "llm.api")
     expect_error(llm.api::list_models("openai"), "Invalid provider model catalog")
 })

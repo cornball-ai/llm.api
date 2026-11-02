@@ -108,6 +108,22 @@ local({
                      c("a", "b"))
 })
 
+# Provider extras on a call are kept. Gemini's compat endpoint sends a
+# thought signature under extra_content and rejects the next request
+# when the echoed call lacks it, so dropping it here breaks every
+# streamed tool loop against Gemini 3.
+local({
+    resp <- post(c(
+        paste0('{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1",',
+               '"type":"function",',
+               '"extra_content":{"google":{"thought_signature":"sig"}},',
+               '"function":{"name":"get_weather","arguments":"{}"}}]}}]}'),
+        '{"choices":[{"delta":{},"finish_reason":"tool_calls"}]}'))
+    tc <- resp$choices[[1L]]$message$tool_calls[[1L]]
+    expect_identical(tc$extra_content,
+                     list(google = list(thought_signature = "sig")))
+})
+
 # --- Cancellation ---
 
 local({
@@ -149,7 +165,9 @@ local({
                        tool_calls = list(
                            list(id = "call_1", type = "function",
                                 `function` = list(name = "get_weather",
-                                    arguments = '{"city":"Chicago"}')),
+                                    arguments = '{"city":"Chicago"}'),
+                                extra_content = list(google = list(
+                                    thought_signature = "sig"))),
                            list(id = "call_2", type = "function",
                                 `function` = list(name = "get_time",
                                     arguments = '{"tz":"CST"}')))),
@@ -159,6 +177,7 @@ local({
     fragments <- c(
         paste0('{"choices":[{"delta":{"role":"assistant","tool_calls":[',
                '{"index":0,"id":"call_1","type":"function",',
+               '"extra_content":{"google":{"thought_signature":"sig"}},',
                '"function":{"name":"get_weather","arguments":"{\\"ci"}}]}}]}'),
         paste0('{"choices":[{"delta":{"tool_calls":[{"index":0,',
                '"function":{"arguments":"ty\\":\\"Chicago\\"}"}}]}}]}'),

@@ -1,3 +1,20 @@
+# llm.api 0.1.9.16
+
+* Add the `google` provider: Gemini through Google's OpenAI-compatible
+  endpoint, for `chat()`, `agent()`, `chat_session()`, `list_models()` and
+  cost lookup. The key comes from `GEMINI_API_KEY`, then `GOOGLE_API_KEY`;
+  a model id starting with `gemini` auto-detects the provider and the
+  default model is `gemini-3.5-flash`. `web_search` is not available
+  through that endpoint and warns as unsupported.
+* The bundled price-table fingerprint now hashes the serialized payload
+  without the stream header, which records the R version that wrote it.
+  The provenance test only passed on the R version that generated the
+  snapshot and failed once CI moved to R 4.6.2.
+* Streamed tool calls keep provider extras such as Gemini's `extra_content`
+  thought signature, which Gemini 3 requires on the echoed call. A streamed
+  `agent()` tool loop against Gemini previously failed on the second request
+  with a 400.
+
 # llm.api 0.1.9.15
 
 * Add optional `request_callback` to `agent()` and `chat()`. Observe the exact

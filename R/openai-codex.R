@@ -281,11 +281,7 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
     request <- .request_new(payload, "responses", body$model)
     h <- curl::new_handle()
-    curl::handle_setopt(
-                        h,
-                        customrequest = "POST",
-                        postfields = payload
-    )
+    curl::handle_setopt(h, customrequest = "POST", postfields = payload)
     curl::handle_setheaders(h, .list = as.list(headers))
 
     result <- NULL
@@ -345,8 +341,8 @@ chat_openai_codex <- function(prompt, model = "gpt-5.5", ...) {
     # and a cancelled request that answered nothing would be a worse
     # account of what happened than a partial one.
     fetched <- .request_fetch(request,
-        .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
-        snapshot = function(fetched) list(response = fetched$value,
+                              .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
+                              snapshot = function(fetched) list(response = fetched$value,
             cancelled = fetched$cancelled, data = result))
     if (fetched$cancelled) {
         partial <- result %||% list(output = list(), usage = NULL)
