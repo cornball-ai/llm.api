@@ -187,8 +187,9 @@
         curl::handle_setopt(h, customrequest = "POST", postfields = payload)
         curl::handle_setheaders(h, .list = as.list(headers))
         .request_fetch(request,
-            .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
-            snapshot = function(fetched) list(response = fetched$value,
+                       .llm_with_cancel(curl::curl_fetch_stream(url, callback,
+                    handle = h)),
+                       snapshot = function(fetched) list(response = fetched$value,
                 cancelled = fetched$cancelled, data = list(usage = state$usage,
                     id = state$id, model = state$model, stop_reason = state$stop_reason)))
     }

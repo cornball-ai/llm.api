@@ -161,7 +161,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
                   history_callback = NULL, checkpoint_callback = NULL,
                   cache = c("none", "5m", "1h"),
                   thinking_budget_tokens = NULL, web_search = FALSE,
-                  on_delta = NULL, thinking = NULL, request_callback = NULL, ...) {
+                  on_delta = NULL, thinking = NULL, request_callback = NULL,
+                  ...) {
     provider <- match.arg(provider)
     previous_request <- .request_enter(request_callback, provider)
     on.exit(.request_runtime$current <- previous_request, add = TRUE)
@@ -1029,8 +1030,12 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     .llm_assert_translated(body$messages, "the request body")
     payload <- jsonlite::toJSON(body, auto_unbox = TRUE, null = "null")
     request <- .request_new(payload,
-        if (.is_anthropic(.request_runtime$current$provider %||% "")) "messages" else "chat_completions",
-        body$model)
+        if (.is_anthropic(.request_runtime$current$provider %||% "")) {
+            "messages"
+        } else {
+            "chat_completions"
+        },
+                            body$model)
     run <- function() {
         h <- curl::new_handle()
         curl::handle_setopt(h, customrequest = "POST", postfields = payload)

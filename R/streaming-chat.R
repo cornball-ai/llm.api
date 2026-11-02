@@ -69,8 +69,7 @@
     request <- .request_new(payload, "chat_completions", body$model)
 
     h <- curl::new_handle()
-    curl::handle_setopt(h, customrequest = "POST",
-                        postfields = payload)
+    curl::handle_setopt(h, customrequest = "POST", postfields = payload)
     curl::handle_setheaders(h, .list = as.list(headers))
 
     content <- ""
@@ -161,10 +160,11 @@
     }
 
     fetched <- .request_fetch(request,
-        .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
-        snapshot = function(fetched) list(response = fetched$value,
-            cancelled = fetched$cancelled, data = list(usage = usage, id = response_id,
-                model = reported_model, stop_reason = finish_reason)))
+                              .llm_with_cancel(curl::curl_fetch_stream(url, callback, handle = h)),
+                              snapshot = function(fetched) list(response = fetched$value,
+            cancelled = fetched$cancelled, data = list(usage = usage,
+                id = response_id, model = reported_model,
+                stop_reason = finish_reason)))
     if (fetched$cancelled) {
         partial <- assemble()
         attr(partial, "llm_cancelled") <- TRUE

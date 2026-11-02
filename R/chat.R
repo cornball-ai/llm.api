@@ -548,12 +548,12 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     payload <- jsonlite::toJSON(body, auto_unbox = TRUE)
     request <- .request_new(payload, "chat_completions", body$model)
     h <- curl::new_handle()
-    curl::handle_setopt(h, customrequest = "POST",
-                        postfields = payload)
+    curl::handle_setopt(h, customrequest = "POST", postfields = payload)
     curl::handle_setheaders(h, .list = as.list(headers))
 
     {
-        resp <- .request_fetch(request, curl::curl_fetch_memory(url, handle = h))
+        resp <- .request_fetch(request,
+                               curl::curl_fetch_memory(url, handle = h))
 
         if (resp$status_code >= 400) {
             err <- tryCatch(
@@ -654,10 +654,7 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
     payload <- jsonlite::toJSON(anthropic_body, auto_unbox = TRUE)
     request <- .request_new(payload, "messages", anthropic_body$model)
     h <- curl::new_handle()
-    curl::handle_setopt(h,
-                        customrequest = "POST",
-                        postfields = payload
-    )
+    curl::handle_setopt(h, customrequest = "POST", postfields = payload)
     curl::handle_setheaders(h, .list = as.list(headers))
 
     resp <- .request_fetch(request, curl::curl_fetch_memory(url, handle = h))
