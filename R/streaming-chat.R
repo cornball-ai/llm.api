@@ -34,6 +34,14 @@
         cur[["function"]]$arguments <- paste0(
             cur[["function"]]$arguments %||% "", fn$arguments)
     }
+    # Provider extras ride along unchanged. Gemini's OpenAI-compatible
+    # endpoint puts a thought signature on each call under
+    # `extra_content` and rejects the follow-up request (400, "missing a
+    # thought_signature") when the echoed call lacks it. The non-streamed
+    # path keeps the raw message, so this keeps the streamed one equal.
+    if (!is.null(tc$extra_content)) {
+        cur$extra_content <- tc$extra_content
+    }
     calls[[key]] <- cur
     calls
 }

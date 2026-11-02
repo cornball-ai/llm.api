@@ -1,3 +1,10 @@
+# llm.api 0.1.9.16
+
+* Streamed tool calls keep provider extras such as Gemini's `extra_content`
+  thought signature, which Gemini 3 requires on the echoed call. A streamed
+  `agent()` tool loop against Gemini previously failed on the second request
+  with a 400.
+
 # llm.api 0.1.9.15
 
 * Add optional `request_callback` to `agent()` and `chat()`. Observe the exact
