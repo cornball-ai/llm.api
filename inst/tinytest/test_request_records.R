@@ -207,3 +207,15 @@ local({
         expect_equal(request_count, 1L)
     }
 })
+
+# The request-ID prefix is taken at first use in the session, not when
+# the package was built.
+local({
+    old <- llm.api:::.request_runtime$started
+    on.exit(assign("started", old, envir = llm.api:::.request_runtime))
+    assign("started", NULL, envir = llm.api:::.request_runtime)
+    before <- format(Sys.time() - 1, "%Y%m%dT%H%M%S", tz = "UTC")
+    stamp <- llm.api:::.request_started()
+    expect_true(substr(stamp, 1L, 15L) >= before)
+    expect_identical(llm.api:::.request_started(), stamp)
+})

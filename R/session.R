@@ -167,7 +167,7 @@ chat_session_openai_codex <- function(model = "gpt-6.1-sol",
 #'
 #' Convenience wrapper for chat_session with Anthropic provider.
 #'
-#' @param model Character. Model name (default: "claude-opus-5-5").
+#' @param model Character. Model name (default: "claude-sonnet-4-6").
 #' @param system_prompt Character or NULL. System prompt.
 #' @param ... Additional parameters passed to chat_session().
 #'
@@ -179,7 +179,7 @@ chat_session_openai_codex <- function(model = "gpt-6.1-sol",
 #' \dontrun{
 #' session$chat("Hello")
 #' }
-chat_session_anthropic <- function(model = "claude-opus-5-5",
+chat_session_anthropic <- function(model = "claude-sonnet-4-6",
                                    system_prompt = NULL, ...) {
     chat_session(model = model, system_prompt = system_prompt,
                  provider = "anthropic", ...)

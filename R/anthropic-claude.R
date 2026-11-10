@@ -101,6 +101,6 @@ claude_oauth_login <- function(open_url = interactive()) {
 #' claude_oauth_login()
 #' chat_claude_oauth("Explain the theory of relativity")
 #' }
-chat_claude_oauth <- function(prompt, model = "claude-opus-5-5", ...) {
+chat_claude_oauth <- function(prompt, model = "claude-sonnet-4-6", ...) {
     chat(prompt, model = model, provider = "anthropic_claude", ...)
 }

@@ -135,3 +135,32 @@ trivial <- list(
 )
 expect_equal(length(llm.api::history_tool_calls(trivial)), 0L)
 expect_equal(llm.api::history_count_tool_calls(trivial), 0L)
+
+# ---- Responses shape (openai_codex, and openai on the Responses wire) ----
+
+responses_history <- list(
+    list(role = "user", content = "weather?"),
+    list(type = ".openai_codex_output", output = list(
+        list(type = "reasoning", id = "rs_1"),
+        list(type = "function_call", call_id = "call_1", name = "get_weather",
+             arguments = "{\"city\":\"Chicago\"}"),
+        list(type = "function_call", call_id = "call_2", name = "get_time",
+             arguments = "{}"))),
+    list(type = "function_call_output", call_id = "call_1", output = "72F"),
+    list(type = ".openai_codex_output", output = list(
+        list(type = "message",
+             content = list(list(type = "output_text", text = "72F")))))
+)
+calls <- llm.api::history_tool_calls(responses_history)
+expect_equal(length(calls), 2L)
+expect_identical(calls[[1]]$id, "call_1")
+expect_identical(calls[[1]]$name, "get_weather")
+expect_identical(calls[[1]]$arguments, list(city = "Chicago"))
+expect_identical(calls[[1]]$result, "72F")
+expect_true(calls[[1]]$completed)
+expect_identical(calls[[1]]$call_message_index, 2L)
+expect_identical(calls[[1]]$result_message_index, 3L)
+expect_identical(calls[[1]]$provider_shape, "responses")
+expect_false(calls[[2]]$completed)
+expect_equal(llm.api::history_count_tool_calls(responses_history,
+                                                completed_only = TRUE), 1L)

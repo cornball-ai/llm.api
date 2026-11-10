@@ -651,44 +651,50 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
         oauth = is.function(config$credentials), thinking = thinking)
 
     headers <- .anthropic_headers(config)
-    payload <- jsonlite::toJSON(anthropic_body, auto_unbox = TRUE)
-    request <- .request_new(payload, "messages", anthropic_body$model)
-    h <- curl::new_handle()
-    curl::handle_setopt(h, customrequest = "POST", postfields = payload)
-    curl::handle_setheaders(h, .list = as.list(headers))
 
-    resp <- .request_fetch(request, curl::curl_fetch_memory(url, handle = h))
-
-    if (resp$status_code >= 400) {
-        raw <- rawToChar(resp$content)
-        err <- tryCatch(jsonlite::fromJSON(raw), error = function(e) NULL)
-        detail <- err$error$message %||% err$message %||% trimws(raw)
-        if (!nzchar(detail)) {
-            detail <- "no error body"
-        }
-        etype <- err$error$type %||% err$type
-        stop("API error (", resp$status_code,
-            if (!is.null(etype) && nzchar(etype)) paste0(" ", etype) else "",
-             "): ", detail, call. = FALSE)
-    }
-
-    data <- jsonlite::fromJSON(rawToChar(resp$content))
-
-    # Handle both data.frame and list formats from jsonlite. content is an
-    # ordered list of blocks; pull text out of "text" blocks and thinking
-    # out of "thinking" blocks.
-    if (is.data.frame(data$content)) {
-        types <- data$content$type
-        texts <- as.character(data$content$text %||% rep(NA, length(types)))
-        thinking_blocks <- data$content$thinking[types == "thinking"]
+    if (isTRUE(stream)) {
+        # The SSE transport the agent loop uses, printing each text
+        # fragment as it arrives. It assembles the non-streamed response
+        # shape, so everything below reads one object either way.
+        data <- .anthropic_post_sse(url, anthropic_body, headers,
+                                    on_delta = function(text) cat(text))
+        cat("\n")
     } else {
-        types <- vapply(data$content, function(b) b$type %||% "", character(1))
-        texts <- vapply(data$content, function(b) {
-            as.character(b$text %||% NA_character_)[1L]
-        }, character(1))
-        thinking_blocks <- vapply(data$content[types == "thinking"],
-                                  function(b) b$thinking %||% "", character(1))
+        payload <- jsonlite::toJSON(anthropic_body, auto_unbox = TRUE)
+        request <- .request_new(payload, "messages", anthropic_body$model)
+        h <- curl::new_handle()
+        curl::handle_setopt(h, customrequest = "POST", postfields = payload)
+        curl::handle_setheaders(h, .list = as.list(headers))
+
+        resp <- .request_fetch(request,
+                               curl::curl_fetch_memory(url, handle = h))
+
+        if (resp$status_code >= 400) {
+            raw <- rawToChar(resp$content)
+            err <- tryCatch(jsonlite::fromJSON(raw), error = function(e) NULL)
+            detail <- err$error$message %||% err$message %||% trimws(raw)
+            if (!nzchar(detail)) {
+                detail <- "no error body"
+            }
+            etype <- err$error$type %||% err$type
+            stop("API error (", resp$status_code,
+                if (!is.null(etype) && nzchar(etype)) paste0(" ", etype) else "",
+                 "): ", detail, call. = FALSE)
+        }
+
+        # Blocks as a list, the shape the SSE transport assembles too.
+        data <- jsonlite::fromJSON(rawToChar(resp$content),
+                                   simplifyVector = FALSE)
     }
+
+    # content is an ordered list of blocks; pull text out of "text"
+    # blocks and thinking out of "thinking" blocks.
+    types <- vapply(data$content, function(b) b$type %||% "", character(1))
+    texts <- vapply(data$content, function(b) {
+        as.character(b$text %||% NA_character_)[1L]
+    }, character(1))
+    thinking_blocks <- vapply(data$content[types == "thinking"],
+                              function(b) b$thinking %||% "", character(1))
 
     content <- .anthropic_join_text(types, texts)
     thinking <- if (length(thinking_blocks)) {
@@ -700,14 +706,10 @@ chat <- function(prompt, model = NULL, system = NULL, history = NULL,
 
     .warn_if_truncated(content, thinking, finish_reason)
 
-    # Web-search citations/queries need the block-level structure, so re-parse
-    # the content as a list (the data.frame parse above flattens nested arrays).
     search_info <- if (isFALSE(body$web_search %||% FALSE)) {
         list(citations = list(), searches = list())
     } else {
-        blocks <- jsonlite::fromJSON(rawToChar(resp$content),
-                                     simplifyVector = FALSE)$content
-        .anthropic_search_blocks(blocks)
+        .anthropic_search_blocks(data$content)
     }
 
     list(

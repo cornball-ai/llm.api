@@ -3,7 +3,7 @@
 \alias{chat_claude}
 \title{Chat with Anthropic Claude}
 \usage{
-chat_claude(prompt, model = "claude-opus-5-5", ...)
+chat_claude(prompt, model = "claude-sonnet-4-6", ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}

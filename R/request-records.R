@@ -2,7 +2,18 @@
 # error handler: its own errors/warnings are isolated from provider behavior.
 .request_runtime <- new.env(parent = emptyenv())
 .request_runtime$counter <- 0
-.request_runtime$started <- format(Sys.time(), "%Y%m%dT%H%M%OS6", tz = "UTC")
+
+# The session's request-ID prefix, set on first use. Top-level code in a
+# package runs when the package is installed, so a timestamp assigned
+# there is the build time: every session of an installed copy (and every
+# user of one CRAN binary) would share it.
+.request_started <- function() {
+    if (is.null(.request_runtime$started)) {
+        .request_runtime$started <- format(Sys.time(), "%Y%m%dT%H%M%OS6",
+                                           tz = "UTC")
+    }
+    .request_runtime$started
+}
 
 .request_enter <- function(callback, provider) {
     if (!is.null(callback) && !is.function(callback)) {
@@ -20,7 +31,7 @@
     }
     .request_runtime$counter <- .request_runtime$counter + 1
     request <- new.env(parent = emptyenv())
-    request$id <- paste(.request_runtime$started, Sys.getpid(),
+    request$id <- paste(.request_started(), Sys.getpid(),
                         format(.request_runtime$counter, scientific = FALSE, trim = TRUE), sep = ":")
     request$attempt <- 0L
     request$observer <- observer

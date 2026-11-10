@@ -120,6 +120,23 @@
     .num0(d[["cached_tokens"]])
 }
 
+# Billable output tokens from a usage list in either shape.
+#
+# Gemini's OpenAI-compatible endpoint leaves thinking tokens out of
+# `completion_tokens` and counts them only in `total_tokens` (observed:
+# 12 prompt, 2 completion, 120 total). Google bills them as output, so
+# for `google` the output is whatever the total holds beyond the prompt.
+#' @noRd
+.usage_output_tokens <- function(usage, provider) {
+    out <- usage[["output_tokens"]] %||% usage[["completion_tokens"]]
+    prompt <- usage[["prompt_tokens"]]
+    total <- usage[["total_tokens"]]
+    if (identical(provider, "google") && !is.null(prompt) && !is.null(total)) {
+        out <- max(.num0(out), .num0(total) - .num0(prompt))
+    }
+    out
+}
+
 #' Estimate the USD cost of one call's token usage
 #'
 #' Computes the offline cost estimate for a usage object, the same
@@ -162,7 +179,7 @@ usage_cost <- function(model, provider, usage) {
     if (identical(provider, "anthropic_claude")) {
         provider <- "anthropic"
     }
-    out_tokens <- usage[["output_tokens"]] %||% usage[["completion_tokens"]]
+    out_tokens <- .usage_output_tokens(usage, provider)
 
     if (identical(provider, "anthropic")) {
         ct <- .cache_tokens(usage)

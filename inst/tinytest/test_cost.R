@@ -307,3 +307,23 @@ local({
     expect_equal(llm.api::usage_cost("claude-sonnet-4-6", "anthropic", res$usage),
                  res$usage$cost)
 })
+
+# Gemini reports thinking tokens only in total_tokens; they bill as output.
+local({
+    ids <- grep("^gemini/", names(llm.api:::.PRICES), value = TRUE)
+    if (length(ids)) {
+        id <- sub("^gemini/", "", ids[[1L]])
+        thought <- list(prompt_tokens = 12, completion_tokens = 2,
+                        total_tokens = 120)
+        plain <- list(prompt_tokens = 12, completion_tokens = 108)
+        expect_equal(llm.api::usage_cost(id, "google", thought),
+                     llm.api::usage_cost(id, "google", plain))
+    }
+    u <- list(prompt_tokens = 12, completion_tokens = 2, total_tokens = 120)
+    expect_equal(llm.api:::.usage_output_tokens(u, "google"), 108)
+    # Other providers keep the reported completion count.
+    expect_equal(llm.api:::.usage_output_tokens(u, "openai"), 2)
+    # agent() aggregates carry no prompt_tokens and pass through.
+    agg <- list(input_tokens = 12, output_tokens = 108, total_tokens = 120)
+    expect_equal(llm.api:::.usage_output_tokens(agg, "google"), 108)
+})
