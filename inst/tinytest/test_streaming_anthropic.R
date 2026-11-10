@@ -260,3 +260,40 @@ local({
     expect_identical(streamed, plain)
     expect_identical(quiet, plain)
 })
+
+# --- chat(stream = TRUE) streams on the Anthropic wire ---
+#
+# .chat_anthropic() used to ignore `stream`: one POST, nothing printed.
+
+local({
+    fragments <- c(
+        '{"type":"message_start","message":{"usage":{"input_tokens":9}}}',
+        paste0('{"type":"content_block_start","index":0,',
+               '"content_block":{"type":"thinking","thinking":""}}'),
+        paste0('{"type":"content_block_delta","index":0,',
+               '"delta":{"type":"thinking_delta","thinking":"hm"}}'),
+        '{"type":"content_block_stop","index":0}',
+        paste0('{"type":"content_block_start","index":1,',
+               '"content_block":{"type":"text","text":""}}'),
+        paste0('{"type":"content_block_delta","index":1,',
+               '"delta":{"type":"text_delta","text":"Hello "}}'),
+        paste0('{"type":"content_block_delta","index":1,',
+               '"delta":{"type":"text_delta","text":"there."}}'),
+        '{"type":"content_block_stop","index":1}',
+        paste0('{"type":"message_delta","delta":{"stop_reason":"end_turn"},',
+               '"usage":{"output_tokens":5}}'),
+        '{"type":"message_stop"}')
+    cfg <- list(provider = "anthropic", base_url = sse_url(fragments),
+                chat_path = "", api_key = "k")
+    body <- list(model = "m",
+                 messages = list(list(role = "user", content = "hi")))
+    res <- NULL
+    printed <- capture.output(
+        res <- llm.api:::.chat_anthropic(body, cfg, stream = TRUE))
+    expect_identical(paste(printed, collapse = "\n"), "Hello there.")
+    expect_identical(res$content, "Hello there.")
+    expect_identical(res$thinking, "hm")
+    expect_identical(res$finish_reason, "stop")
+    expect_equal(res$usage$input_tokens, 9L)
+    expect_equal(res$usage$output_tokens, 5L)
+})

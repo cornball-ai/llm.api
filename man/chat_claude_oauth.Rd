@@ -3,7 +3,7 @@
 \alias{chat_claude_oauth}
 \title{Chat with Claude on a subscription (OAuth)}
 \usage{
-chat_claude_oauth(prompt, model = "claude-opus-5-5", ...)
+chat_claude_oauth(prompt, model = "claude-sonnet-4-6", ...)
 }
 \arguments{
 \item{prompt}{Character. The user message to send.}

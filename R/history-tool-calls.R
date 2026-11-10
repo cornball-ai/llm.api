@@ -3,7 +3,7 @@
 # `history` is provider-native by design: it's the sequence of messages
 # we send back into the next API call, so the shape has to match what
 # each provider expects on input. That means consumers walking history
-# for tool-call introspection have to handle two distinct shapes:
+# for tool-call introspection have to handle three distinct shapes:
 #
 #   Anthropic
 #     assistant role, content = list of blocks, with
@@ -15,6 +15,11 @@
 #     assistant role, content = "" (or text), tool_calls = list of
 #       {id, type = "function", function = {name, arguments}}
 #     tool role, tool_call_id, name, content
+#
+#   OpenAI Responses (openai_codex, and openai on the Responses wire)
+#     {type = ".openai_codex_output", output = list of items}, where a
+#       call is an item {type = "function_call", call_id, name, arguments}
+#     {type = "function_call_output", call_id, output}
 #
 # These helpers pair calls with their results and return a single
 # canonical record list so consumers stop reinventing the walk.
@@ -39,7 +44,9 @@
 #'     that issued the call.}
 #'   \item{result_message_index}{1-based index of the message
 #'     carrying the result, or `NA_integer_` for unfinished calls.}
-#'   \item{provider_shape}{`"anthropic"` or `"openai"`. Useful when a
+#'   \item{provider_shape}{`"anthropic"`, `"openai"` (Chat Completions),
+#'     or `"responses"` (the OpenAI Responses wire: `openai_codex`, and
+#'     `openai` when [agent_uses_responses()] is TRUE). Useful when a
 #'     consumer needs to branch on shape (rare).}
 #' }
 #'
@@ -58,6 +65,27 @@ history_tool_calls <- function(history) {
     for (i in seq_along(history)) {
         entry <- history[[i]]
         if (!is.list(entry)) {
+            next
+        }
+        # Responses shape: one entry holds the turn's output items, and
+        # each function_call item is a call.
+        if (identical(entry$type, ".openai_codex_output")) {
+            for (item in entry$output %||% list()) {
+                if (!identical(item$type, "function_call")) {
+                    next
+                }
+                calls[[length(calls) + 1L]] <- list(
+                    id = item$call_id %||% item$id %||% "",
+                    name = item$name %||% "",
+                    arguments = tryCatch(
+                        jsonlite::fromJSON(item$arguments %||% "{}",
+                                           simplifyVector = FALSE),
+                        error = function(e) list()),
+                    result = NULL, completed = FALSE,
+                    call_message_index = i,
+                    result_message_index = NA_integer_,
+                    provider_shape = "responses")
+            }
             next
         }
         role <- entry$role %||% ""
@@ -114,6 +142,25 @@ history_tool_calls <- function(history) {
     for (i in seq_along(history)) {
         entry <- history[[i]]
         if (!is.list(entry)) {
+            next
+        }
+        # Responses: each result is its own function_call_output entry.
+        if (identical(entry$type, "function_call_output")) {
+            target_id <- entry$call_id %||% ""
+            if (!nzchar(target_id)) {
+                next
+            }
+            result_text <- paste(as.character(entry$output %||% ""),
+                                 collapse = "\n")
+            for (j in seq_along(calls)) {
+                if (!calls[[j]]$completed &&
+                    identical(calls[[j]]$id, target_id)) {
+                    calls[[j]]$result <- result_text
+                    calls[[j]]$completed <- TRUE
+                    calls[[j]]$result_message_index <- i
+                    break
+                }
+            }
             next
         }
         role <- entry$role %||% ""

@@ -81,14 +81,14 @@
                             base_url = base %||% "https://api.anthropic.com",
                             chat_path = "/v1/messages",
                             api_key = .get_key("anthropic"),
-                            default_model = "claude-opus-5-5"
+                            default_model = "claude-sonnet-4-6"
         ),
            anthropic_claude = list(
                                    provider = "anthropic_claude",
                                    base_url = base %||% "https://api.anthropic.com",
                                    chat_path = "/v1/messages",
                                    credentials = anthropic_claude_credentials(),
-                                   default_model = "claude-opus-5-5"
+                                   default_model = "claude-sonnet-4-6"
         ),
            moonshot = list(
                            provider = "moonshot",
@@ -220,7 +220,7 @@ chat_openai <- function(prompt, model = "gpt-6.1-sol", ...) {
 #' chat_claude("Explain the theory of relativity")
 #' chat_claude("Write a poem", model = "claude-haiku-4-5")
 #' }
-chat_claude <- function(prompt, model = "claude-opus-5-5", ...) {
+chat_claude <- function(prompt, model = "claude-sonnet-4-6", ...) {
     chat(prompt, model = model, provider = "anthropic", ...)
 }
 

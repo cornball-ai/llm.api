@@ -19,7 +19,7 @@ Minimal-dependency LLM chat interface. Part of [cornyverse](https://github.com/c
 ## Providers
 
 - **openai**: GPT-6.1 Sol (default), GPT-6, GPT-5.x, o-series
-- **anthropic**: Claude (Opus 5.5 default, Sonnet, Haiku) via an API key
+- **anthropic**: Claude (Sonnet 4.6 default, Opus, Haiku) via an API key
 - **anthropic_claude**: Claude on a Claude Pro/Max subscription (OAuth, no API key)
 - **moonshot**: Kimi K2 via Moonshot's OpenAI-compatible API
 - **google**: Gemini via Google's OpenAI-compatible endpoint (`GEMINI_API_KEY`)

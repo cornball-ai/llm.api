@@ -216,13 +216,9 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
     config <- .get_provider_config(provider)
     .check_openai_compatible(config, model)
 
-    # Default models with tool support
+    # The provider table is the one place a default model is named.
     if (is.null(model)) {
-        model <- switch(provider, anthropic =,
-                        anthropic_claude = "claude-opus-5-5",
-                        openai = "gpt-6.1-sol", moonshot = "kimi-k2.5",
-                        google = "gemini-3.5-flash",
-                        openai_codex = "gpt-6.1-sol", ollama = "qwen3.5:9b")
+        model <- config$default_model
     }
 
     # GPT-6 tool calls require Responses even with search disabled. Older
@@ -343,7 +339,8 @@ agent <- function(prompt, tools = list(), tool_handler = NULL, system = NULL,
             # OpenAI/Ollama format
             if (!is.null(u[["prompt_tokens"]])) {
                 total_input_tokens <- total_input_tokens + u[["prompt_tokens"]]
-                total_output_tokens <- total_output_tokens + u[["completion_tokens"]]
+                total_output_tokens <- total_output_tokens +
+                .usage_output_tokens(u, provider)
             }
             # Cache token classes via the shared extractor so the
             # per-TTL Anthropic write split is captured (not just the

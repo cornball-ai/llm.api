@@ -1,3 +1,64 @@
+# llm.api 0.2.0
+
+CRAN release. It collects the development versions 0.1.9.1 through
+0.1.9.18, whose entries below give the detail.
+
+* New `google` provider: Gemini through Google's OpenAI-compatible
+  endpoint, for `chat()`, `agent()`, `chat_session()`, `list_models()`
+  and cost lookup.
+* Streaming on every provider. `agent()` gains `on_delta`, called with
+  each fragment of text as it arrives, and `llm_cancel()` abandons a
+  response from inside it. `chat(stream = TRUE)`, which threw on every
+  call in 0.1.9, works on every provider.
+* Images in a user turn: `llm_image()`, `llm_content()`, and
+  `llm_has_image()`, translated to each provider's block format.
+* `list_models()` lists a provider's model identifiers, and
+  `agent_uses_responses()` reports whether an `agent()` call uses the
+  OpenAI Responses wire.
+* `agent()` gains `checkpoint_callback` (replace history at a safe
+  between-turn boundary), `request_callback` (observe each request and
+  transport attempt), `thinking` (the Anthropic thinking type), and
+  `prompt = NULL` to continue an existing history. `chat()` gains
+  `request_callback` and `thinking`.
+* `agent()` returns `truncated = TRUE` with a `truncation_reason` when the
+  provider cuts a response off, and no longer runs the tool calls of a
+  cut-off response.
+* The Anthropic `agent()` path always streams, and a request the transport
+  loses before any byte arrives is retried once.
+* `cache = "5m"` / `"1h"` caches the Anthropic message history, not only
+  the system prompt.
+* GPT-6 tool calls on `openai` use the Responses endpoint, and
+  `history_tool_calls()` reads those histories.
+* The `openai` and `openai_codex` default model is `gpt-6.1-sol`. The
+  `anthropic` default is `claude-sonnet-4-6`, as in 0.1.9.
+* Price snapshot refreshed to 2026-11-02; `prices_snapshot_digest()`
+  fingerprints the bundled table. Gemini cost counts thinking tokens.
+
+# llm.api 0.1.9.18
+
+* The `anthropic` and `anthropic_claude` default model is
+  `claude-sonnet-4-6` again, as in the 0.1.9 release. 0.1.9.17 had moved it
+  to `claude-opus-5-5`, which changed what callers relying on the default
+  were sent and billed for. Pass `model = "claude-opus-5-5"` to use it; its
+  prices stay in the snapshot. The `openai` and `openai_codex` default
+  remains `gpt-6.1-sol`.
+* Request IDs passed to `request_callback` now start with the time the
+  session made its first request. The prefix was assigned when the package
+  was installed, so every session of one installed copy shared it and only
+  the process ID and counter told sessions apart.
+* `chat(stream = TRUE)` streams on `anthropic` and `anthropic_claude`. It
+  posted once and printed nothing; it now prints the text as it arrives,
+  as on the other providers.
+* `history_tool_calls()` and `history_count_tool_calls()` read Responses
+  histories (`openai_codex`, and `openai` when `agent_uses_responses()` is
+  `TRUE`). They returned no calls for these, which since 0.1.9.17 includes
+  a tool run on the default `openai` model. Such records carry
+  `provider_shape = "responses"`.
+* Gemini cost counts thinking tokens. Google's OpenAI-compatible endpoint
+  reports them only in `total_tokens`, so `usage_cost()` priced a reply
+  with 2 answer tokens and 106 thinking tokens as 2 output tokens.
+  `agent()`'s cumulative `output_tokens` for `google` includes them too.
+
 # llm.api 0.1.9.17
 
 * Default models move up a tier: `anthropic` and `anthropic_claude` default

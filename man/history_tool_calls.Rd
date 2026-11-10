@@ -33,7 +33,9 @@ matching result yet.}
 that issued the call.}
 \item{result_message_index}{1-based index of the message
 carrying the result, or `NA_integer_` for unfinished calls.}
-\item{provider_shape}{`"anthropic"` or `"openai"`. Useful when a
+\item{provider_shape}{`"anthropic"`, `"openai"` (Chat Completions),
+or `"responses"` (the OpenAI Responses wire: `openai_codex`, and
+`openai` when [agent_uses_responses()] is TRUE). Useful when a
 consumer needs to branch on shape (rare).}
 }
 

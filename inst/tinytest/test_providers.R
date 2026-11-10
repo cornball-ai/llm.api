@@ -68,7 +68,7 @@ expect_equal(cfg$default_model, "gpt-6.1-sol")
 cfg <- llm.api:::.get_provider_config("anthropic")
 expect_equal(cfg$base_url, "https://api.anthropic.com")
 expect_equal(cfg$chat_path, "/v1/messages")
-expect_equal(cfg$default_model, "claude-opus-5-5")
+expect_equal(cfg$default_model, "claude-sonnet-4-6")
 
 # Moonshot config
 cfg <- llm.api:::.get_provider_config("moonshot")
@@ -98,8 +98,28 @@ expect_error(llm.api:::.get_provider_config("unknown"), pattern = "Unknown provi
 # supported provider so client code (e.g., status lines) can resolve it
 # upfront without reaching into internals.
 expect_equal(provider_default_model("openai"), "gpt-6.1-sol")
-expect_equal(provider_default_model("anthropic"), "claude-opus-5-5")
+expect_equal(provider_default_model("anthropic"), "claude-sonnet-4-6")
 expect_equal(provider_default_model("moonshot"), "kimi-k2.5")
 expect_equal(provider_default_model("google"), "gemini-3.5-flash")
 expect_equal(provider_default_model("ollama"), "qwen3.5:9b")
 expect_error(provider_default_model("nonsense"), pattern = "Unknown provider")
+
+# --- One source for default models ---
+#
+# The provider table names each default. The convenience wrappers repeat
+# it in their signatures, so pin every one to the table: a default
+# changed in one place and not the other fails here, not downstream.
+local({
+    wrappers <- list(
+        chat_openai = "openai", chat_claude = "anthropic",
+        chat_claude_oauth = "anthropic_claude",
+        chat_openai_codex = "openai_codex", chat_ollama = "ollama",
+        chat_session_openai = "openai",
+        chat_session_openai_codex = "openai_codex",
+        chat_session_anthropic = "anthropic", chat_session_ollama = "ollama")
+    for (fn in names(wrappers)) {
+        expect_identical(
+            formals(getExportedValue("llm.api", fn))$model,
+            provider_default_model(wrappers[[fn]]), info = fn)
+    }
+})
