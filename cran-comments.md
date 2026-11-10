@@ -23,7 +23,8 @@ removed and no existing argument changes meaning.
 ## Test environments
 
 * Local: Ubuntu 24.04, R 4.6.1
-* Windows: WINDOWS_ENVIRONMENTS
+* win-builder: R 4.6.2 (2026-10-29 ucrt) and R-devel (2026-11-07 r90850
+  ucrt)
 
 ## R CMD check results
 
