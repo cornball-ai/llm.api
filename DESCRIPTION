@@ -12,8 +12,9 @@ Authors@R: c(
 Description: A minimal-dependency client for Large Language Model chat APIs.
     Supports 'OpenAI' <https://openai.com/>, 'Anthropic' 'Claude'
     <https://claude.com/>, 'Moonshot' 'Kimi' <https://www.moonshot.ai/>,
-    'OpenAI' 'Codex' subscription endpoints, 'Ollama'
-    <https://ollama.com/>, and other 'OpenAI'-compatible endpoints.
+    'Google' 'Gemini' <https://ai.google.dev/>, 'OpenAI' 'Codex'
+    subscription endpoints, 'Ollama' <https://ollama.com/>, and other
+    'OpenAI'-compatible endpoints. Supports streaming and image input.
     Includes an agent loop with tool use and a 'Model Context
     Protocol' client <https://modelcontextprotocol.io/>. API design is
     derived from the 'ellmer' package, reimplemented with only base R,
